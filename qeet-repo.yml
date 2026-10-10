@@ -10,7 +10,7 @@ repository:
   type: frontend
   role: primary
   status: active
-  visibility: public
+  visibility: private
   default_branch: main
   working_branch: develop
   host: login.id.qeet.in
@@ -24,14 +24,14 @@ runtime:
 architecture:
   style: stateless-thin-client
   statement: "holds no database and no secrets — every action is an API call"
-  routes: [/login, /signup, /forgot-password, /reset, /consent, /device, /logged-out, "/admin-portal/[token]"]
+  routes: [/login, /signup, /forgot-password, /reset, /consent, /device, /logged-out, /admin-portal]
   src: [src/app, src/components, src/lib, src/i18n]
 contracts:
   consumes: {api: qeet-id-server}
-  base_url_env: NEXT_PUBLIC_API_URL
+  base_url_env: PUBLIC_API_URL    # runtime (src/lib/public-config.ts); falls back to build-time NEXT_PUBLIC_API_URL (Vercel)
   base_url_default: http://localhost:4001
-  auth_scheme: cookie + CSRF double-submit
-  session_cookie: qe_ls          # HttpOnly — set by the backend, never read here
+  auth_scheme: HttpOnly cookies + CSRF double-submit
+  session_cookie: qe_ls          # interactive login; admin portal has its own scoped cookie
   csrf: {cookie: qe_csrf, header: X-CSRF-Token, seed: "GET /healthz"}
 role_in_product:
   statement: "The ONLY host where an interactive Qeet ID session is established."
@@ -42,12 +42,19 @@ commands:
   build: bun run build
   typecheck: bun run typecheck
 ci:
-  workflows: []                  # NONE — Vercel build is the only gate
-  deploy: vercel.json
+  workflows: [ci.yml, deploy.yml]
+  jobs: [verify, image, deploy]   # verify = typecheck + build (push develop/release/**, PRs)
+  runner: ubuntu-latest
+  deploy: push main -> gate -> vercel build/deploy --prod -> tag vX.Y.Z + GitHub release (release/x.y.z merge -> exactly vx.y.z; job runs only on main)
+  release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/qeetgroup/qeet-id-login:sha-<commit>, linux/amd64+arm64 (consumed by the qeet-id-deploy test kit)"
+container:
+  dockerfile: Dockerfile          # Next standalone server; not used by Vercel production
+  runtime_env: [PUBLIC_API_URL, PORT, HOSTNAME]
+  health: GET /healthz -> 200
 security:
   sensitive_paths:
     - src/lib/api.ts             # CSRF seeding + credentials: include
-    - src/lib/admin-portal.ts    # token-in-URL is the ONLY credential
+    - src/lib/admin-portal.ts    # one-time fragment exchange, then cookie-only requests
   never: [store a token, weaken CSRF, log an admin-portal token, unsafe redirect]
 llm_context:
   primary_instructions: AGENTS.md

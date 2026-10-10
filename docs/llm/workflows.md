@@ -70,12 +70,13 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 **Security review required. This is the highest-risk surface in the repository.**
 
 ```text
-1  src/lib/admin-portal.ts  +  src/app/admin-portal/[token]/
-2  the URL token is the ONLY credential — treat it as a secret
-3  NEVER log it, NEVER put it in a query string, NEVER include it in an error or telemetry
-4  the SCIM token endpoint returns PLAINTEXT — never render it outside the intended field,
+1  src/lib/admin-portal.ts  +  src/app/admin-portal/
+2  read the one-time token only from `#token=...`, clear the fragment immediately, and exchange it
+3  NEVER store it or place it in a path, query string, React state, log, error, or telemetry
+4  use only the HttpOnly portal-session cookie and token-free API paths after exchange
+5  the SCIM token endpoint returns PLAINTEXT — never render it outside the intended field,
    never persist it, never copy it into an analytics event
-5  bun run typecheck && bun run build
+6  bun run typecheck && bun run build
 ```
 
 ## Change MFA entry

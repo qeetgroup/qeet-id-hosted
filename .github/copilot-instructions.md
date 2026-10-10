@@ -12,14 +12,14 @@ repository → source.
 
 ## Structure
 
-`src/app/` route segments (`login` `signup` `forgot-password` `reset` `consent` `device` `logged-out` `admin-portal/[token]`), `src/components/`, `src/lib/{api,admin-portal,branding}.ts`, `src/i18n/` (English only). Every action is an API call to `qeet-id-server`.
+`src/app/` route segments (`login` `signup` `forgot-password` `reset` `consent` `device` `logged-out` `admin-portal`), `src/components/`, `src/lib/{api,admin-portal,branding}.ts`, `src/i18n/` (English only). Every action is an API call to `qeet-id-server`.
 
 ## Rules
 
-1. **Never store a token.** The session is the backend's HttpOnly `qe_ls` cookie — unreadable here, by design.
+1. **Never store a token.** Login and admin-portal sessions are backend HttpOnly cookies — unreadable here, by design.
 2. **CSRF is not optional.** `credentials: "include"` everywhere; mutations echo `qe_csrf` as `X-CSRF-Token`. Names must match `qeet-id-server` and `qeet-id-react`.
 3. **Never redirect to an unvalidated URL** — always use `safeReturnTo`. An open redirect on the login host is a phishing primitive.
-4. **The admin-portal URL token is the entire credential.** Never log it, never put it in a query string, never include it in an error or telemetry.
+4. **The admin-portal link token is one-time.** Read it only from the URL fragment, clear the fragment immediately, exchange it once for the backend's HttpOnly portal-session cookie, and never store or log it.
 5. **Keep the MFA challenge token in memory** — never the URL, never storage.
 6. **Stay stateless.** No server-side secret; only `NEXT_PUBLIC_*`, which is public by construction.
 

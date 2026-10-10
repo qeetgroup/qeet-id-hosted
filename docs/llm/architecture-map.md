@@ -1,6 +1,6 @@
 # Architecture Map — qeet-id-login
 
-**Level:** L2 · **Last verified:** 2026-08-28
+**Level:** L2 · **Last verified:** 2026-09-05
 **Verification scope:** every path confirmed to exist.
 
 | Need | Path |
@@ -25,10 +25,7 @@
 | `/consent` | `src/app/consent/` | OAuth consent screen |
 | `/device` | `src/app/device/` | device-grant user-code entry |
 | `/logged-out` | `src/app/logged-out/` | post-logout landing |
-| `/admin-portal/[token]` | `src/app/admin-portal/[token]/` | **token-gated** SAML/SCIM self-service |
-
-> The README's route table lists `/admin-portal`, but only the dynamic `[token]` segment exists —
-> there is no index page.
+| `/admin-portal` | `src/app/admin-portal/` | One-time fragment exchange, then cookie-authenticated SAML/SCIM self-service |
 
 ## Components and i18n
 
@@ -61,7 +58,8 @@ POST /v1/oauth/authorize/decision     consent
 GET  /v1/oauth/device?user_code=      device grant
 POST /v1/oauth/device/decision
 GET  /v1/oauth/login-context          per-tenant branding
-     /v1/admin-portal/{token}/...     context · saml · scim · scim/token
+POST /v1/admin-portal/session        one-time fragment-token exchange
+     /v1/admin-portal/...            cookie-authenticated context · saml · scim · scim/token
 ```
 
 The contract is owned by **`qeet-id-server`**.

@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@qeetrix/ui";
 import type { Metadata } from "next";
+import Script from "next/script";
 
 import { I18nProvider } from "@/i18n/provider";
 import "./globals.css";
@@ -20,6 +21,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+        {/* Runtime public config (API origin) — see src/lib/public-config.ts. */}
+        <Script src="/public-config.js" strategy="beforeInteractive" />
       </head>
       <body className="bg-background text-foreground min-h-full font-sans">
         <ThemeProvider defaultTheme="system" storageKey={STORAGE_KEY}>

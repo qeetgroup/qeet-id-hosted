@@ -7,9 +7,8 @@
 ├── src
 │  ├── app
 │  │  ├── admin-portal
-│  │  │  └── [token]
-│  │  │    ├── admin-portal-view.tsx
-│  │  │    └── page.tsx
+│  │  │  ├── admin-portal-view.tsx
+│  │  │  └── page.tsx
 │  │  ├── consent
 │  │  │  ├── consent-form.tsx
 │  │  │  └── page.tsx

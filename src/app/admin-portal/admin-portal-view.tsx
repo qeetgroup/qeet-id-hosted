@@ -26,7 +26,6 @@ import {
 } from "@qeetrix/ui";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import {
   createSamlConnection,
@@ -44,25 +43,10 @@ import {
 import { ApiError } from "@/lib/api";
 
 type Props = {
-  token: string;
-  context?: PortalContext;
-  error?: string;
+  context: PortalContext;
 };
 
-export function AdminPortalView({ token, context, error }: Props) {
-  if (error || !context) {
-    return (
-      <AuthCard
-        title="This link isn't available"
-        subtitle="It may have expired, been revoked, or the URL is incomplete."
-      >
-        <p className="text-sm text-muted-foreground">
-          {error ?? "Ask whoever sent you this link to generate a new one."}
-        </p>
-      </AuthCard>
-    );
-  }
-
+export function AdminPortalView({ context }: Props) {
   const hasSaml = context.capabilities.includes("saml");
   const hasScim = context.capabilities.includes("scim");
   const defaultTab = hasSaml ? "saml" : "scim";
@@ -86,12 +70,12 @@ export function AdminPortalView({ token, context, error }: Props) {
         </TabsList>
         {hasSaml && (
           <TabsContent value="saml">
-            <SamlPanel token={token} />
+            <SamlPanel />
           </TabsContent>
         )}
         {hasScim && (
           <TabsContent value="scim">
-            <ScimPanel token={token} />
+            <ScimPanel />
           </TabsContent>
         )}
       </Tabs>
@@ -99,19 +83,19 @@ export function AdminPortalView({ token, context, error }: Props) {
   );
 }
 
-function SamlPanel({ token }: { token: string }) {
+function SamlPanel() {
   const [connections, setConnections] = useState<SamlConnection[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const reload = () => {
-    listSamlConnections(token)
+    listSamlConnections()
       .then((res) => setConnections(res.items))
       .catch((err) => setLoadError(err instanceof ApiError ? err.message : "Failed to load."));
   };
 
   useEffect(() => {
     reload();
-  }, [token]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -130,7 +114,7 @@ function SamlPanel({ token }: { token: string }) {
           ) : (
             <ul className="divide-y">
               {connections.map((c) => (
-                <SamlConnectionRow key={c.id} token={token} connection={c} onChange={reload} />
+                <SamlConnectionRow key={c.id} connection={c} onChange={reload} />
               ))}
             </ul>
           )}
@@ -138,17 +122,15 @@ function SamlPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <CreateSamlCard token={token} onCreated={reload} />
+      <CreateSamlCard onCreated={reload} />
     </div>
   );
 }
 
 function SamlConnectionRow({
-  token,
   connection: c,
   onChange,
 }: {
-  token: string;
   connection: SamlConnection;
   onChange: () => void;
 }) {
@@ -160,7 +142,7 @@ function SamlConnectionRow({
     setBusy(true);
     setErr(null);
     try {
-      setTestResult(await testSamlConnection(token, c.id));
+      setTestResult(await testSamlConnection(c.id));
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Test failed.");
     } finally {
@@ -172,7 +154,7 @@ function SamlConnectionRow({
     if (!window.confirm(`Delete the "${c.name}" connection?`)) return;
     setBusy(true);
     try {
-      await deleteSamlConnection(token, c.id);
+      await deleteSamlConnection(c.id);
       onChange();
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : "Delete failed.");
@@ -217,17 +199,18 @@ function SamlConnectionRow({
   );
 }
 
-function CreateSamlCard({ token, onCreated }: { token: string; onCreated: () => void }) {
+function CreateSamlCard({ onCreated }: { onCreated: () => void }) {
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
+    const formElement = e.currentTarget;
+    const form = new FormData(formElement);
     setPending(true);
     setErr(null);
     try {
-      await createSamlConnection(token, {
+      await createSamlConnection({
         name: String(form.get("name") ?? ""),
         idp_entity_id: String(form.get("idp_entity_id") ?? ""),
         idp_sso_url: String(form.get("idp_sso_url") ?? ""),
@@ -236,7 +219,7 @@ function CreateSamlCard({ token, onCreated }: { token: string; onCreated: () => 
         name_attribute: String(form.get("name_attribute") ?? ""),
         status: form.get("status") === "active" ? "active" : "draft",
       });
-      e.currentTarget.reset();
+      formElement.reset();
       onCreated();
     } catch (ex) {
       setErr(ex instanceof ApiError ? ex.message : "Could not create the connection.");
@@ -321,27 +304,27 @@ function CreateSamlCard({ token, onCreated }: { token: string; onCreated: () => 
   );
 }
 
-function ScimPanel({ token }: { token: string }) {
+function ScimPanel() {
   const [config, setConfig] = useState<ScimConfig | null>(null);
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const reload = () => {
-    getScimConfig(token)
+    getScimConfig()
       .then(setConfig)
       .catch((e) => setErr(e instanceof ApiError ? e.message : "Failed to load."));
   };
 
   useEffect(() => {
     reload();
-  }, [token]);
+  }, []);
 
   const rotate = async () => {
     setBusy(true);
     setErr(null);
     try {
-      const res = await rotateScimToken(token);
+      const res = await rotateScimToken();
       setFreshToken(res.token);
       setConfig(res.config);
     } catch (e) {
@@ -356,7 +339,7 @@ function ScimPanel({ token }: { token: string }) {
     setBusy(true);
     setErr(null);
     try {
-      await revokeScimToken(token);
+      await revokeScimToken();
       setFreshToken(null);
       reload();
     } catch (e) {

@@ -37,13 +37,15 @@ Product-level flow narratives: `qeet-id-context/FLOWS/`.
 ## Rules
 
 ### 1. Stay stateless
-**No database, no secrets, no server-side session.** Only `NEXT_PUBLIC_*` variables, which are
-inlined at build time and therefore public. If a change needs a secret, it belongs in
-`qeet-id-server`.
+**No database, no secrets, no server-side session.** Configuration is public only:
+`NEXT_PUBLIC_*` (inlined at build time) and the runtime `PUBLIC_API_URL`, which
+`src/lib/public-config.ts` reads per request and serves to the browser via `/public-config.js`.
+If a change needs a secret, it belongs in `qeet-id-server`.
 
 ### 2. Never store a token
-The session is the backend's **HttpOnly `qe_ls`** cookie. This app cannot read it and must never
-try. Do not put a token in `localStorage`, `sessionStorage`, a cookie, or React state.
+Interactive login uses the backend's **HttpOnly `qe_ls`** cookie; the admin portal uses a separate
+HttpOnly cookie. This app cannot read either and must never try. Do not put a token in
+`localStorage`, `sessionStorage`, a cookie, or React state.
 
 The pending MFA challenge token is held **in memory only, never in the URL**. Keep it that way.
 
@@ -57,13 +59,14 @@ Every request sets `credentials: "include"`. Mutations read the `qe_csrf` cookie
 `safeReturnTo(returnTo)` guards every `window.location.href`. An open redirect on the login host is
 a phishing primitive — **always** run a candidate URL through it.
 
-### 5. The admin portal's only credential is the URL token
-`/admin-portal/[token]` is deliberately **unauthenticated** — no cookie, no bearer. Whoever holds
-the link holds SAML/SCIM configuration access for that tenant, including a call that returns a
-plaintext SCIM token.
+### 5. The admin portal uses one-time link exchange
+The generated link is `/admin-portal#token=...`. The page must remove the fragment immediately and
+send the token exactly once as a bearer credential to `POST /v1/admin-portal/session`. The backend
+then owns the short-lived HttpOnly portal-session cookie; all later calls use token-free paths and
+normal CSRF protection.
 
-**Therefore:** never log the token, never put it in a query string, never include it in an error
-message, telemetry, or an analytics event.
+Never store the link token, put it in a path/query string/React state, or include it in a log,
+error, telemetry event, or analytics event.
 
 ### 6. Never invent an endpoint
 Verify against the real handler in `qeet-id-server`. This app calls `/v1/...` only.
@@ -90,9 +93,14 @@ bun run generate:tree
 
 ## What CI enforces
 
-**Nothing — this repository has no CI workflow.** The only gate is the Vercel build
-(`vercel.json` pins `bun install --frozen-lockfile` and `bun run build`). Run `bun run typecheck`
-and `bun run build` yourself before pushing.
+| Workflow · job | Runs |
+|---|---|
+| `ci.yml` · `verify` | `bun run typecheck` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
+| `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the `qeet-id-deploy` test kit — never an RC number |
+| `deploy.yml` | Push to `main`: typecheck, Vercel production deploy, tag |
+
+The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
+production does not use it. Health: `GET /healthz`.
 
 ## Before you finish
 

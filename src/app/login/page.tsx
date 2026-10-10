@@ -1,9 +1,9 @@
 import { AuthShell } from "@/components/auth-shell";
 import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
+import { getApiBaseUrl } from "@/lib/public-config";
 
 import { LoginForm } from "./login-form";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
 type LoginContext = {
   client_name?: string;
@@ -28,7 +28,7 @@ async function fetchContext(clientID: string): Promise<LoginContext> {
   if (!clientID) return {};
   try {
     const res = await fetch(
-      `${API}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
+      `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
       {
         cache: "no-store",
       },

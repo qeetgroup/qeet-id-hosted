@@ -8,7 +8,8 @@ import { useTranslation } from "react-i18next";
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
-import { API_BASE_URL, ApiError, apiPost } from "@/lib/api";
+import { ApiError, apiPost } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
 
 type LoginFormProps = {
@@ -32,7 +33,7 @@ function safeReturnTo(returnTo: string): string | null {
   if (!returnTo) return null;
   try {
     const u = new URL(returnTo);
-    const base = new URL(API_BASE_URL);
+    const base = new URL(getApiBaseUrl());
     if (u.origin === base.origin && u.pathname.endsWith("/oauth/authorize")) {
       return u.toString();
     }
@@ -122,7 +123,7 @@ export function LoginForm({
   // cookie on the provider callback and returns to the authorize URL.
   function socialStart(provider: string) {
     const q = new URLSearchParams({ tenant_id: tenantId, return_to: returnTo });
-    window.location.assign(`${API_BASE_URL}/v1/social/${provider}/start?${q.toString()}`);
+    window.location.assign(`${getApiBaseUrl()}/v1/social/${provider}/start?${q.toString()}`);
   }
 
   async function passkeyLogin() {

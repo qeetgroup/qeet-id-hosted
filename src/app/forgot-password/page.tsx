@@ -1,9 +1,9 @@
 import { AuthShell } from "@/components/auth-shell";
 import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
+import { getApiBaseUrl } from "@/lib/public-config";
 
 import { ForgotPasswordForm } from "./forgot-password-form";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
 function clientIDFromReturnTo(returnTo: string): string {
   try {
@@ -24,7 +24,7 @@ async function fetchContext(
   if (!clientID) return { tenantId: "" };
   try {
     const res = await fetch(
-      `${API}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
+      `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
       {
         cache: "no-store",
       },

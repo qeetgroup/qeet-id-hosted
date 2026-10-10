@@ -1,9 +1,9 @@
 import { AuthShell } from "@/components/auth-shell";
 import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
+import { getApiBaseUrl } from "@/lib/public-config";
 
 import { ConsentForm, type ConsentParams } from "./consent-form";
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
 // Resolve the client's friendly name + tenant branding from the same
 // login-context endpoint the sign-in page uses, so consent renders on-brand
@@ -14,7 +14,7 @@ async function fetchContext(
   if (!clientID) return { clientName: "" };
   try {
     const res = await fetch(
-      `${API}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
+      `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
       { cache: "no-store" },
     );
     if (!res.ok) return { clientName: "" };

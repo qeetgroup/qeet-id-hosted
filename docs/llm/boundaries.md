@@ -1,6 +1,6 @@
 # Boundaries — qeet-id-login
 
-**Level:** L2 · **Last verified:** 2026-08-28
+**Level:** L2 · **Last verified:** 2026-09-05
 **Verification scope:** ownership from `qeet-id-context/REPOSITORIES.md`; endpoint list and auth
 model read from source.
 
@@ -40,21 +40,21 @@ package. Its outward contract is the set of `/v1/...` endpoints it calls.
 
 | Boundary | Enforcement |
 |---|---|
-| Session | Backend's **HttpOnly `qe_ls`** — unreadable here, by design |
+| Session | Backend HttpOnly cookies: `qe_ls` for login and a path-scoped admin-portal session |
 | CSRF | `qe_csrf` echoed as `X-CSRF-Token` on mutations |
 | Redirect | `safeReturnTo` on every `window.location.href` |
 | MFA challenge | `mfa_token` in memory only — **never the URL** |
-| Admin portal | **The URL token is the entire credential** |
+| Admin portal | One-time fragment credential exchanged for a short-lived HttpOnly session |
 | Build-time config | `NEXT_PUBLIC_*` only — treat every value as public |
 
 ### The admin-portal exception
 
-`/admin-portal/[token]` is intentionally unauthenticated. The token in the path is the only
-credential, and it unlocks SAML/SCIM configuration for a tenant — including an endpoint that returns
-a **plaintext SCIM token**.
+`/admin-portal#token=...` carries a one-time credential in the fragment. The client clears that
+fragment immediately and exchanges the credential at `POST /v1/admin-portal/session`; all later
+requests use token-free paths and the backend's HttpOnly, SameSite=Strict portal-session cookie.
 
-Handling rules, without exception: **never log it · never place it in a query string · never include
-it in an error message, telemetry event, or analytics call.**
+Handling rules, without exception: **never store it · never place it in a path or query string ·
+never include it in React state, logs, error messages, telemetry, or analytics.**
 
 ## Cross-repository dependencies
 

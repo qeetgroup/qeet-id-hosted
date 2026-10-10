@@ -1,8 +1,7 @@
-// Self-serve Admin Portal client. Every call is scoped by the {token} path
-// segment — no cookie session, no bearer JWT. See the Go package
-// domains/federation/adminportal for the server-side contract.
+// Self-serve Admin Portal client. A URL-fragment credential is exchanged once
+// for an HttpOnly session; every subsequent request uses token-free paths.
 
-import { apiDelete, apiGet, apiPatch, apiPost } from "./api";
+import { apiDelete, apiExchangeBearer, apiGet, apiPatch, apiPost } from "./api";
 import type { BrandingDTO } from "./branding";
 
 export type AdminPortalCapability = "saml" | "scim";
@@ -54,38 +53,48 @@ export interface ScimConfig {
   provisioned_count: number;
 }
 
-export function fetchPortalContext(token: string) {
-  return apiGet<PortalContext>(`/v1/admin-portal/${token}/context`);
+interface PortalSessionResponse {
+  context: PortalContext;
+  expires_at: string;
+  redirect_url: string;
 }
 
-export function listSamlConnections(token: string) {
-  return apiGet<{ items: SamlConnection[] }>(`/v1/admin-portal/${token}/saml`);
+export function exchangePortalSession(token: string) {
+  return apiExchangeBearer<PortalSessionResponse>("/v1/admin-portal/session", token);
 }
 
-export function createSamlConnection(token: string, input: SamlConnectionInput) {
-  return apiPost<SamlConnection>(`/v1/admin-portal/${token}/saml`, input);
+export function fetchPortalContext() {
+  return apiGet<PortalContext>("/v1/admin-portal/context");
 }
 
-export function updateSamlConnection(token: string, id: string, input: SamlConnectionInput) {
-  return apiPatch<SamlConnection>(`/v1/admin-portal/${token}/saml/${id}`, input);
+export function listSamlConnections() {
+  return apiGet<{ items: SamlConnection[] }>("/v1/admin-portal/saml");
 }
 
-export function testSamlConnection(token: string, id: string) {
-  return apiPost<SamlTestResult>(`/v1/admin-portal/${token}/saml/${id}/test`);
+export function createSamlConnection(input: SamlConnectionInput) {
+  return apiPost<SamlConnection>("/v1/admin-portal/saml", input);
 }
 
-export function deleteSamlConnection(token: string, id: string) {
-  return apiDelete<void>(`/v1/admin-portal/${token}/saml/${id}`);
+export function updateSamlConnection(id: string, input: SamlConnectionInput) {
+  return apiPatch<SamlConnection>(`/v1/admin-portal/saml/${id}`, input);
 }
 
-export function getScimConfig(token: string) {
-  return apiGet<ScimConfig>(`/v1/admin-portal/${token}/scim`);
+export function testSamlConnection(id: string) {
+  return apiPost<SamlTestResult>(`/v1/admin-portal/saml/${id}/test`);
 }
 
-export function rotateScimToken(token: string) {
-  return apiPost<{ token: string; config: ScimConfig }>(`/v1/admin-portal/${token}/scim/token`);
+export function deleteSamlConnection(id: string) {
+  return apiDelete<void>(`/v1/admin-portal/saml/${id}`);
 }
 
-export function revokeScimToken(token: string) {
-  return apiDelete<void>(`/v1/admin-portal/${token}/scim/token`);
+export function getScimConfig() {
+  return apiGet<ScimConfig>("/v1/admin-portal/scim");
+}
+
+export function rotateScimToken() {
+  return apiPost<{ token: string; config: ScimConfig }>("/v1/admin-portal/scim/token");
+}
+
+export function revokeScimToken() {
+  return apiDelete<void>("/v1/admin-portal/scim/token");
 }

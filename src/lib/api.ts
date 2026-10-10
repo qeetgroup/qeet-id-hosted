@@ -1,9 +1,8 @@
-// Browser HTTP client for the hosted login/consent flow. Unlike the admin
-// client (bearer tokens in localStorage), this app is cookie-based: the backend
-// sets the HttpOnly SSO cookie (qe_ls), so every request uses
+// Browser HTTP client for the hosted login/consent flow. The backend sets
+// HttpOnly cookies for login and admin-portal sessions, so every request uses
 // `credentials: "include"`. Mutations echo the CSRF double-submit token.
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+import { getApiBaseUrl } from "@/lib/public-config";
 
 export class ApiError extends Error {
   status: number;
@@ -17,7 +16,7 @@ export class ApiError extends Error {
 }
 
 function apiURL(path: string): string {
-  return new URL(path.replace(/^\//, ""), `${API_BASE_URL}/`).toString();
+  return new URL(path.replace(/^\//, ""), `${getApiBaseUrl()}/`).toString();
 }
 
 function readCookie(name: string): string | null {
@@ -84,6 +83,18 @@ export async function apiPost<T = unknown>(path: string, body?: unknown): Promis
       ...(await csrfHeader()),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: "include",
+  });
+  return parse<T>(res);
+}
+
+export async function apiExchangeBearer<T = unknown>(path: string, token: string): Promise<T> {
+  const res = await fetch(apiURL(path), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     credentials: "include",
   });
   return parse<T>(res);

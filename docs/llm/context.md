@@ -1,6 +1,6 @@
 # Repository Context — qeet-id-login
 
-**Level:** L2 · **Status:** active · **Evidence state:** verified · **Last verified:** 2026-08-28
+**Level:** L2 · **Status:** active · **Evidence state:** verified · **Last verified:** 2026-09-05
 **Verification scope:** routes, API client, CSRF behaviour and endpoint list read from source.
 Port requirement cross-checked against `qeet-id-server`'s `.env.example`.
 
@@ -46,12 +46,12 @@ product-surface asymmetry worth knowing before looking for it.
 
 ```text
 browser
-  ↓  credentials: "include"  +  X-CSRF-Token on mutations
+  ↓  credentials: "include"  +  X-CSRF-Token on cookie-authenticated mutations
 src/lib/api.ts          the single client
   ↓
 api.id.qeet.in
   ↓
-backend sets the HttpOnly qe_ls cookie
+backend sets scoped HttpOnly login or admin-portal cookies
 ```
 
 Server components fetch per-tenant branding per page via
@@ -69,7 +69,7 @@ The file's own header comment states the model:
 
 | Concern | Behaviour |
 |---|---|
-| Session | Backend-set **HttpOnly `qe_ls`** — this app can never read it |
+| Session | Backend-set HttpOnly cookies: `qe_ls` for login and a path-scoped portal cookie |
 | CSRF | `qe_csrf` cookie echoed as `X-CSRF-Token` on POST/PATCH/DELETE |
 | Seeding | If `qe_csrf` is absent, fire `GET /healthz` with credentials, then retry |
 | GET | No CSRF header |
@@ -84,24 +84,28 @@ identical contract.
 
 ## The admin portal — the highest-risk surface here
 
-`/admin-portal/[token]` lets an IT administrator at a **customer** configure SAML or SCIM **without
-a Qeet ID account**.
+`/admin-portal` lets an IT administrator at a **customer** configure SAML or SCIM **without a Qeet
+ID account**. A generated link contains a one-time credential in its URL fragment, which browsers
+do not send in HTTP requests.
 
 ```text
 tenant admin generates a capability-scoped, time-limited link
-   ↓
-login.id.qeet.in/admin-portal/{token}
-   ↓  no cookie session, no bearer JWT
-/v1/admin-portal/{token}/{context,saml,scim,scim/token}
+  ↓
+login.id.qeet.in/admin-portal#token=...
+  ↓  clear fragment, then one-time bearer exchange
+POST /v1/admin-portal/session
+  ↓  short-lived HttpOnly, SameSite=Strict portal session
+/v1/admin-portal/{context,saml,scim,scim/token}
 ```
 
-**The URL path token is the only credential.** Any leak — a referrer header, a log line, browser
-history, a screenshot — grants SAML/SCIM configuration access for that tenant, including
-`POST .../scim/token`, which returns a **plaintext SCIM token**.
+The client reads the link token into a local effect variable, removes the fragment before its first
+network request, and exchanges it exactly once. It never stores the token in React state, browser
+storage, a cookie, a path, or a query string. All subsequent requests use token-free paths, the
+backend's HttpOnly portal-session cookie, and normal CSRF protection.
 
-Backend-side the link is capability-scoped (`saml` or `scim`) and bounded (15 min – 7 days,
-24 h default). Client-side, the discipline is: **never log it, never put it in a query string, never
-include it in telemetry or an error.**
+Backend-side the link is capability-scoped (`saml` or `scim`), one-time, and bounded (15 minutes to
+24 hours, 1 hour default). The derived portal session lasts at most 30 minutes and is invalidated
+immediately when its parent link is revoked.
 
 ## Redirect safety
 
@@ -139,7 +143,7 @@ That is a real risk for the repository that owns interactive authentication. `bu
 | Area | Path | Risk | Review |
 |---|---|---|---|
 | CSRF handling, seeding | `src/lib/api.ts` | **Critical** | Security review |
-| Admin-portal token handling | `src/lib/admin-portal.ts` | **Critical** | Security review |
+| Admin-portal exchange and cookie calls | `src/app/admin-portal/page.tsx`, `src/lib/admin-portal.ts` | **Critical** | Security review |
 | Redirect validation | `safeReturnTo` usage | **Critical** | Security review |
 | MFA token handling | `src/app/login/login-form.tsx` | High | Review — memory only |
 | Branding injection | `src/lib/branding.ts` | Medium | Review |
@@ -150,7 +154,6 @@ That is a real risk for the repository that owns interactive authentication. `bu
 - **Port 3003 is load-bearing** and set only by a README instruction, not by configuration.
 - `@qeetrix/ui ^1.0.2` is a **major version behind** npm's `2.0.0`.
 - i18n is **English only** — `src/i18n/locales/en/` is the only locale.
-- The README documents an `/admin-portal` index route that does not exist.
 - `.env.example` is tracked despite `.gitignore` covering `.env*` — it was added before the rule.
 
 ## Documentation authority

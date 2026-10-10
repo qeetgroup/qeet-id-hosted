@@ -9,12 +9,14 @@ export type Branding = {
   logoUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  backgroundColor?: string;
 };
 
 export type BrandingDTO = {
   logo_url?: string;
   primary_color?: string;
   secondary_color?: string;
+  background_color?: string;
 } | null;
 
 export function normalizeBranding(dto?: BrandingDTO): Branding | undefined {
@@ -23,6 +25,7 @@ export function normalizeBranding(dto?: BrandingDTO): Branding | undefined {
   if (dto.logo_url) b.logoUrl = dto.logo_url;
   if (dto.primary_color) b.primaryColor = dto.primary_color;
   if (dto.secondary_color) b.secondaryColor = dto.secondary_color;
+  if (dto.background_color && hexToRgb(dto.background_color)) b.backgroundColor = dto.background_color;
   return Object.keys(b).length ? b : undefined;
 }
 
@@ -33,9 +36,13 @@ export function normalizeBranding(dto?: BrandingDTO): Branding | undefined {
 // light and dark `:root`/.dark token values for that subtree. Returns {} when
 // there's nothing to override (default Qeet look).
 export function brandingVars(b?: Branding): CSSProperties {
-  if (!b?.primaryColor) return {};
+  if (!b) return {};
+  const appearance: Record<string, string> = {};
+  if (b.backgroundColor && hexToRgb(b.backgroundColor)) appearance.backgroundColor = b.backgroundColor;
+  if (!b.primaryColor) return appearance as CSSProperties;
   const primary = b.primaryColor;
   const vars: Record<string, string> = {
+    ...appearance,
     "--primary": primary,
     "--primary-foreground": readableForeground(primary),
     "--ring": primary,
@@ -58,7 +65,10 @@ function readableForeground(color: string): string {
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   }) as [number, number, number];
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance > 0.5 ? "#0a0a0a" : "#ffffff";
+  const darkContrast = (luminance + 0.05) / (10 / 255 / 12.92 + 0.05);
+  const lightContrast = 1.05 / (luminance + 0.05);
+  if (Math.max(darkContrast, lightContrast) < 4.5) return "#000000";
+  return darkContrast > lightContrast ? "#0a0a0a" : "#ffffff";
 }
 
 function hexToRgb(hex: string): [number, number, number] | null {
