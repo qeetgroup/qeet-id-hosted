@@ -2,7 +2,7 @@
 
 import { FingerprintPatternIcon } from "@qeetrix/icons";
 import { Button, Input, OTPInput, Separator } from "@qeetrix/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AuthCard } from "@/components/auth-card";
@@ -10,10 +10,12 @@ import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
 import { ApiError, apiPost } from "@/lib/api";
 import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
+import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
 import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
 
+import { MagicLinkRequest } from "./magic-link-request";
 import { PasskeyPrompt } from "./passkey-prompt";
 
 type LoginFormProps = {
@@ -30,6 +32,9 @@ type LoginFormProps = {
   // server anyway).
   passwordEnabled: boolean;
   passkeyEnabled: boolean;
+  // magicLinkEnabled offers "email me a sign-in link"; true only when the
+  // organisation allows magic links.
+  magicLinkEnabled: boolean;
   // errorCode seeds the error banner from a redirect (e.g. a failed social
   // ceremony bounced back as ?error=social); empty when there's nothing to show.
   errorCode: string;
@@ -58,6 +63,7 @@ export function LoginForm({
   rememberDeviceEnabled,
   passwordEnabled,
   passkeyEnabled,
+  magicLinkEnabled,
   errorCode,
   branding,
 }: LoginFormProps) {
@@ -74,6 +80,26 @@ export function LoginForm({
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   // Set after a password sign-in to offer adding a passkey before continuing.
   const [offerPasskey, setOfferPasskey] = useState(false);
+  // Asking for a one-time sign-in link instead of using a password.
+  const [magicLink, setMagicLink] = useState(false);
+  // Stops the background passkey ceremony behind the email field's
+  // suggestions; called before signing in any other way.
+  const stopAutofill = useRef<() => void>(() => {});
+
+  // Offer the user's passkeys in the browser's own prompt as the form loads.
+  // Signing in that way skips the "add a passkey" offer — they have one.
+  // Started once per form load.
+  useEffect(() => {
+    if (!passkeyEnabled) return;
+    stopAutofill.current = startPasskeyAutofill(
+      () => {
+        const dest = safeReturnTo(returnTo);
+        window.location.href = dest ?? "/security";
+      },
+      (message) => setError(message || t("errors.passkeyFailed")),
+    );
+    return () => stopAutofill.current();
+  }, []);
 
   // Back to the application; with none to return to, on to the signed-in
   // security page (where the user can add a passkey).
@@ -95,6 +121,7 @@ export function LoginForm({
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    stopAutofill.current();
     setError(null);
     setLoading(true);
     try {
@@ -122,6 +149,23 @@ export function LoginForm({
     return <PasskeyPrompt branding={branding} onContinue={continueToApp} />;
   }
 
+  if (magicLink) {
+    return (
+      <AuthCard
+        branding={branding}
+        title={clientName ? t("titleTo", { client: clientName }) : t("title")}
+        subtitle={t("magic.hint")}
+      >
+        <MagicLinkRequest
+          tenantId={tenantId}
+          returnTo={returnTo}
+          initialEmail={email}
+          onBack={() => setMagicLink(false)}
+        />
+      </AuthCard>
+    );
+  }
+
   if (mfaToken) {
     return (
       <MfaChallenge
@@ -140,11 +184,13 @@ export function LoginForm({
   // Social: a full-page redirect into the hosted social flow, which sets the SSO
   // cookie on the provider callback and returns to the authorize URL.
   function socialStart(provider: string) {
+    stopAutofill.current();
     const q = new URLSearchParams({ tenant_id: tenantId, return_to: returnTo });
     window.location.assign(`${getApiBaseUrl()}/v1/social/${provider}/start?${q.toString()}`);
   }
 
   async function passkeyLogin() {
+    stopAutofill.current();
     setError(null);
     setPasskeyBusy(true);
     try {
@@ -262,6 +308,22 @@ export function LoginForm({
         </Button>
       )}
 
+      {magicLinkEnabled && tenantId !== "" && (
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          disabled={busy}
+          onClick={() => {
+            stopAutofill.current();
+            setError(null);
+            setMagicLink(true);
+          }}
+        >
+          {t("magic.link")}
+        </Button>
+      )}
+
       {showSocial && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -289,7 +351,7 @@ export function LoginForm({
         </div>
       )}
 
-      {!passwordEnabled && !passkeyEnabled && !showSocial && (
+      {!passwordEnabled && !passkeyEnabled && !showSocial && !(magicLinkEnabled && tenantId !== "") && (
         <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
       )}
 

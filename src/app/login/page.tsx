@@ -62,6 +62,7 @@ export default async function LoginPage({
         rememberDeviceEnabled={ctx.remember_device_enabled ?? false}
         passwordEnabled={ctx.sign_in_methods?.password ?? true}
         passkeyEnabled={ctx.sign_in_methods?.passkey ?? true}
+        magicLinkEnabled={ctx.sign_in_methods?.magic_link ?? false}
         errorCode={error ?? ""}
         branding={branding}
       />

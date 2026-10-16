@@ -18,6 +18,22 @@
   "social": {
     "divider": "or continue with"
   },
+  "magic": {
+    "link": "Email me a sign-in link",
+    "hint": "We'll email you a link that signs you in once. It works for a short time.",
+    "submit": "Send sign-in link",
+    "busy": "Sending…",
+    "sent": "If {{email}} has an account here, a sign-in link is on its way. It works once and for a short time.",
+    "back": "Back to sign in",
+    "signingIn": "Signing you in…",
+    "signingInText": "One moment while we check your link.",
+    "failedTitle": "This link can't sign you in",
+    "failedText": "It may have been used already or expired. We can send a new one to the same address.",
+    "resend": "Send a new link",
+    "resent": "If the address has an account here, a new sign-in link is on its way.",
+    "missingToken": "This page needs the link from your email.",
+    "goToLogin": "Sign in another way"
+  },
   "noAccount": "Don't have an account?",
   "signUp": "Sign up",
   "mfa": {
