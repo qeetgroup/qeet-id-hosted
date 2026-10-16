@@ -34,7 +34,8 @@ import {
 // a shared package to keep this change small; extract to @qeet-id/providers if it
 // drifts). iconClass handles dark-mode legibility (black-only marks invert in
 // dark, white-only marks invert in light); `fill` is set only for marks that
-// ship without a baked color.
+// ship without a baked color. These are trademarks and keep their official
+// artwork: @qeetrix/icons ships no third-party marks (its AppleIcon is the fruit).
 type IconDef = { Icon: typeof Google; iconClass?: string; fill?: string };
 
 const ICONS: Record<string, IconDef> = {

@@ -1,0 +1,56 @@
+{
+  "title": "Your passkeys",
+  "subtitle": "Sign in with your fingerprint, face or screen lock instead of a password.",
+  "loading": "Loading your passkeys…",
+  "retry": "Try again",
+  "signedOut": {
+    "title": "Sign in to manage your passkeys",
+    "body": "You need to be signed in to see and add passkeys.",
+    "action": "Sign in"
+  },
+  "list": {
+    "empty": "You haven't added a passkey yet.",
+    "unnamed": "Unnamed passkey",
+    "added": "Added {{date}}",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "Not used yet"
+  },
+  "rename": {
+    "action": "Rename",
+    "label": "Passkey name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Passkey renamed."
+  },
+  "add": {
+    "nameLabel": "Name (optional)",
+    "namePlaceholder": "e.g. Work laptop",
+    "nameHint": "Leave it empty to name it after this browser. You can rename it later.",
+    "idle": "Add a passkey",
+    "busy": "Waiting for your device…",
+    "added": "Passkey added. You can use it the next time you sign in."
+  },
+  "disabled": "Your organization has turned off passkeys, so you can't add one.",
+  "unsupported": "This browser can't create passkeys.",
+  "prompt": {
+    "title": "Sign in faster next time",
+    "body": "Add a passkey to sign in with your fingerprint, face or screen lock instead of your password.",
+    "add": "Add a passkey",
+    "busy": "Waiting for your device…",
+    "skip": "Not now",
+    "added": "Passkey added.",
+    "continue": "Continue"
+  },
+  "errors": {
+    "generic": "We couldn't add your passkey. Please try again.",
+    "unsupported": "This browser can't create passkeys.",
+    "cancelled": "The passkey wasn't created. You can try again.",
+    "alreadyRegistered": "This device already has a passkey for your account.",
+    "signedOut": "Your session has ended. Sign in again to continue.",
+    "disabled": "Your organization has turned off passkeys.",
+    "expired": "That took too long. Please try again.",
+    "invalidName": "Use a name of 1 to 64 characters.",
+    "refused": "The request was refused. Reload the page and try again.",
+    "load": "We couldn't load your passkeys. Please try again."
+  }
+}

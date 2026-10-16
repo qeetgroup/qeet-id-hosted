@@ -1,7 +1,7 @@
 "use client";
 
+import { QeetLogo } from "@qeetrix/icons";
 import { cn } from "@qeetrix/ui";
-import { QeetLogoOnDark } from "@qeetrix/ui/brand";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -52,7 +52,8 @@ function BrandPanel({ branding }: { branding?: Branding }) {
           <img src={branding.logoUrl} alt="" className="h-8 w-auto max-w-45 object-contain" />
         ) : (
           <>
-            <QeetLogoOnDark size={34} title={null} />
+            {/* Always the dark-surface file: the panel is the brand gradient in both themes. */}
+            <QeetLogo variant="dark" height={34} />
             <span className="auth-title text-lg font-semibold tracking-tight">Qeet ID</span>
           </>
         )}

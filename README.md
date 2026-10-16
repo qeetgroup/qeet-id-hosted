@@ -26,6 +26,7 @@ Each route is a self-contained step in the hosted-auth journey (`src/app/`):
 | `/device` | **Device authorization** grant — enter the user code from a TV/CLI |
 | `/admin-portal` | WorkOS-style admin-portal entry for an external IT admin (no Qeet ID account required) |
 | `/logged-out` | Post-logout landing |
+| `/security` | The signed-in user's passkeys — see, rename and add one (also offered after a password sign-in) |
 
 ---
 

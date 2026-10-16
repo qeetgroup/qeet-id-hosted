@@ -19,6 +19,19 @@ test("light brand colors use dark button text and dark colors use white", () => 
   assert.equal((brandingVars({ primaryColor: "#777777" }) as Record<string, string>)["--primary-foreground"], "#000000");
 });
 
+test("the primary button takes the tenant color, stepping away from its label on hover", () => {
+  const dark = brandingVars({ primaryColor: "#171717" }) as Record<string, string>;
+  assert.equal(dark["--qx-component-button-primary-background"], "#171717");
+  assert.equal(dark["--qx-component-button-primary-foreground"], "#ffffff");
+  assert.equal(dark["--qx-component-button-primary-background-hover"], "color-mix(in oklab, #171717 88%, black)");
+  assert.equal(dark["--qx-component-button-primary-background-active"], "color-mix(in oklab, #171717 78%, black)");
+  const light = brandingVars({ primaryColor: "#f97316" }) as Record<string, string>;
+  assert.equal(light["--qx-component-button-primary-foreground"], "#0a0a0a");
+  assert.equal(light["--qx-component-button-primary-background-hover"], "color-mix(in oklab, #f97316 88%, white)");
+  const none = brandingVars({ backgroundColor: "#f4f4f5" }) as Record<string, string>;
+  assert.equal(none["--qx-component-button-primary-background"], undefined);
+});
+
 test("existing branding remains unchanged when no background is supplied", () => {
   const brand = normalizeBranding({ logo_url: "https://example.test/logo.png", primary_color: "#123456", secondary_color: "#654321" });
   assert.equal(brand?.logoUrl, "https://example.test/logo.png");

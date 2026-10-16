@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, Input, OTPInput, Separator, Spinner } from "@qeetrix/ui";
-import { IconPasskey } from "@qeetrix/ui/brand";
+import { FingerprintPatternIcon } from "@qeetrix/icons";
+import { Button, Input, OTPInput, Separator } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,8 +9,12 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
 import { ApiError, apiPost } from "@/lib/api";
+import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
+import { shouldOfferPasskey } from "@/lib/passkeys";
 import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
+
+import { PasskeyPrompt } from "./passkey-prompt";
 
 type LoginFormProps = {
   returnTo: string;
@@ -21,27 +25,16 @@ type LoginFormProps = {
   // rememberDeviceEnabled gates the "remember this device" option on the MFA
   // step (adaptive MFA); true only when the tenant has opted in.
   rememberDeviceEnabled: boolean;
+  // passwordEnabled / passkeyEnabled: whether the organisation allows each
+  // method; a method it has switched off is not offered (and is refused by the
+  // server anyway).
+  passwordEnabled: boolean;
+  passkeyEnabled: boolean;
   // errorCode seeds the error banner from a redirect (e.g. a failed social
   // ceremony bounced back as ?error=social); empty when there's nothing to show.
   errorCode: string;
   branding?: Branding;
 };
-
-// safeReturnTo guards against open redirects: we only ever bounce back to our
-// own backend's /oauth/authorize endpoint.
-function safeReturnTo(returnTo: string): string | null {
-  if (!returnTo) return null;
-  try {
-    const u = new URL(returnTo);
-    const base = new URL(getApiBaseUrl());
-    if (u.origin === base.origin && u.pathname.endsWith("/oauth/authorize")) {
-      return u.toString();
-    }
-  } catch {
-    /* malformed — fall through */
-  }
-  return null;
-}
 
 function titleCase(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -63,6 +56,8 @@ export function LoginForm({
   providers,
   selfRegistrationEnabled,
   rememberDeviceEnabled,
+  passwordEnabled,
+  passkeyEnabled,
   errorCode,
   branding,
 }: LoginFormProps) {
@@ -77,10 +72,25 @@ export function LoginForm({
   // The pending MFA challenge token is held only in memory (never the URL) and,
   // when set, swaps the credential form for the second-factor step.
   const [mfaToken, setMfaToken] = useState<string | null>(null);
+  // Set after a password sign-in to offer adding a passkey before continuing.
+  const [offerPasskey, setOfferPasskey] = useState(false);
 
+  // Back to the application; with none to return to, on to the signed-in
+  // security page (where the user can add a passkey).
   function continueToApp() {
     const dest = safeReturnTo(returnTo);
-    window.location.href = dest ?? "/login";
+    window.location.href = dest ?? "/security";
+  }
+
+  // After a password sign-in (with or without a second factor), offer a passkey
+  // when the user could add one and has none; otherwise continue as before.
+  // Without an application to return to, the security page offers it instead.
+  async function afterPasswordSignIn() {
+    if (safeReturnTo(returnTo) && (await shouldOfferPasskey())) {
+      setOfferPasskey(true);
+      return;
+    }
+    continueToApp();
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -88,20 +98,28 @@ export function LoginForm({
     setError(null);
     setLoading(true);
     try {
+      // Name the app being signed in to, so the sign-in lockout of the
+      // organisation that owns it applies (the platform default without one).
+      const clientId = clientIDFromReturnTo(returnTo);
       const res = await apiPost<SessionResponse>("/v1/auth/session", {
         email,
         password,
+        ...(clientId ? { client_id: clientId } : {}),
       });
       if (res.mfa_required && res.mfa_token) {
         setMfaToken(res.mfa_token);
         setLoading(false);
         return;
       }
-      continueToApp();
+      await afterPasswordSignIn();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
       setLoading(false);
     }
+  }
+
+  if (offerPasskey) {
+    return <PasskeyPrompt branding={branding} onContinue={continueToApp} />;
   }
 
   if (mfaToken) {
@@ -110,7 +128,7 @@ export function LoginForm({
         mfaToken={mfaToken}
         rememberDeviceEnabled={rememberDeviceEnabled}
         branding={branding}
-        onVerified={continueToApp}
+        onVerified={afterPasswordSignIn}
         onBack={() => {
           setMfaToken(null);
           setError(null);
@@ -174,74 +192,75 @@ export function LoginForm({
       title={clientName ? t("titleTo", { client: clientName }) : t("title")}
       subtitle={t("subtitle")}
     >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium">
-            {t("fields.email")}
-          </label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email webauthn"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label htmlFor="password" className="text-sm font-medium">
-              {t("fields.password")}
+      {passwordEnabled && (
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium">
+              {t("fields.email")}
             </label>
-            <a
-              href={`/forgot-password${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
-              className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-            >
-              {t("forgotPassword")}
-            </a>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email webauthn"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
           </div>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm font-medium">
+                {t("fields.password")}
+              </label>
+              <a
+                href={`/forgot-password${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
+                className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+              >
+                {t("forgotPassword")}
+              </a>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-        <FormAlert>{error}</FormAlert>
+          <FormAlert>{error}</FormAlert>
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>
-          {loading ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("submit.busy")}
-            </>
-          ) : (
-            t("submit.idle")
-          )}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={busy}
+            loading={loading}
+            loadingLabel={t("submit.busy")}
+          >
+            {t("submit.idle")}
+          </Button>
+        </form>
+      )}
+
+      {passkeyEnabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full"
+          disabled={busy}
+          onClick={passkeyLogin}
+          loading={passkeyBusy}
+          loadingLabel={t("passkey.busy")}
+        >
+          <>
+            <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
+          </>
         </Button>
-      </form>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="w-full"
-        disabled={busy}
-        onClick={passkeyLogin}
-      >
-        {passkeyBusy ? (
-          <>
-            <Spinner size="sm" className="mr-2" /> {t("passkey.busy")}
-          </>
-        ) : (
-          <>
-            <IconPasskey className="mr-2 size-4" /> {t("passkey.idle")}
-          </>
-        )}
-      </Button>
+      )}
 
       {showSocial && (
         <div className="space-y-3">
@@ -268,6 +287,10 @@ export function LoginForm({
             ))}
           </div>
         </div>
+      )}
+
+      {!passwordEnabled && !passkeyEnabled && !showSocial && (
+        <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
       )}
 
       {selfRegistrationEnabled && (
@@ -298,7 +321,7 @@ function MfaChallenge({
   mfaToken: string;
   rememberDeviceEnabled: boolean;
   branding?: Branding;
-  onVerified: () => void;
+  onVerified: () => void | Promise<void>;
   onBack: () => void;
 }) {
   const { t } = useTranslation("login");
@@ -317,7 +340,7 @@ function MfaChallenge({
         code: value,
         remember,
       });
-      onVerified();
+      await onVerified();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
       setLoading(false);
@@ -383,14 +406,15 @@ function MfaChallenge({
 
         <FormAlert>{error}</FormAlert>
 
-        <Button type="submit" size="lg" className="w-full" disabled={loading || code.length === 0}>
-          {loading ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("mfa.submit.busy")}
-            </>
-          ) : (
-            t("mfa.submit.idle")
-          )}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={loading || code.length === 0}
+          loading={loading}
+          loadingLabel={t("mfa.submit.busy")}
+        >
+          {t("mfa.submit.idle")}
         </Button>
       </form>
 

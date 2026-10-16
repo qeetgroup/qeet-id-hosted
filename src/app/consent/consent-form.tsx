@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Spinner } from "@qeetrix/ui";
+import { Button } from "@qeetrix/ui";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -76,14 +76,14 @@ export function ConsentForm({
         >
           {t("actions.deny")}
         </Button>
-        <Button size="lg" className="flex-1" disabled={loading} onClick={() => decide(true)}>
-          {loading ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("actions.allowing")}
-            </>
-          ) : (
-            t("actions.allow")
-          )}
+        <Button
+          size="lg"
+          className="flex-1"
+          onClick={() => decide(true)}
+          loading={loading}
+          loadingLabel={t("actions.allowing")}
+        >
+          {t("actions.allow")}
         </Button>
       </div>
     </AuthCard>

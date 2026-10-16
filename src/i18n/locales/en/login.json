@@ -36,10 +36,12 @@
     },
     "back": "Back to sign in"
   },
+  "noMethods": "There's no way to sign in to this application here. Contact the organisation's administrator.",
   "errors": {
     "passkeyUnsupported": "Passkeys aren't supported in this browser.",
     "noPasskeySelected": "No passkey was selected.",
     "passkeyFailed": "Passkey sign-in failed.",
-    "social": "We couldn't sign you in with that provider. Please try again or use another method."
+    "social": "We couldn't sign you in with that provider. Please try again or use another method.",
+    "registration_closed": "This organisation only accepts invited members. Ask an administrator for an invitation, or sign in with an account you already have."
   }
 }

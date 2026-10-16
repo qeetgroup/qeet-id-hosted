@@ -8,6 +8,7 @@ import device from "./locales/en/device.json";
 import loggedOut from "./locales/en/loggedOut.json";
 import login from "./locales/en/login.json";
 import recovery from "./locales/en/recovery.json";
+import security from "./locales/en/security.json";
 import signup from "./locales/en/signup.json";
 
 // Languages the UI ships catalogs for. Adding a locale is a two-step change:
@@ -35,6 +36,7 @@ const resources = {
     device,
     loggedOut,
     recovery,
+    security,
     signup,
   },
 } as const;

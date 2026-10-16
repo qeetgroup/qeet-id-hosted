@@ -1,14 +1,14 @@
 "use client";
 
-import { Button, Input, PasswordStrengthMeter, Spinner } from "@qeetrix/ui";
-import { IconPasskey } from "@qeetrix/ui/brand";
+import { FingerprintPatternIcon } from "@qeetrix/icons";
+import { Button, Input, PasswordStrengthMeter } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ApiError, apiPost } from "@/lib/api";
-import { getApiBaseUrl } from "@/lib/public-config";
+import { safeReturnTo } from "@/lib/login-context";
 import type { Branding } from "@/lib/branding";
 
 type SignupFormProps = {
@@ -18,22 +18,6 @@ type SignupFormProps = {
   selfRegistrationEnabled: boolean;
   branding?: Branding;
 };
-
-// safeReturnTo guards against open redirects: we only ever bounce back to our
-// own backend's /oauth/authorize endpoint (mirrors the sign-in form).
-function safeReturnTo(returnTo: string): string | null {
-  if (!returnTo) return null;
-  try {
-    const u = new URL(returnTo);
-    const base = new URL(getApiBaseUrl());
-    if (u.origin === base.origin && u.pathname.endsWith("/oauth/authorize")) {
-      return u.toString();
-    }
-  } catch {
-    /* malformed — fall through */
-  }
-  return null;
-}
 
 export function SignupForm({
   returnTo,
@@ -202,14 +186,15 @@ export function SignupForm({
 
               <FormAlert>{error}</FormAlert>
 
-              <Button type="submit" size="lg" className="w-full" disabled={busy}>
-                {loading ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" /> {t("submit.busy")}
-                  </>
-                ) : (
-                  t("submit.idle")
-                )}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={busy}
+                loading={loading}
+                loadingLabel={t("submit.busy")}
+              >
+                {t("submit.idle")}
               </Button>
             </form>
           )}
@@ -222,16 +207,12 @@ export function SignupForm({
                 className="w-full"
                 disabled={busy || !email}
                 onClick={passkeySignup}
+                loading={passkeyBusy}
+                loadingLabel={t("passkey.busy")}
               >
-                {passkeyBusy ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" /> {t("passkey.busy")}
-                  </>
-                ) : (
-                  <>
-                    <IconPasskey className="mr-2 size-4" /> {t("passkey.idle")}
-                  </>
-                )}
+                <>
+                  <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
+                </>
               </Button>
               <FormAlert>{error}</FormAlert>
             </>
