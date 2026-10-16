@@ -1,8 +1,8 @@
 # Container image for the hosted login UI (Next.js standalone server).
 #
 # Production is deployed by Vercel (deploy.yml) and does not use this file. The
-# image is built by ci.yml on release/** branches and run by the qeet-id-deploy
-# test kit (DEV / TEST / STAGING). Runtime configuration (no rebuild per
+# image is built by ci.yml on release/** branches and run by the Qeet ID Kit
+# (qeet-id-kit; DEV / TEST / STAGING). Runtime configuration (no rebuild per
 # environment):
 #   PUBLIC_API_URL   browser-facing Qeet ID API origin (src/lib/public-config.ts)
 #   PORT / HOSTNAME  listen address (defaults 3000 / 0.0.0.0)

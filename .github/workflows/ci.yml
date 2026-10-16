@@ -38,8 +38,8 @@ jobs:
 
   # Release branches only: publish one immutable, commit-addressed image
   # (ghcr.io/qeetgroup/qeet-id-login:sha-<commit>) after Verify passes. No rc.N
-  # is computed here — qeet-id-deploy assembles the product release candidate
-  # (qeet-id-deploy: docs/test-kit/application-contract.md). Production keeps
+  # is computed here — qeet-id-kit assembles the product release candidate
+  # (qeet-id-kit: docs/application-contract.md). Production keeps
   # deploying to Vercel from deploy.yml; this job does not touch it.
   image:
     name: Release image
@@ -123,5 +123,5 @@ jobs:
             echo "| Digest | \`$digest\` |"
             echo "| Release | \`$RELEASE\` |"
             echo
-            echo "Assemble a product RC in qeet-id-deploy → Actions → **publish-candidate** with login = \`$GITHUB_SHA\`."
+            echo "Assemble a product RC in qeet-id-kit → Actions → **publish-candidate** with login = \`$GITHUB_SHA\`."
           } >> "$GITHUB_STEP_SUMMARY"

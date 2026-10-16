@@ -2,7 +2,7 @@
 //
 // The browser-facing API origin can be set per deployment at RUNTIME with
 // PUBLIC_API_URL, so one container image serves any environment (the
-// qeet-id-deploy test kit runs the same image for QA and UAT). The server reads
+// Qeet ID Kit (qeet-id-kit) runs the same image for QA and UAT). The server reads
 // it from process.env on each request; the browser receives it from
 // /public-config.js (loaded before hydration by the root layout).
 //

@@ -96,7 +96,7 @@ bun run generate:tree
 | Workflow · job | Runs |
 |---|---|
 | `ci.yml` · `verify` | `bun run typecheck` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
-| `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the `qeet-id-deploy` test kit — never an RC number |
+| `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the Qeet ID Kit (`qeet-id-kit`) — never an RC number |
 | `deploy.yml` | Push to `main`: typecheck, Vercel production deploy, tag |
 
 The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
