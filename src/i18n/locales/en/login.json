@@ -36,6 +36,7 @@
     },
     "back": "Back to sign in"
   },
+  "noMethods": "There's no way to sign in to this application here. Contact the organisation's administrator.",
   "errors": {
     "passkeyUnsupported": "Passkeys aren't supported in this browser.",
     "noPasskeySelected": "No passkey was selected.",
