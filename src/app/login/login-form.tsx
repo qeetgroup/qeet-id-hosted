@@ -27,6 +27,11 @@ type LoginFormProps = {
   // rememberDeviceEnabled gates the "remember this device" option on the MFA
   // step (adaptive MFA); true only when the tenant has opted in.
   rememberDeviceEnabled: boolean;
+  // passwordEnabled / passkeyEnabled: whether the organisation allows each
+  // method; a method it has switched off is not offered (and is refused by the
+  // server anyway).
+  passwordEnabled: boolean;
+  passkeyEnabled: boolean;
   // magicLinkEnabled offers "email me a sign-in link"; true only when the
   // organisation allows magic links.
   magicLinkEnabled: boolean;
@@ -56,6 +61,8 @@ export function LoginForm({
   providers,
   selfRegistrationEnabled,
   rememberDeviceEnabled,
+  passwordEnabled,
+  passkeyEnabled,
   magicLinkEnabled,
   errorCode,
   branding,
@@ -83,6 +90,7 @@ export function LoginForm({
   // Signing in that way skips the "add a passkey" offer — they have one.
   // Started once per form load.
   useEffect(() => {
+    if (!passkeyEnabled) return;
     stopAutofill.current = startPasskeyAutofill(
       () => {
         const dest = safeReturnTo(returnTo);
@@ -230,86 +238,91 @@ export function LoginForm({
       title={clientName ? t("titleTo", { client: clientName }) : t("title")}
       subtitle={t("subtitle")}
     >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium">
-            {t("fields.email")}
-          </label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email webauthn"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label htmlFor="password" className="text-sm font-medium">
-              {t("fields.password")}
+      {passwordEnabled && (
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium">
+              {t("fields.email")}
             </label>
-            <a
-              href={`/forgot-password${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
-              className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-            >
-              {t("forgotPassword")}
-            </a>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email webauthn"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
           </div>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm font-medium">
+                {t("fields.password")}
+              </label>
+              <a
+                href={`/forgot-password${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
+                className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+              >
+                {t("forgotPassword")}
+              </a>
+            </div>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-        <FormAlert>{error}</FormAlert>
+          <FormAlert>{error}</FormAlert>
 
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={busy}
+            loading={loading}
+            loadingLabel={t("submit.busy")}
+          >
+            {t("submit.idle")}
+          </Button>
+        </form>
+      )}
+
+      {passkeyEnabled && (
         <Button
-          type="submit"
+          type="button"
+          variant="outline"
           size="lg"
           className="w-full"
           disabled={busy}
-          loading={loading}
-          loadingLabel={t("submit.busy")}
+          onClick={passkeyLogin}
+          loading={passkeyBusy}
+          loadingLabel={t("passkey.busy")}
         >
-          {t("submit.idle")}
+          <>
+            <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
+          </>
         </Button>
-        {magicLinkEnabled && tenantId !== "" && (
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full"
-            disabled={busy}
-            onClick={() => {
-              stopAutofill.current();
-              setError(null);
-              setMagicLink(true);
-            }}
-          >
-            {t("magic.link")}
-          </Button>
-        )}
-      </form>
+      )}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="w-full"
-        disabled={busy}
-        onClick={passkeyLogin}
-        loading={passkeyBusy}
-        loadingLabel={t("passkey.busy")}
-      >
-        <>
-          <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
-        </>
-      </Button>
+      {magicLinkEnabled && tenantId !== "" && (
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          disabled={busy}
+          onClick={() => {
+            stopAutofill.current();
+            setError(null);
+            setMagicLink(true);
+          }}
+        >
+          {t("magic.link")}
+        </Button>
+      )}
 
       {showSocial && (
         <div className="space-y-3">
@@ -336,6 +349,10 @@ export function LoginForm({
             ))}
           </div>
         </div>
+      )}
+
+      {!passwordEnabled && !passkeyEnabled && !showSocial && !(magicLinkEnabled && tenantId !== "") && (
+        <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
       )}
 
       {selfRegistrationEnabled && (
