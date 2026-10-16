@@ -7,14 +7,27 @@ import { useTranslation } from "react-i18next";
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ApiError, apiPost } from "@/lib/api";
+import type { Branding } from "@/lib/branding";
+import { safeReturnTo } from "@/lib/login-context";
 
-export function ResetForm({ token }: { token: string }) {
+type ResetFormProps = {
+  token: string;
+  returnTo: string;
+  branding?: Branding;
+};
+
+export function ResetForm({ token, returnTo, branding }: ResetFormProps) {
   const { t } = useTranslation("recovery");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  // After the reset, sign in again — and, when the reset started on the way
+  // into an application, continue to it (only our own authorize endpoint).
+  const dest = safeReturnTo(returnTo);
+  const loginHref = `/login${dest ? `?return_to=${encodeURIComponent(dest)}` : ""}`;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,14 +53,14 @@ export function ResetForm({ token }: { token: string }) {
   }
 
   return (
-    <AuthCard title={t("reset.title")} subtitle={t("reset.subtitle")}>
+    <AuthCard branding={branding} title={t("reset.title")} subtitle={t("reset.subtitle")}>
       {done ? (
         <div className="space-y-4 text-center">
           <p role="status" className="text-muted-foreground text-sm">
             {t("reset.done")}
           </p>
           <Button
-            render={<a href="/login" aria-label={t("reset.goToLogin")} />}
+            render={<a href={loginHref} aria-label={t("reset.goToLogin")} />}
             size="lg"
             className="w-full"
           >

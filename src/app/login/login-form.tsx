@@ -9,6 +9,7 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
 import { ApiError, apiPost } from "@/lib/api";
+import { safeReturnTo } from "@/lib/login-context";
 import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
 
@@ -26,22 +27,6 @@ type LoginFormProps = {
   errorCode: string;
   branding?: Branding;
 };
-
-// safeReturnTo guards against open redirects: we only ever bounce back to our
-// own backend's /oauth/authorize endpoint.
-function safeReturnTo(returnTo: string): string | null {
-  if (!returnTo) return null;
-  try {
-    const u = new URL(returnTo);
-    const base = new URL(getApiBaseUrl());
-    if (u.origin === base.origin && u.pathname.endsWith("/oauth/authorize")) {
-      return u.toString();
-    }
-  } catch {
-    /* malformed — fall through */
-  }
-  return null;
-}
 
 function titleCase(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
