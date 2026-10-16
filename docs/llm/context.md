@@ -7,7 +7,8 @@ Port requirement cross-checked against `qeet-id-server`'s `.env.example`.
 ## Identity
 
 The **hosted authentication UI for Qeet ID**, served at `login.id.qeet.in`. Next.js 16.2.6 App
-Router, React 19 with the React Compiler, Tailwind v4, `@qeetrix/ui ^1.0.2`, bun 1.3.14.
+Router, React 19 with the React Compiler, Tailwind v4, `@qeetrix/ui 2.1.5` + `@qeetrix/icons 1.0.11`,
+bun 1.3.14.
 33 source files, ~2.9k LOC.
 
 **Deliberately thin.** Its README: *"a thin, stateless front-end: every action calls the Qeet ID
@@ -152,7 +153,11 @@ That is a real risk for the repository that owns interactive authentication. `bu
 
 - **No CI, no tests** — for the interactive-authentication host.
 - **Port 3003 is load-bearing** and set only by a README instruction, not by configuration.
-- `@qeetrix/ui ^1.0.2` is a **major version behind** npm's `2.0.0`.
+- `@qeetrix/ui` and `@qeetrix/icons` are **pinned exactly** (`2.1.5`, `1.0.11`): their releases
+  have removed exports in patch versions, so a caret range is not safe. Social-provider buttons
+  keep `@thesvg/react` — `@qeetrix/icons` ships no third-party brand marks.
+- Server Components import `@qeetrix/ui` by subpath (`@qeetrix/ui/providers/theme-provider`),
+  never the package root: the root barrel there ships the whole library to every page.
 - i18n is **English only** — `src/i18n/locales/en/` is the only locale.
 - `.env.example` is tracked despite `.gitignore` covering `.env*` — it was added before the rule.
 

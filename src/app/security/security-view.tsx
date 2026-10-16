@@ -1,7 +1,7 @@
 "use client";
 
+import { FingerprintPatternIcon } from "@qeetrix/icons";
 import { Alert, AlertDescription, Button, buttonVariants, Input, Spinner } from "@qeetrix/ui";
-import { IconPasskey } from "@qeetrix/ui/brand";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -175,16 +175,16 @@ export function SecurityView() {
               {t("add.nameHint")}
             </p>
           </div>
-          <Button type="submit" size="lg" className="w-full" disabled={adding}>
-            {adding ? (
-              <>
-                <Spinner size="sm" className="mr-2" /> {t("add.busy")}
-              </>
-            ) : (
-              <>
-                <IconPasskey className="mr-2 size-4" /> {t("add.idle")}
-              </>
-            )}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            loading={adding}
+            loadingLabel={t("add.busy")}
+          >
+            <>
+              <FingerprintPatternIcon className="mr-2 size-4" /> {t("add.idle")}
+            </>
           </Button>
         </form>
       )}

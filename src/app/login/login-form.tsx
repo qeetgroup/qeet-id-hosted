@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, Input, OTPInput, Separator, Spinner } from "@qeetrix/ui";
-import { IconPasskey } from "@qeetrix/ui/brand";
+import { FingerprintPatternIcon } from "@qeetrix/icons";
+import { Button, Input, OTPInput, Separator } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -224,14 +224,15 @@ export function LoginForm({
 
         <FormAlert>{error}</FormAlert>
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>
-          {loading ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("submit.busy")}
-            </>
-          ) : (
-            t("submit.idle")
-          )}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={busy}
+          loading={loading}
+          loadingLabel={t("submit.busy")}
+        >
+          {t("submit.idle")}
         </Button>
       </form>
 
@@ -242,16 +243,12 @@ export function LoginForm({
         className="w-full"
         disabled={busy}
         onClick={passkeyLogin}
+        loading={passkeyBusy}
+        loadingLabel={t("passkey.busy")}
       >
-        {passkeyBusy ? (
-          <>
-            <Spinner size="sm" className="mr-2" /> {t("passkey.busy")}
-          </>
-        ) : (
-          <>
-            <IconPasskey className="mr-2 size-4" /> {t("passkey.idle")}
-          </>
-        )}
+        <>
+          <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
+        </>
       </Button>
 
       {showSocial && (
@@ -394,14 +391,15 @@ function MfaChallenge({
 
         <FormAlert>{error}</FormAlert>
 
-        <Button type="submit" size="lg" className="w-full" disabled={loading || code.length === 0}>
-          {loading ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("mfa.submit.busy")}
-            </>
-          ) : (
-            t("mfa.submit.idle")
-          )}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={loading || code.length === 0}
+          loading={loading}
+          loadingLabel={t("mfa.submit.busy")}
+        >
+          {t("mfa.submit.idle")}
         </Button>
       </form>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Spinner } from "@qeetrix/ui";
+import { Button, Input } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -69,14 +69,14 @@ export function ForgotPasswordForm({ returnTo, branding }: ForgotPasswordFormPro
 
           <FormAlert>{error}</FormAlert>
 
-          <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <Spinner size="sm" className="mr-2" /> {t("forgot.submit.busy")}
-              </>
-            ) : (
-              t("forgot.submit.idle")
-            )}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            loading={loading}
+            loadingLabel={t("forgot.submit.busy")}
+          >
+            {t("forgot.submit.idle")}
           </Button>
         </form>
       )}

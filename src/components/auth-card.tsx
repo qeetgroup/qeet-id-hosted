@@ -1,7 +1,7 @@
 "use client";
 
+import { QeetLogo } from "@qeetrix/icons";
 import { Card, CardContent, cn } from "@qeetrix/ui";
-import { QeetLogo } from "@qeetrix/ui/brand";
 import type { ReactNode } from "react";
 
 import type { Branding } from "@/lib/branding";
@@ -35,7 +35,12 @@ export function AuthCard({ branding, title, subtitle, children, className }: Aut
             {branding?.logoUrl ? (
               <img src={branding.logoUrl} alt="" className="h-10 w-auto max-w-50 object-contain" />
             ) : (
-              <QeetLogo size={40} />
+              // The Qeet mark follows the theme: the light-surface file, swapped for the
+              // dark-surface one under `.dark`.
+              <>
+                <QeetLogo height={40} aria-label="Qeet" className="dark:hidden" />
+                <QeetLogo variant="dark" height={40} aria-label="Qeet" className="hidden dark:block" />
+              </>
             )}
           </div>
           <div className="space-y-1.5">

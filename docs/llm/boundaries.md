@@ -27,7 +27,7 @@ application. Client-side redirect safety.
 ## Consumes
 
 `api.id.qeet.in` over HTTPS with `credentials: "include"` and a CSRF double-submit header ·
-`@qeetrix/ui`. **No database, no server-side secret, no state.**
+`@qeetrix/ui` · `@qeetrix/icons`. **No database, no server-side secret, no state.**
 
 ## Provides
 
@@ -82,7 +82,7 @@ accessibility improvements · error-message copy (as long as it uses codes, not 
 | A new auth flow | `qeet-id-server`, and usually `qeet-id-context/FLOWS/` |
 | Hostname or port | Backend `LOGIN_BASE_URL`, `ALLOWED_ORIGINS`, `WEBAUTHN_RP_ORIGINS`, `qeet-id-deploy` |
 | Consent screen fields | `qeet-id-server` owns the scope list |
-| `@qeetrix/ui` major upgrade | `qeetrix-ui` — pinned `^1.0.2` against npm `2.0.0` |
+| `@qeetrix/ui` / `@qeetrix/icons` upgrade | `qeetrix-ui`, `qeetrix-icons` — pinned `2.1.5` / `1.0.11`; re-check tenant branding (`brandingVars`) |
 
 Product-level fan-out: `qeet-id-context/CHANGE-MATRIX.md`.
 

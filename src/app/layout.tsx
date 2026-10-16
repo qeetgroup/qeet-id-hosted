@@ -1,4 +1,8 @@
-import { ThemeProvider } from "@qeetrix/ui";
+// The provider's own entry, not the package root: this layout is a Server
+// Component, and importing the root barrel here made every client component in
+// @qeetrix/ui (charts, rich-text editor, …) a client reference shipped to every
+// page — about 1.9 MB of JavaScript the hosted login never uses.
+import { ThemeProvider } from "@qeetrix/ui/providers/theme-provider";
 import type { Metadata } from "next";
 import Script from "next/script";
 

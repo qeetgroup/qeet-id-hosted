@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, PasswordStrengthMeter, Spinner } from "@qeetrix/ui";
+import { Button, Input, PasswordStrengthMeter } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -109,14 +109,14 @@ export function ResetForm({ token, returnTo, branding }: ResetFormProps) {
 
           <FormAlert>{error}</FormAlert>
 
-          <Button type="submit" size="lg" className="w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <Spinner size="sm" className="mr-2" /> {t("reset.submit.busy")}
-              </>
-            ) : (
-              t("reset.submit.idle")
-            )}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            loading={loading}
+            loadingLabel={t("reset.submit.busy")}
+          >
+            {t("reset.submit.idle")}
           </Button>
         </form>
       )}
