@@ -9,7 +9,7 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
 import { ApiError, apiPost } from "@/lib/api";
-import { safeReturnTo } from "@/lib/login-context";
+import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
 import { shouldOfferPasskey } from "@/lib/passkeys";
 import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
@@ -91,9 +91,13 @@ export function LoginForm({
     setError(null);
     setLoading(true);
     try {
+      // Name the app being signed in to, so the sign-in lockout of the
+      // organisation that owns it applies (the platform default without one).
+      const clientId = clientIDFromReturnTo(returnTo);
       const res = await apiPost<SessionResponse>("/v1/auth/session", {
         email,
         password,
+        ...(clientId ? { client_id: clientId } : {}),
       });
       if (res.mfa_required && res.mfa_token) {
         setMfaToken(res.mfa_token);
