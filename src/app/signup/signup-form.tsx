@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ApiError, apiPost } from "@/lib/api";
-import { getApiBaseUrl } from "@/lib/public-config";
+import { safeReturnTo } from "@/lib/login-context";
 import type { Branding } from "@/lib/branding";
 
 type SignupFormProps = {
@@ -18,22 +18,6 @@ type SignupFormProps = {
   selfRegistrationEnabled: boolean;
   branding?: Branding;
 };
-
-// safeReturnTo guards against open redirects: we only ever bounce back to our
-// own backend's /oauth/authorize endpoint (mirrors the sign-in form).
-function safeReturnTo(returnTo: string): string | null {
-  if (!returnTo) return null;
-  try {
-    const u = new URL(returnTo);
-    const base = new URL(getApiBaseUrl());
-    if (u.origin === base.origin && u.pathname.endsWith("/oauth/authorize")) {
-      return u.toString();
-    }
-  } catch {
-    /* malformed — fall through */
-  }
-  return null;
-}
 
 export function SignupForm({
   returnTo,

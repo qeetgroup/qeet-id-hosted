@@ -1,45 +1,13 @@
 import { AuthShell } from "@/components/auth-shell";
-import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
-import { getApiBaseUrl } from "@/lib/public-config";
+import { normalizeBranding } from "@/lib/branding";
+import { fetchBrandingForReturnTo } from "@/lib/login-context";
 
 import { ForgotPasswordForm } from "./forgot-password-form";
 
-
-function clientIDFromReturnTo(returnTo: string): string {
-  try {
-    return new URL(returnTo).searchParams.get("client_id") ?? "";
-  } catch {
-    return "";
-  }
-}
-
-// The reset lookup is scoped by tenant, so we resolve the tenant from the
-// originating client (same login-context the sign-in page uses) when a
-// return_to is present. Absent that, the form still submits — the backend is
-// enumeration-safe and answers identically whether or not the email resolves.
-// We also read the tenant branding so the page renders on-brand.
-async function fetchContext(
-  clientID: string,
-): Promise<{ tenantId: string; branding?: BrandingDTO }> {
-  if (!clientID) return { tenantId: "" };
-  try {
-    const res = await fetch(
-      `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
-      {
-        cache: "no-store",
-      },
-    );
-    if (!res.ok) return { tenantId: "" };
-    const ctx = (await res.json()) as {
-      tenant_id?: string;
-      branding?: BrandingDTO;
-    };
-    return { tenantId: ctx.tenant_id ?? "", branding: ctx.branding };
-  } catch {
-    return { tenantId: "" };
-  }
-}
-
+// The reset look-up needs only the email (it is unique platform-wide). The
+// return_to is passed on so the emailed link comes back to this hosted login
+// and, after the reset, on to the application; it also gives the page the
+// tenant's branding.
 export default async function ForgotPasswordPage({
   searchParams,
 }: {
@@ -47,11 +15,10 @@ export default async function ForgotPasswordPage({
 }) {
   const { return_to } = await searchParams;
   const returnTo = return_to ?? "";
-  const { tenantId, branding: brandingDTO } = await fetchContext(clientIDFromReturnTo(returnTo));
-  const branding = normalizeBranding(brandingDTO);
+  const branding = normalizeBranding(await fetchBrandingForReturnTo(returnTo));
   return (
     <AuthShell branding={branding}>
-      <ForgotPasswordForm returnTo={returnTo} tenantId={tenantId} branding={branding} />
+      <ForgotPasswordForm returnTo={returnTo} branding={branding} />
     </AuthShell>
   );
 }

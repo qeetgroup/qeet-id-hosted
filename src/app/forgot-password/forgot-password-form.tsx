@@ -11,11 +11,10 @@ import type { Branding } from "@/lib/branding";
 
 type ForgotPasswordFormProps = {
   returnTo: string;
-  tenantId: string;
   branding?: Branding;
 };
 
-export function ForgotPasswordForm({ returnTo, tenantId, branding }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({ returnTo, branding }: ForgotPasswordFormProps) {
   const { t } = useTranslation("recovery");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +28,12 @@ export function ForgotPasswordForm({ returnTo, tenantId, branding }: ForgotPassw
     setError(null);
     setLoading(true);
     try {
-      // Omit tenant_id when unknown: the backend expects a UUID, so an empty
-      // string would 400. The response is enumeration-safe either way.
-      const body: Record<string, string> = { email };
-      if (tenantId) body.tenant_id = tenantId;
+      // app: the emailed link opens this hosted login's reset page (not the
+      // console). return_to: where to continue after the reset — the API keeps
+      // it only if it is its own /oauth/authorize URL. The response is
+      // enumeration-safe either way.
+      const body: Record<string, string> = { email, app: "hosted_login" };
+      if (returnTo) body.return_to = returnTo;
       await apiPost("/v1/auth/forgot-password", body);
       setSent(true);
     } catch (err) {
