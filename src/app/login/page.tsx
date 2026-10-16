@@ -11,6 +11,8 @@ type LoginContext = {
   providers?: string[];
   self_registration_enabled?: boolean;
   remember_device_enabled?: boolean;
+  // Which first-factor methods the client's organisation allows.
+  sign_in_methods?: { password?: boolean; passkey?: boolean; magic_link?: boolean };
   branding?: BrandingDTO;
 };
 
@@ -58,6 +60,7 @@ export default async function LoginPage({
         providers={ctx.providers ?? []}
         selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
         rememberDeviceEnabled={ctx.remember_device_enabled ?? false}
+        magicLinkEnabled={ctx.sign_in_methods?.magic_link ?? false}
         errorCode={error ?? ""}
         branding={branding}
       />
