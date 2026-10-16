@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Spinner } from "@qeetrix/ui";
+import { Button, Input } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -113,14 +113,14 @@ export function DeviceForm({ userCode }: { userCode: string }) {
           >
             {t("authorize.deny")}
           </Button>
-          <Button size="lg" className="flex-1" disabled={loading} onClick={() => decide(true)}>
-            {loading ? (
-              <>
-                <Spinner size="sm" className="mr-2" /> {t("authorize.approving")}
-              </>
-            ) : (
-              t("authorize.approve")
-            )}
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={() => decide(true)}
+            loading={loading}
+            loadingLabel={t("authorize.approving")}
+          >
+            {t("authorize.approve")}
           </Button>
         </div>
       </AuthCard>
@@ -149,14 +149,14 @@ export function DeviceForm({ userCode }: { userCode: string }) {
 
         <FormAlert>{error}</FormAlert>
 
-        <Button type="submit" size="lg" className="w-full" disabled={loading}>
-          {loading ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("entry.submitting")}
-            </>
-          ) : (
-            t("entry.submit")
-          )}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          loading={loading}
+          loadingLabel={t("entry.submitting")}
+        >
+          {t("entry.submit")}
         </Button>
       </form>
     </AuthCard>

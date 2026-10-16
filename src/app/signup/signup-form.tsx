@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, Input, PasswordStrengthMeter, Spinner } from "@qeetrix/ui";
-import { IconPasskey } from "@qeetrix/ui/brand";
+import { FingerprintPatternIcon } from "@qeetrix/icons";
+import { Button, Input, PasswordStrengthMeter } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -186,14 +186,15 @@ export function SignupForm({
 
               <FormAlert>{error}</FormAlert>
 
-              <Button type="submit" size="lg" className="w-full" disabled={busy}>
-                {loading ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" /> {t("submit.busy")}
-                  </>
-                ) : (
-                  t("submit.idle")
-                )}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={busy}
+                loading={loading}
+                loadingLabel={t("submit.busy")}
+              >
+                {t("submit.idle")}
               </Button>
             </form>
           )}
@@ -206,16 +207,12 @@ export function SignupForm({
                 className="w-full"
                 disabled={busy || !email}
                 onClick={passkeySignup}
+                loading={passkeyBusy}
+                loadingLabel={t("passkey.busy")}
               >
-                {passkeyBusy ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" /> {t("passkey.busy")}
-                  </>
-                ) : (
-                  <>
-                    <IconPasskey className="mr-2 size-4" /> {t("passkey.idle")}
-                  </>
-                )}
+                <>
+                  <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
+                </>
               </Button>
               <FormAlert>{error}</FormAlert>
             </>

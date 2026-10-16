@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "@qeetrix/icons";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -21,15 +22,7 @@ export function ScopeList({ scopes }: { scopes: string[] }) {
             className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full"
             aria-hidden
           >
-            <svg
-              viewBox="0 0 16 16"
-              className="size-3"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-            >
-              <path d="M3.5 8.5l3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <CheckIcon className="size-3" strokeWidth={3} />
           </span>
           <span>{t(`common:scopes.${s}`, { defaultValue: s })}</span>
         </li>

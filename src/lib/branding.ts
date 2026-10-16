@@ -41,11 +41,22 @@ export function brandingVars(b?: Branding): CSSProperties {
   if (b.backgroundColor && hexToRgb(b.backgroundColor)) appearance.backgroundColor = b.backgroundColor;
   if (!b.primaryColor) return appearance as CSSProperties;
   const primary = b.primaryColor;
+  const foreground = readableForeground(primary);
+  // Hover and press step away from the label colour, so the label's contrast
+  // only grows: darker under a white label, lighter under a dark one.
+  const away = foreground === "#ffffff" ? "black" : "white";
   const vars: Record<string, string> = {
     ...appearance,
     "--primary": primary,
-    "--primary-foreground": readableForeground(primary),
+    "--primary-foreground": foreground,
     "--ring": primary,
+    // The primary Button paints from its own component tokens, which `:root`
+    // resolves to the Qeet colour before they reach this subtree, so overriding
+    // --primary alone leaves it Qeet-coloured. Re-point them here as well.
+    "--qx-component-button-primary-background": primary,
+    "--qx-component-button-primary-background-hover": `color-mix(in oklab, ${primary} 88%, ${away})`,
+    "--qx-component-button-primary-background-active": `color-mix(in oklab, ${primary} 78%, ${away})`,
+    "--qx-component-button-primary-foreground": foreground,
     // Brand-panel gradient anchors (consumed by the auth shell).
     "--qeet-brand": primary,
     "--qeet-brand-2": b.secondaryColor ?? primary,

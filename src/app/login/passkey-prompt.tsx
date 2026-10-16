@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, Spinner } from "@qeetrix/ui";
-import { IconPasskey } from "@qeetrix/ui/brand";
+import { FingerprintPatternIcon } from "@qeetrix/icons";
+import { Button } from "@qeetrix/ui";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -44,16 +44,16 @@ export function PasskeyPrompt({
     <AuthCard branding={branding} title={t("prompt.title")} subtitle={t("prompt.body")}>
       <FormAlert>{error}</FormAlert>
       <div className="space-y-2">
-        <Button size="lg" className="w-full" disabled={busy} onClick={add}>
-          {busy ? (
-            <>
-              <Spinner size="sm" className="mr-2" /> {t("prompt.busy")}
-            </>
-          ) : (
-            <>
-              <IconPasskey className="mr-2 size-4" /> {t("prompt.add")}
-            </>
-          )}
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={add}
+          loading={busy}
+          loadingLabel={t("prompt.busy")}
+        >
+          <>
+            <FingerprintPatternIcon className="mr-2 size-4" /> {t("prompt.add")}
+          </>
         </Button>
         <Button variant="ghost" size="lg" className="w-full" disabled={busy} onClick={onContinue}>
           {t("prompt.skip")}
