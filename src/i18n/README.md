@@ -24,6 +24,7 @@ src/i18n/
       consent.json    /consent — OAuth authorize-access screen
       device.json     /device — device-flow entry, authorize, and terminal states
       loggedOut.json  /logged-out — post-logout message
+      security.json   /security — the signed-in user's passkeys, and the "add a passkey" prompt after sign-in
 ```
 
 Each top-level JSON file is an i18next **namespace**. Keys are grouped by the

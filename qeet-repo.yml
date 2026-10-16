@@ -24,7 +24,7 @@ runtime:
 architecture:
   style: stateless-thin-client
   statement: "holds no database and no secrets — every action is an API call"
-  routes: [/login, /signup, /forgot-password, /reset, /consent, /device, /logged-out, /admin-portal]
+  routes: [/login, /signup, /forgot-password, /reset, /consent, /device, /logged-out, /admin-portal, /security]
   src: [src/app, src/components, src/lib, src/i18n]
 contracts:
   consumes: {api: qeet-id-server}

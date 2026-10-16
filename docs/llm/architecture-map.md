@@ -18,13 +18,14 @@
 
 | Route | Files | Purpose |
 |---|---|---|
-| `/login` | `src/app/login/{page,login-form}.tsx` | password · passkey · social · MFA |
+| `/login` | `src/app/login/{page,login-form,passkey-prompt}.tsx` | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
 | `/signup` | `src/app/signup/{page,signup-form}.tsx` | account creation + passkey registration |
 | `/forgot-password` | `src/app/forgot-password/` | request a reset |
 | `/reset` | `src/app/reset/` | set a new password |
 | `/consent` | `src/app/consent/` | OAuth consent screen |
 | `/device` | `src/app/device/` | device-grant user-code entry |
 | `/logged-out` | `src/app/logged-out/` | post-logout landing |
+| `/security` | `src/app/security/` | signed-in user's passkeys: list, rename, add (hosted-login session cookie); where sign-in lands with no app to return to |
 | `/admin-portal` | `src/app/admin-portal/` | One-time fragment exchange, then cookie-authenticated SAML/SCIM self-service |
 
 ## Components and i18n
@@ -32,7 +33,7 @@
 ```text
 src/components/   auth-card · auth-shell · form-alert · scope-list · social-providers
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
-                  loggedOut,login,recovery,signup}.json      (English only)
+                  loggedOut,login,recovery,security,signup}.json      (English only)
 ```
 
 ## Config
