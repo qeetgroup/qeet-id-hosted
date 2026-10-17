@@ -1,7 +1,7 @@
 "use client";
 
 import { FingerprintPatternIcon } from "@qeetrix/icons";
-import { Button, Input, OTPInput, Separator } from "@qeetrix/ui";
+import { Button, Input, Separator } from "@qeetrix/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +16,8 @@ import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
 
 import { MagicLinkRequest } from "./magic-link-request";
+import { MfaChallenge, type LoginFactor } from "@/components/mfa-challenge";
+import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { PasskeyPrompt } from "./passkey-prompt";
 
 type LoginFormProps = {
@@ -46,13 +48,20 @@ function titleCase(s: string) {
 }
 
 // The hosted-login session endpoint returns either the user id (cookie set) or,
-// when a second factor is enrolled, a pending MFA challenge to complete.
-type SessionResponse = {
+// when the account holds a second factor or must have one, a pending MFA
+// challenge to complete. An enrolment challenge (enrollment_required) is met
+// by setting up an authenticator app; enrollment_due_at, when present, is the
+// end of the organisation's grace period, until which it can be skipped.
+export type SessionResponse = {
   user_id?: string;
   mfa_required?: boolean;
   mfa_token?: string;
   methods?: string[];
+  factors?: LoginFactor[];
+  enrollment_required?: boolean;
+  enrollment_due_at?: string;
 };
+
 
 export function LoginForm({
   returnTo,
@@ -78,6 +87,9 @@ export function LoginForm({
   // The pending MFA challenge token is held only in memory (never the URL) and,
   // when set, swaps the credential form for the second-factor step.
   const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaFactors, setMfaFactors] = useState<LoginFactor[]>([]);
+  // Set for an enrolment challenge: the setup step replaces the factor step.
+  const [enrollment, setEnrollment] = useState<{ dueAt?: string } | null>(null);
   // Set after a password sign-in to offer adding a passkey before continuing.
   const [offerPasskey, setOfferPasskey] = useState(false);
   // Asking for a one-time sign-in link instead of using a password.
@@ -134,6 +146,8 @@ export function LoginForm({
         ...(clientId ? { client_id: clientId } : {}),
       });
       if (res.mfa_required && res.mfa_token) {
+        setMfaFactors(res.factors ?? []);
+        setEnrollment(res.enrollment_required ? { dueAt: res.enrollment_due_at } : null);
         setMfaToken(res.mfa_token);
         setLoading(false);
         return;
@@ -166,10 +180,27 @@ export function LoginForm({
     );
   }
 
+  if (mfaToken && enrollment) {
+    return (
+      <MfaEnrollment
+        mfaToken={mfaToken}
+        dueAt={enrollment.dueAt}
+        branding={branding}
+        onDone={afterPasswordSignIn}
+        onBack={() => {
+          setMfaToken(null);
+          setEnrollment(null);
+          setError(null);
+        }}
+      />
+    );
+  }
+
   if (mfaToken) {
     return (
       <MfaChallenge
         mfaToken={mfaToken}
+        factors={mfaFactors}
         rememberDeviceEnabled={rememberDeviceEnabled}
         branding={branding}
         onVerified={afterPasswordSignIn}
@@ -366,137 +397,6 @@ export function LoginForm({
           </a>
         </p>
       )}
-    </AuthCard>
-  );
-}
-
-// MfaChallenge is the second step of a hosted login: the password was accepted
-// but the user has a second factor enrolled. It exchanges the in-memory
-// mfa_token plus a TOTP or recovery code for the SSO cookie.
-function MfaChallenge({
-  mfaToken,
-  rememberDeviceEnabled,
-  branding,
-  onVerified,
-  onBack,
-}: {
-  mfaToken: string;
-  rememberDeviceEnabled: boolean;
-  branding?: Branding;
-  onVerified: () => void | Promise<void>;
-  onBack: () => void;
-}) {
-  const { t } = useTranslation("login");
-  const [code, setCode] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [recovery, setRecovery] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function verify(value: string) {
-    setError(null);
-    setLoading(true);
-    try {
-      await apiPost("/v1/auth/session/mfa", {
-        mfa_token: mfaToken,
-        code: value,
-        remember,
-      });
-      await onVerified();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
-      setLoading(false);
-    }
-  }
-
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    void verify(code);
-  }
-
-  function toggleMode() {
-    setRecovery((r) => !r);
-    setCode("");
-    setError(null);
-  }
-
-  return (
-    <AuthCard
-      branding={branding}
-      title={t("mfa.title")}
-      subtitle={recovery ? t("mfa.subtitleRecovery") : t("mfa.subtitle")}
-    >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="mfa-code" className="text-sm font-medium">
-            {recovery ? t("mfa.recoveryLabel") : t("mfa.label")}
-          </label>
-          {recovery ? (
-            <Input
-              id="mfa-code"
-              type="text"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder={t("mfa.recoveryPlaceholder")}
-            />
-          ) : (
-            <OTPInput
-              value={code}
-              onChange={setCode}
-              onComplete={(v) => void verify(v)}
-              autoFocus
-              disabled={loading}
-              aria-label={t("mfa.label")}
-            />
-          )}
-        </div>
-
-        {rememberDeviceEnabled && (
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            {t("mfa.remember")}
-          </label>
-        )}
-
-        <FormAlert>{error}</FormAlert>
-
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          disabled={loading || code.length === 0}
-          loading={loading}
-          loadingLabel={t("mfa.submit.busy")}
-        >
-          {t("mfa.submit.idle")}
-        </Button>
-      </form>
-
-      <div className="flex flex-col gap-1 text-center">
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-          onClick={toggleMode}
-        >
-          {recovery ? t("mfa.useTotp") : t("mfa.useRecovery")}
-        </button>
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-          disabled={loading}
-          onClick={onBack}
-        >
-          {t("mfa.back")}
-        </button>
-      </div>
     </AuthCard>
   );
 }
