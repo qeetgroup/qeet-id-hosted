@@ -16,6 +16,19 @@ export type LoginFactor = {
   destination?: string;
 };
 
+// The server sends a factor at most one code every 30 seconds (POST
+// /v1/auth/mfa/send). A send it refuses as too soon says how long to wait
+// (retry_after), which then takes over.
+const SEND_INTERVAL_SECONDS = 30;
+
+// sendWait is how many seconds to wait before another code can be sent, when
+// err is the server refusing a send as too soon; null for any other failure.
+function sendWait(err: unknown): number | null {
+  if (!(err instanceof ApiError) || err.code !== "mfa.code_send_limited") return null;
+  const after = Number(err.metadata?.retry_after);
+  return Number.isFinite(after) && after > 0 ? Math.ceil(after) : SEND_INTERVAL_SECONDS;
+}
+
 // MfaChallenge is the second step of a hosted login: the first factor (a
 // password or a magic link) was accepted and the user has a second factor
 // enrolled. It exchanges the in-memory mfa_token plus a proof for the SSO
@@ -43,10 +56,41 @@ export function MfaChallenge({
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [waitingPush, setWaitingPush] = useState(false);
+  // When each factor can be sent another code (epoch ms), and the factor whose
+  // send was refused as too soon, which the wait message names.
+  const [sendAfter, setSendAfter] = useState<Record<string, number>>({});
+  const [refused, setRefused] = useState<{ factor: LoginFactor; seconds: number } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const stopPush = useRef(false);
   useEffect(() => () => {
     stopPush.current = true;
   }, []);
+
+  // Tick once a second while any factor is waiting, for the time shown.
+  const sendWaiting = Object.values(sendAfter).some((at) => at > now);
+  useEffect(() => {
+    if (!sendWaiting) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [sendWaiting]);
+
+  function secondsLeft(f: LoginFactor): number {
+    const at = f.id ? sendAfter[f.id] : undefined;
+    return at ? Math.max(0, Math.ceil((at - now) / 1000)) : 0;
+  }
+
+  function holdSend(f: LoginFactor, seconds: number) {
+    const at = Date.now();
+    setNow(at);
+    setSendAfter((prev) => ({ ...prev, [f.id ?? ""]: at + seconds * 1000 }));
+  }
+
+  // A wait as words: seconds under a minute, whole minutes above.
+  function waitText(seconds: number): string {
+    return seconds < 60
+      ? t("mfa.wait.seconds", { count: seconds })
+      : t("mfa.wait.minutes", { count: Math.ceil(seconds / 60) });
+  }
 
   const codeFactors = factors.filter((f) => (f.type === "email" || f.type === "sms") && f.id);
   const hasPasskey = factors.some((f) => f.type === "passkey");
@@ -80,7 +124,21 @@ export function MfaChallenge({
 
   function sendCode(f: LoginFactor) {
     void attempt(async () => {
-      await apiPost("/v1/auth/mfa/send", { mfa_token: mfaToken, factor_id: f.id });
+      try {
+        await apiPost("/v1/auth/mfa/send", { mfa_token: mfaToken, factor_id: f.id });
+      } catch (err) {
+        const wait = sendWait(err);
+        if (wait === null) throw err;
+        // Refused as too soon: a code was sent recently, so enter that one or
+        // wait to ask again.
+        holdSend(f, wait);
+        setRefused({ factor: f, seconds: wait });
+        setRecovery(false);
+        setLoading(false);
+        return;
+      }
+      holdSend(f, SEND_INTERVAL_SECONDS);
+      setRefused(null);
       setSentTo(f.destination ?? "");
       setRecovery(false);
       setLoading(false);
@@ -180,6 +238,20 @@ export function MfaChallenge({
               {t("mfa.codeSentTo", { destination: sentTo })}
             </p>
           )}
+          {refused && secondsLeft(refused.factor) > 0 && (
+            <p className="text-muted-foreground text-xs">
+              {/* The wait is announced once; the time shown counts down. */}
+              <span role="status" className="sr-only">
+                {t("mfa.sendWait", { destination: refused.factor.destination, time: waitText(refused.seconds) })}
+              </span>
+              <span aria-hidden="true">
+                {t("mfa.sendWait", {
+                  destination: refused.factor.destination,
+                  time: waitText(secondsLeft(refused.factor)),
+                })}
+              </span>
+            </p>
+          )}
         </div>
 
         {rememberDeviceEnabled && (
@@ -210,11 +282,23 @@ export function MfaChallenge({
 
       {(codeFactors.length > 0 || hasPasskey || hasPush) && (
         <div className="space-y-2">
-          {codeFactors.map((f) => (
-            <Button key={f.id} type="button" variant="outline" className="w-full" disabled={loading} onClick={() => sendCode(f)}>
-              {t("mfa.sendCodeTo", { destination: f.destination })}
-            </Button>
-          ))}
+          {codeFactors.map((f) => {
+            const left = secondsLeft(f);
+            return (
+              <Button
+                key={f.id}
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={loading || left > 0}
+                onClick={() => sendCode(f)}
+              >
+                {left > 0
+                  ? t("mfa.sendCodeToIn", { destination: f.destination, time: waitText(left) })
+                  : t("mfa.sendCodeTo", { destination: f.destination })}
+              </Button>
+            );
+          })}
           {hasPasskey && (
             <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={passkeyFactor}>
               {t("mfa.usePasskey")}
