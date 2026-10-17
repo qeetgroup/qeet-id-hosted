@@ -41,7 +41,15 @@
     "subtitle": "Enter the 6-digit code from your authenticator app.",
     "subtitleAny": "Confirm it's you: enter a code, or use one of the options below.",
     "sendCodeTo": "Send a code to {{destination}}",
+    "sendCodeToIn": "Send another code to {{destination}} in {{time}}",
     "codeSentTo": "Code sent to {{destination}}.",
+    "sendWait": "A code was sent to {{destination}} recently. You can ask for another in {{time}}.",
+    "wait": {
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes"
+    },
     "usePasskey": "Use a passkey",
     "pushBtn": "Approve on my phone",
     "pushWaiting": "Approve the sign-in on your phone…",
