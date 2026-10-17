@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
+import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { ApiError, apiPost } from "@/lib/api";
 import { safeReturnTo } from "@/lib/login-context";
 import type { Branding } from "@/lib/branding";
@@ -37,6 +38,9 @@ export function SignupForm({
   // Passkeys-first: the primary path is a passkey with no password field at
   // all; "Use a password instead" reveals the fallback form below.
   const [usePassword, setUsePassword] = useState(false);
+  // Set when the organisation requires MFA: the new account sets up an
+  // authenticator app before its session (the challenge token stays in memory).
+  const [enrollment, setEnrollment] = useState<{ token: string; dueAt?: string } | null>(null);
 
   const loginHref = `/login${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
   const busy = loading || passkeyBusy;
@@ -94,18 +98,29 @@ export function SignupForm({
     setLoading(true);
     try {
       // Registration is tenant-scoped: the user is created in the client's
-      // tenant and the SSO cookie is set, so we continue straight to the app.
-      await apiPost("/v1/auth/register", {
-        tenant_id: tenantId,
-        email,
-        password,
-        display_name: name,
-      });
+      // tenant and the SSO cookie is set, so we continue straight to the app —
+      // unless the organisation requires MFA, when the account sets up an
+      // authenticator app first.
+      const res = await apiPost<{ mfa_required?: boolean; mfa_token?: string; enrollment_due_at?: string }>(
+        "/v1/auth/register",
+        { tenant_id: tenantId, email, password, display_name: name },
+      );
+      if (res.mfa_required && res.mfa_token) {
+        setEnrollment({ token: res.mfa_token, dueAt: res.enrollment_due_at });
+        setLoading(false);
+        return;
+      }
       continueToApp();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
       setLoading(false);
     }
+  }
+
+  if (enrollment) {
+    return (
+      <MfaEnrollment mfaToken={enrollment.token} dueAt={enrollment.dueAt} branding={branding} onDone={continueToApp} />
+    );
   }
 
   return (

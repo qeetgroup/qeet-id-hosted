@@ -39,6 +39,12 @@
   "mfa": {
     "title": "Two-step verification",
     "subtitle": "Enter the 6-digit code from your authenticator app.",
+    "subtitleAny": "Confirm it's you: enter a code, or use one of the options below.",
+    "sendCodeTo": "Send a code to {{destination}}",
+    "codeSentTo": "Code sent to {{destination}}.",
+    "usePasskey": "Use a passkey",
+    "pushBtn": "Approve on my phone",
+    "pushWaiting": "Approve the sign-in on your phone…",
     "subtitleRecovery": "Enter one of your saved recovery codes.",
     "label": "Verification code",
     "recoveryLabel": "Recovery code",
@@ -50,7 +56,25 @@
       "idle": "Verify",
       "busy": "Verifying…"
     },
-    "back": "Back to sign in"
+    "back": "Back to sign in",
+    "enroll": {
+      "title": "Set up two-step verification",
+      "subtitle": "Your organisation requires a second step when you sign in. Set up an authenticator app to continue.",
+      "subtitleDue": "Your organisation requires a second step when you sign in from {{date}}. Set it up now, or skip until then.",
+      "startBtn": "Set up an authenticator app",
+      "scanLabel": "Scan with your authenticator app",
+      "keyLabel": "Setup key",
+      "keyHint": "Can't scan? Enter this key in your app instead.",
+      "codeLabel": "Code from the app",
+      "confirmBtn": "Confirm and continue",
+      "skipBtn": "Skip for now",
+      "codesTitle": "Save your recovery codes",
+      "codesSubtitle": "Each code signs you in once if you lose your authenticator app. They won't be shown again.",
+      "copyBtn": "Copy",
+      "copiedBtn": "Copied",
+      "downloadBtn": "Download",
+      "continueBtn": "Continue"
+    }
   },
   "noMethods": "There's no way to sign in to this application here. Contact the organisation's administrator.",
   "errors": {
