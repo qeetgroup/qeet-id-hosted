@@ -7,9 +7,7 @@
     "subhead": "Passkeys-first authentication for modern teams — sign in without passwords, protected by hardware-backed security.",
     "features": {
       "passkeys": "Passkeys",
-      "sso": "Enterprise SSO",
-      "mfa": "Adaptive MFA",
-      "soc2": "SOC 2 ready"
+      "mfa": "Adaptive MFA"
     },
     "footer": "Protected by Qeet ID"
   },
