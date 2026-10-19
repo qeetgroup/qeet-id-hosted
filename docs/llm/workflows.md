@@ -26,7 +26,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 5  i18n                       src/i18n/locales/en/<namespace>.json  (English only today)
 6  branding                   already applied by the server component — do not hardcode
 7  errors                     switch on error.code; never render a backend message
-8  bun run typecheck && bun run build
+8  bun run typecheck && bun run test && bun run build
 ```
 
 **Never invent an endpoint.** If the flow needs one that does not exist, the work is in
@@ -39,7 +39,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 2  a client form component if it needs interactivity
 3  compose from src/components/{auth-card,auth-shell,form-alert}
 4  register any new i18n namespace in src/i18n/
-5  bun run typecheck && bun run build
+5  bun run typecheck && bun run test && bun run build
 ```
 
 ## Handle a redirect
@@ -47,7 +47,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 ```text
 1  ALWAYS pass the candidate through safeReturnTo(returnTo)
 2  never assign window.location.href directly from a query parameter
-3  test both a valid and a hostile returnTo
+3  test both a valid and a hostile returnTo (src/lib/login-context.test.ts)
 ```
 
 **Security review required** for any change to redirect handling.
@@ -62,7 +62,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 3  mutations echo qe_csrf as X-CSRF-Token; GET does not
 4  the seeding path (missing cookie -> GET /healthz -> retry) must keep working
 5  names MUST match qeet-id-server AND qeet-id-react
-6  bun run typecheck && bun run build
+6  bun run typecheck && bun run test && bun run build
 ```
 
 ## Touch the admin portal
@@ -76,7 +76,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 4  use only the HttpOnly portal-session cookie and token-free API paths after exchange
 5  the SCIM token endpoint returns PLAINTEXT — never render it outside the intended field,
    never persist it, never copy it into an analytics event
-6  bun run typecheck && bun run build
+6  bun run typecheck && bun run test && bun run build
 ```
 
 ## Change MFA entry
@@ -85,7 +85,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 1  src/app/login/login-form.tsx
 2  the mfa_token stays in React memory — NEVER the URL, NEVER storage
 3  POST /v1/auth/session/mfa with the remember flag
-4  bun run typecheck && bun run build
+4  bun run typecheck && bun run test && bun run build
 ```
 
 ## Add a locale
@@ -99,13 +99,12 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 ## Finish any task
 
 ```bash
-bun run typecheck && bun run build
+bun run typecheck && bun run test && bun run build
 git diff
 ```
 
-> **There is no CI, no test suite and no lint script in this repository.** The Vercel build is the
-> only automated gate. `typecheck` + `build` locally is genuinely all the safety net there is —
-> run both, and read your own diff carefully.
+> CI (`ci.yml`) runs typecheck, the Vitest suite and the build; there is no lint script yet. Add or
+> update a test with every behaviour change, and read your own diff carefully.
 
 ### Escalate rather than proceed
 

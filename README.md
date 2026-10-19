@@ -55,6 +55,16 @@ bun run dev -- -p 3003         # http://localhost:3003
 | `bun run build` | Production build (`next build`) |
 | `bun run start` | Serve the production build |
 | `bun run typecheck` | `tsc --noEmit` |
+| `bun run test` | Unit and component tests (`vitest run`) |
+
+### Tests
+
+`bun run test` runs the whole suite once with Vitest; it needs no server and no `.env`.
+Tests sit next to the code as `*.test.ts(x)`. Component tests start with
+`// @vitest-environment jsdom`, import `@/i18n`, and answer API calls with `mockApi` from
+`src/test-api.ts`, never a live server. A flow that leaves the page goes through `goTo`
+(`src/lib/navigation.ts`), which tests mock to see where the browser is sent.
+`bunx vitest` watches while you work.
 
 ---
 
