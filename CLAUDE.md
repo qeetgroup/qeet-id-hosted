@@ -39,7 +39,7 @@ Read them when a task needs organization or product understanding; this reposito
 ## Finishing a change
 
 ```bash
-bun run typecheck && bun run build
+bun run typecheck && bun run test && bun run build
 git diff
 ```
 

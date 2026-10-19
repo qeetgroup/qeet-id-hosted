@@ -133,11 +133,12 @@ the wrong host.
 
 ## Testing and CI
 
-**Neither exists.** No test framework, no test files, no lint or format script, and **no
-`.github/` directory at all**. The only gate is the Vercel build.
-
-That is a real risk for the repository that owns interactive authentication. `bun run typecheck` and
-`bun run build` are the only checks available; run them.
+`bun run test` runs the Vitest suite: unit tests for `src/lib` (including `safeReturnTo`) and
+component tests for the sign-in, sign-up, forgot-password and reset forms. Component tests use
+jsdom, answer API calls with `mockApi` (`src/test-api.ts`), and mock `goTo`
+(`src/lib/navigation.ts`) to see where a flow sends the browser. `ci.yml` runs typecheck, tests and
+the build on every PR; `deploy.yml` runs typecheck and tests before the Vercel deploy. There is no
+lint or format script yet, and no end-to-end browser tests.
 
 ## Security-critical areas
 
@@ -151,7 +152,8 @@ That is a real risk for the repository that owns interactive authentication. `bu
 
 ## Known constraints
 
-- **No CI, no tests** — for the interactive-authentication host.
+- **Test coverage is still thin** beyond the forms above: consent, device approval, the MFA steps
+  and the admin portal have no component tests yet.
 - **Port 3003 is load-bearing** and set only by a README instruction, not by configuration.
 - `@qeetrix/ui` and `@qeetrix/icons` are **pinned exactly** (`2.1.5`, `1.0.11`): their releases
   have removed exports in patch versions, so a caret range is not safe. Social-provider buttons

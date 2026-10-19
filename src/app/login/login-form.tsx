@@ -10,6 +10,7 @@ import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
 import { ApiError, apiPost } from "@/lib/api";
 import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
+import { goTo } from "@/lib/navigation";
 import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
 import { getApiBaseUrl } from "@/lib/public-config";
@@ -105,8 +106,7 @@ export function LoginForm({
     if (!passkeyEnabled) return;
     stopAutofill.current = startPasskeyAutofill(
       () => {
-        const dest = safeReturnTo(returnTo);
-        window.location.href = dest ?? "/security";
+        goTo(safeReturnTo(returnTo) ?? "/security");
       },
       (message) => setError(message || t("errors.passkeyFailed")),
     );
@@ -116,8 +116,7 @@ export function LoginForm({
   // Back to the application; with none to return to, on to the signed-in
   // security page (where the user can add a passkey).
   function continueToApp() {
-    const dest = safeReturnTo(returnTo);
-    window.location.href = dest ?? "/security";
+    goTo(safeReturnTo(returnTo) ?? "/security");
   }
 
   // After a password sign-in (with or without a second factor), offer a passkey
