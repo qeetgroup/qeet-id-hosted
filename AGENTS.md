@@ -56,8 +56,10 @@ Every request sets `credentials: "include"`. Mutations read the `qe_csrf` cookie
 `qeet-id-react`.
 
 ### 4. Never redirect to an unvalidated URL
-`safeReturnTo(returnTo)` guards every `window.location.href`. An open redirect on the login host is
-a phishing primitive — **always** run a candidate URL through it.
+`safeReturnTo(returnTo)` guards every `window.location.href` (via `goTo`). It allows only the API's
+own `/oauth/authorize` URL, or a root-relative path to one of the hosted login's allowed pages
+(`/device`). An open redirect on the login host is a phishing primitive — **always** run a candidate
+URL through it.
 
 ### 5. The admin portal uses one-time link exchange
 The generated link is `/admin-portal#token=...`. The page must remove the fragment immediately and

@@ -110,9 +110,12 @@ immediately when its parent link is revoked.
 
 ## Redirect safety
 
-`safeReturnTo(returnTo)` guards every `window.location.href` assignment. **An open redirect on the
-login host is a phishing primitive** — it is the one page a user is trained to trust with
-credentials. Always route a candidate URL through it.
+`safeReturnTo(returnTo)` guards every `window.location.href` assignment (made through `goTo` in
+`src/lib/navigation.ts`). It allows two things only: the API's own `/oauth/authorize` URL, and a
+root-relative path to an allowed hosted-login page (`LOCAL_RETURN_PATHS`, today `/device`), checked
+as given and once decoded for `//` and backslashes. **An open redirect on the login host is a
+phishing primitive** — it is the one page a user is trained to trust with credentials. Always route
+a candidate URL through it, and add a hostile case to `src/lib/login-context.test.ts` with any change.
 
 ## Configuration
 

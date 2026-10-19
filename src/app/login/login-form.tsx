@@ -9,7 +9,7 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
 import { ApiError, apiPost } from "@/lib/api";
-import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
+import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "@/lib/login-context";
 import { goTo } from "@/lib/navigation";
 import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
@@ -261,11 +261,17 @@ export function LoginForm({
 
   const busy = loading || passkeyBusy;
   const showSocial = providers.length > 0 && tenantId !== "" && returnTo !== "";
+  // A device journey carries no client to name yet, so say what the sign-in is for.
+  const title = clientName
+    ? t("titleTo", { client: clientName })
+    : returnsToDevice(returnTo)
+      ? t("titleDevice")
+      : t("title");
 
   return (
     <AuthCard
       branding={branding}
-      title={clientName ? t("titleTo", { client: clientName }) : t("title")}
+      title={title}
       subtitle={t("subtitle")}
     >
       {passwordEnabled && (

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clientIDFromReturnTo, safeReturnTo } from "./login-context";
+import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "./login-context";
 
 const API = "https://api.id.example";
 const AUTHORIZE = `${API}/oauth/authorize?client_id=app-1&redirect_uri=https%3A%2F%2Fapp.example%2Fcb`;
@@ -36,5 +36,37 @@ describe("clientIDFromReturnTo", () => {
   it("is empty when there is no client to read", () => {
     expect(clientIDFromReturnTo("")).toBe("");
     expect(clientIDFromReturnTo(`${API}/oauth/authorize`)).toBe("");
+  });
+});
+
+describe("safeReturnTo for the hosted login's own pages", () => {
+  const DEVICE = "/device?user_code=ABCD-EFGH";
+
+  it("accepts the device approval page with its code", () => {
+    expect(safeReturnTo(DEVICE)).toBe(DEVICE);
+    expect(safeReturnTo("/device")).toBe("/device");
+  });
+
+  it.each([
+    ["a page that isn't on the list", "/security"],
+    ["a look-alike page", "/devices"],
+    ["a path that climbs out of the device page", "/device/../logout"],
+    ["a protocol-relative path", "//evil.example/device"],
+    ["a backslash path", "/\\evil.example/device"],
+    ["an encoded protocol-relative path", "/%2Fevil.example/device"],
+    ["an encoded backslash", "/%5Cevil.example/device"],
+    ["a path hiding a tab", "/\t/evil.example/device"],
+    ["a malformed escape", "/device?user_code=%E0%A4%A"],
+  ])("rejects %s", (_, returnTo) => {
+    expect(safeReturnTo(returnTo)).toBeNull();
+  });
+});
+
+describe("returnsToDevice", () => {
+  it("is true only on the way to approve a device", () => {
+    expect(returnsToDevice("/device?user_code=ABCD-EFGH")).toBe(true);
+    expect(returnsToDevice(AUTHORIZE)).toBe(false);
+    expect(returnsToDevice("//evil.example/device")).toBe(false);
+    expect(returnsToDevice("")).toBe(false);
   });
 });

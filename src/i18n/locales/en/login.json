@@ -1,6 +1,7 @@
 {
   "title": "Sign in to continue",
   "titleTo": "Sign in to continue to {{client}}",
+  "titleDevice": "Sign in to approve a device",
   "subtitle": "Use your Qeet ID account.",
   "fields": {
     "email": "Email",
