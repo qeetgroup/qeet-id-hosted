@@ -37,12 +37,8 @@ export function AuthShell({ branding, children, className }: AuthShellProps) {
 
 function BrandPanel({ branding }: { branding?: Branding }) {
   const { t } = useTranslation("common");
-  const features = [
-    t("brand.features.passkeys"),
-    t("brand.features.sso"),
-    t("brand.features.mfa"),
-    t("brand.features.soc2"),
-  ];
+  // Only what hosted sign-in offers: no SSO entry and no certification claims.
+  const features = [t("brand.features.passkeys"), t("brand.features.mfa")];
   return (
     <div className="auth-brand-panel relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
       <span className="auth-blob" aria-hidden />
