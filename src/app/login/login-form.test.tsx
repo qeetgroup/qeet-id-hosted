@@ -9,11 +9,11 @@ import { goTo } from "@/lib/navigation";
 import { AUTHORIZE, mockApi } from "@/test-api";
 import { LoginForm } from "./login-form";
 
-function renderLogin(returnTo = AUTHORIZE) {
+function renderLogin(returnTo = AUTHORIZE, clientName = "Acme") {
   render(
     <LoginForm
       returnTo={returnTo}
-      clientName="Acme"
+      clientName={clientName}
       tenantId="tenant-1"
       providers={[]}
       selfRegistrationEnabled={false}
@@ -103,4 +103,31 @@ describe("LoginForm", () => {
     expect(await screen.findByText("Something went wrong. Please try again.")).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
   });
+
+  it("comes back to approve the device after the second factor", async () => {
+    const device = "/device?user_code=ABCD-EFGH";
+    const calls = mockApi({
+      "POST /v1/auth/session": {
+        status: 200,
+        body: {
+          mfa_required: true,
+          mfa_token: "mfa-1",
+          factors: [{ type: "totp" }, { type: "recovery_code" }],
+        },
+      },
+      "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } },
+    });
+    // A device journey has no client to name.
+    renderLogin(device, "");
+    expect(screen.getByRole("heading", { name: "Sign in to approve a device" })).toBeTruthy();
+
+    signIn();
+    fireEvent.click(await screen.findByRole("button", { name: "Use a recovery code" }));
+    fireEvent.change(screen.getByLabelText("Recovery code"), { target: { value: "aaaa-bbbb-cccc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith(device));
+    expect(calls.map((c) => c.path)).toEqual(["/v1/auth/session", "/v1/auth/session/mfa"]);
+  });
 });
+
