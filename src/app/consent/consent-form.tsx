@@ -9,6 +9,7 @@ import { FormAlert } from "@/components/form-alert";
 import { ScopeList } from "@/components/scope-list";
 import { ApiError, apiPost } from "@/lib/api";
 import type { Branding } from "@/lib/branding";
+import { ADDRESS_NOT_ALLOWED } from "@/lib/errors";
 import { goTo } from "@/lib/navigation";
 
 // consentErrorKey names the message for an API refusal that ends this request:
@@ -20,6 +21,8 @@ export function consentErrorKey(code: string): string | null {
       return "errors.requestInvalid";
     case "oidc.redirect_uri_not_registered":
       return "errors.redirectNotRegistered";
+    case ADDRESS_NOT_ALLOWED:
+      return "common:errors.addressNotAllowed";
   }
   return null;
 }
