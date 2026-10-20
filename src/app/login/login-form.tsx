@@ -8,7 +8,8 @@ import { useTranslation } from "react-i18next";
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
-import { ApiError, apiPost } from "@/lib/api";
+import { apiPost } from "@/lib/api";
+import { ADDRESS_NOT_ALLOWED_REDIRECT, apiErrorMessage } from "@/lib/errors";
 import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "@/lib/login-context";
 import { goTo } from "@/lib/navigation";
 import { startPasskeyAutofill } from "@/lib/passkey-autofill";
@@ -80,9 +81,13 @@ export function LoginForm({
   const { t } = useTranslation("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(
-    errorCode ? t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") }) : null,
-  );
+  const [error, setError] = useState<string | null>(() => {
+    if (!errorCode) return null;
+    // A social sign-in the organisation's address rules refused: the shared
+    // network message, not a provider failure with advice to try another way.
+    if (errorCode === ADDRESS_NOT_ALLOWED_REDIRECT) return t("common:errors.addressNotAllowed");
+    return t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") });
+  });
   const [loading, setLoading] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   // The pending MFA challenge token is held only in memory (never the URL) and,
@@ -108,7 +113,7 @@ export function LoginForm({
       () => {
         goTo(safeReturnTo(returnTo) ?? "/security");
       },
-      (message) => setError(message || t("errors.passkeyFailed")),
+      (err) => setError(apiErrorMessage(err, t, t("errors.passkeyFailed"))),
     );
     return () => stopAutofill.current();
   }, []);
@@ -153,7 +158,7 @@ export function LoginForm({
       }
       await afterPasswordSignIn();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(apiErrorMessage(err, t, t("common:errors.generic")));
       setLoading(false);
     }
   }
@@ -253,7 +258,7 @@ export function LoginForm({
       continueToApp();
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : (err as Error).message || t("errors.passkeyFailed"),
+        apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")),
       );
       setPasskeyBusy(false);
     }

@@ -101,4 +101,20 @@ describe("Consent", () => {
     expect(await screen.findByText(/expired or was already answered/)).toBeTruthy();
     expect(calls).toHaveLength(0);
   });
+
+  it("says a refused network on the page, and offers no retry", async () => {
+    mockApi({
+      ...recorded,
+      "POST /v1/oauth/authorize/decision": {
+        status: 403,
+        body: { error: { code: "auth.address_not_allowed", message: "refused" } },
+      },
+    });
+    fireEvent.click(await openConsent({ request_id: "req-1" }));
+
+    expect(await screen.findByText(/doesn't allow sign-in from this network/)).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+  });
 });
+

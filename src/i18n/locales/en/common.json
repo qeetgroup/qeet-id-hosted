@@ -1,6 +1,7 @@
 {
   "errors": {
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "addressNotAllowed": "Your organisation doesn't allow sign-in from this network. Contact your administrator."
   },
   "brand": {
     "headline": "Secure access, beautifully simple.",

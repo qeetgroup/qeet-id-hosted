@@ -9,7 +9,7 @@ import { goTo } from "@/lib/navigation";
 import { AUTHORIZE, mockApi } from "@/test-api";
 import { LoginForm } from "./login-form";
 
-function renderLogin(returnTo = AUTHORIZE, clientName = "Acme") {
+function renderLogin(returnTo = AUTHORIZE, clientName = "Acme", errorCode = "") {
   render(
     <LoginForm
       returnTo={returnTo}
@@ -21,7 +21,7 @@ function renderLogin(returnTo = AUTHORIZE, clientName = "Acme") {
       passwordEnabled
       passkeyEnabled={false}
       magicLinkEnabled={false}
-      errorCode=""
+      errorCode={errorCode}
     />,
   );
 }
@@ -129,5 +129,24 @@ describe("LoginForm", () => {
     await waitFor(() => expect(goTo).toHaveBeenCalledWith(device));
     expect(calls.map((c) => c.path)).toEqual(["/v1/auth/session", "/v1/auth/session/mfa"]);
   });
-});
 
+  it("says a refused network the same way for a password and a social sign-in", async () => {
+    const network = "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
+    mockApi({
+      "POST /v1/auth/session": {
+        status: 403,
+        body: { error: { code: "auth.address_not_allowed", message: "refused" } },
+      },
+    });
+    renderLogin();
+    signIn();
+    expect(await screen.findByText(network)).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+    cleanup();
+
+    // The social callback sends the browser back with ?error=address_not_allowed.
+    renderLogin(AUTHORIZE, "Acme", "address_not_allowed");
+    expect(screen.getByText(network)).toBeTruthy();
+    expect(screen.queryByText(/couldn't sign you in with that provider/)).toBeNull();
+  });
+});
