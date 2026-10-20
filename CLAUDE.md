@@ -28,7 +28,7 @@ Read them when a task needs organization or product understanding; this reposito
 3. **Never redirect to an unvalidated URL** — always use `safeReturnTo`. An open redirect on the login host is a phishing primitive.
 4. **The admin-portal link token is one-time.** Read it only from the URL fragment, clear the fragment immediately, and exchange it once for the backend's HttpOnly portal-session cookie. Never store or log it.
 5. **Keep the MFA challenge token in memory** — never the URL, never storage.
-6. **Stay stateless.** No server-side secret; only `NEXT_PUBLIC_*`, which is public by construction.
+6. **Stay stateless.** No server-side secret except the optional relay key `QEET_ID_RELAY_KEY` (server pages only, never `NEXT_PUBLIC_*`); everything else is `NEXT_PUBLIC_*`, public by construction.
 
 ## Working style
 

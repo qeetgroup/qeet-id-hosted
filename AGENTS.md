@@ -37,10 +37,14 @@ Product-level flow narratives: `qeet-id-context/FLOWS/`.
 ## Rules
 
 ### 1. Stay stateless
-**No database, no secrets, no server-side session.** Configuration is public only:
-`NEXT_PUBLIC_*` (inlined at build time) and the runtime `PUBLIC_API_URL`, which
+**No database, no server-side session, and one optional secret.** Configuration is otherwise
+public: `NEXT_PUBLIC_*` (inlined at build time) and the runtime `PUBLIC_API_URL`, which
 `src/lib/public-config.ts` reads per request and serves to the browser via `/public-config.js`.
-If a change needs a secret, it belongs in `qeet-id-server`.
+The single exception is the optional relay key `QEET_ID_RELAY_KEY` (with `LOGIN_TRUSTED_PROXY_HOPS`):
+server pages send it with the visitor's address when they fetch `/v1/oauth/login-context`, so the
+API does not throttle every visitor as this server's one address (`src/lib/relay.ts`). It is read
+only on the server, is never `NEXT_PUBLIC_*`, and never reaches the browser; without it the app
+behaves as before. Any other secret belongs in `qeet-id-server`.
 
 ### 2. Never store a token
 Interactive login uses the backend's **HttpOnly `qe_ls`** cookie; the admin portal uses a separate
@@ -115,5 +119,5 @@ git diff
 ## Escalate rather than proceed
 
 Storing a token · weakening CSRF · bypassing `safeReturnTo` · logging an admin-portal token ·
-adding a server-side secret · calling an endpoint that does not exist · anything requiring another
+adding a server-side secret other than the relay key · calling an endpoint that does not exist · anything requiring another
 repository.

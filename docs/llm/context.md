@@ -120,8 +120,11 @@ a candidate URL through it, and add a hostile case to `src/lib/login-context.tes
 ## Configuration
 
 `NEXT_PUBLIC_API_URL`, default `http://localhost:4001`; production `https://api.id.qeet.in`.
-Only `NEXT_PUBLIC_*` variables exist — **they are inlined at build time and are therefore public.**
-There is no server-side secret.
+`NEXT_PUBLIC_*` variables are **inlined at build time and are therefore public.** The one
+server-side secret is the optional relay key: with `QEET_ID_RELAY_KEY` (the value the API lists in
+`RELAY_KEYS`) and `LOGIN_TRUSTED_PROXY_HOPS`, server pages name the visitor's address to the API
+(`X-Qeet-Relay-Key` + `X-Qeet-Client-IP`) when they fetch `/v1/oauth/login-context`. Without it,
+nothing is relayed.
 
 ## Local development
 
