@@ -1,4 +1,19 @@
 {
   "title": "You're signed out",
-  "body": "You can close this window."
+  "body": "You can close this window.",
+  "signingOut": "Signing you out…",
+  "signingOutBody": "Signing you out of the applications you used.",
+  "frontchannelFrame": "Signing out of an application",
+  "confirm": {
+    "title": "Sign out?",
+    "subtitle": "You're about to sign out of Qeet ID.",
+    "askedBy": "{{app}} asked to sign you out of Qeet ID.",
+    "body": "You'll be signed out of the applications you signed in to here.",
+    "signOut": "Sign out",
+    "stay": "Stay signed in",
+    "stayedTitle": "You're still signed in",
+    "stayedBody": "Nothing was changed. You can close this window.",
+    "invalidTitle": "This sign-out link isn't valid",
+    "invalidBody": "Nothing was changed. To sign out, use the application's sign-out button."
+  }
 }
