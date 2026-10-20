@@ -15,13 +15,17 @@ export function clientIDFromReturnTo(returnTo: string): string {
 // Fetches the branding of the tenant behind the return_to's client. Undefined
 // when there is no return_to, or the client cannot be resolved — the page then
 // renders the default Qeet shell.
-export async function fetchBrandingForReturnTo(returnTo: string): Promise<BrandingDTO | undefined> {
+// headers: extra request headers, such as a server page's relay headers.
+export async function fetchBrandingForReturnTo(
+  returnTo: string,
+  headers: Record<string, string> = {},
+): Promise<BrandingDTO | undefined> {
   const clientID = clientIDFromReturnTo(returnTo);
   if (!clientID) return undefined;
   try {
     const res = await fetch(
       `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
-      { cache: "no-store" },
+      { cache: "no-store", headers },
     );
     if (!res.ok) return undefined;
     const ctx = (await res.json()) as { branding?: BrandingDTO };

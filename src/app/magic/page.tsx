@@ -1,6 +1,7 @@
 import { AuthShell } from "@/components/auth-shell";
 import { normalizeBranding } from "@/lib/branding";
 import { fetchBrandingForReturnTo } from "@/lib/login-context";
+import { relayHeaders } from "@/lib/relay-request";
 
 import { MagicSignIn } from "./magic-sign-in";
 
@@ -13,7 +14,7 @@ export default async function MagicPage({
   searchParams: Promise<{ token?: string; return_to?: string }>;
 }) {
   const { token, return_to } = await searchParams;
-  const branding = normalizeBranding(await fetchBrandingForReturnTo(return_to ?? ""));
+  const branding = normalizeBranding(await fetchBrandingForReturnTo(return_to ?? "", await relayHeaders()));
   return (
     <AuthShell branding={branding}>
       <MagicSignIn token={token ?? ""} branding={branding} />

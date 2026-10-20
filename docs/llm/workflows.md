@@ -109,5 +109,5 @@ git diff
 ### Escalate rather than proceed
 
 Storing a token · weakening CSRF · bypassing `safeReturnTo` · logging an admin-portal token · adding
-a server-side secret · calling an endpoint that does not exist · anything requiring another
+a server-side secret other than the relay key · calling an endpoint that does not exist · anything requiring another
 repository.
