@@ -31,6 +31,27 @@ export async function fetchBrandingForReturnTo(returnTo: string): Promise<Brandi
   }
 }
 
+// The application a hosted page acts for, as the API names and brands it: its
+// display name ("" when it can't be resolved) and its tenant's branding.
+export type ClientContext = { clientName: string; branding?: BrandingDTO };
+
+// Fetches the name and branding of an OAuth client. A client that can't be
+// resolved gives an empty name and no branding (the default Qeet shell).
+export async function fetchClientContext(clientID: string): Promise<ClientContext> {
+  if (!clientID) return { clientName: "" };
+  try {
+    const res = await fetch(
+      `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return { clientName: "" };
+    const ctx = (await res.json()) as { client_name?: string; branding?: BrandingDTO };
+    return { clientName: ctx.client_name ?? "", branding: ctx.branding };
+  } catch {
+    return { clientName: "" };
+  }
+}
+
 // The hosted login's own pages a sign-in may continue to, given as
 // root-relative paths: the device flow sends a signed-out user to sign in on
 // the way to approving a device.

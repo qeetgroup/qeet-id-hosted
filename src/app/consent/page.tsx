@@ -1,53 +1,14 @@
-import { AuthShell } from "@/components/auth-shell";
-import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
-import { getApiBaseUrl } from "@/lib/public-config";
+import { ConsentScreen } from "./consent-screen";
 
-import { ConsentForm, type ConsentParams } from "./consent-form";
-
-
-// Resolve the client's friendly name + tenant branding from the same
-// login-context endpoint the sign-in page uses, so consent renders on-brand
-// and names the real application instead of a raw client_id.
-async function fetchContext(
-  clientID: string,
-): Promise<{ clientName: string; branding?: BrandingDTO }> {
-  if (!clientID) return { clientName: "" };
-  try {
-    const res = await fetch(
-      `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
-      { cache: "no-store" },
-    );
-    if (!res.ok) return { clientName: "" };
-    const ctx = (await res.json()) as {
-      client_name?: string;
-      branding?: BrandingDTO;
-    };
-    return { clientName: ctx.client_name ?? "", branding: ctx.branding };
-  } catch {
-    return { clientName: "" };
-  }
-}
-
+// The API sends the browser here with only the id of the authorization request
+// it recorded. Everything shown and decided (the application, its branding,
+// the scopes, where the browser goes next) comes from that recorded request,
+// never from anything else in this address.
 export default async function ConsentPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const params: ConsentParams = {
-    client_id: sp.client_id ?? "",
-    redirect_uri: sp.redirect_uri ?? "",
-    scope: sp.scope ?? "",
-    state: sp.state ?? "",
-    nonce: sp.nonce ?? "",
-    code_challenge: sp.code_challenge ?? "",
-    code_challenge_method: sp.code_challenge_method ?? "",
-  };
-  const { clientName, branding: brandingDTO } = await fetchContext(params.client_id);
-  const branding = normalizeBranding(brandingDTO);
-  return (
-    <AuthShell branding={branding}>
-      <ConsentForm params={params} clientName={clientName} branding={branding} />
-    </AuthShell>
-  );
+  return <ConsentScreen requestId={sp.request_id ?? ""} />;
 }
