@@ -37,10 +37,14 @@ Product-level flow narratives: `qeet-id-context/FLOWS/`.
 ## Rules
 
 ### 1. Stay stateless
-**No database, no secrets, no server-side session.** Configuration is public only:
-`NEXT_PUBLIC_*` (inlined at build time) and the runtime `PUBLIC_API_URL`, which
+**No database, no server-side session, and one optional secret.** Configuration is otherwise
+public: `NEXT_PUBLIC_*` (inlined at build time) and the runtime `PUBLIC_API_URL`, which
 `src/lib/public-config.ts` reads per request and serves to the browser via `/public-config.js`.
-If a change needs a secret, it belongs in `qeet-id-server`.
+The single exception is the optional relay key `QEET_ID_RELAY_KEY` (with `LOGIN_TRUSTED_PROXY_HOPS`):
+server pages send it with the visitor's address when they fetch `/v1/oauth/login-context`, so the
+API does not throttle every visitor as this server's one address (`src/lib/relay.ts`). It is read
+only on the server, is never `NEXT_PUBLIC_*`, and never reaches the browser; without it the app
+behaves as before. Any other secret belongs in `qeet-id-server`.
 
 ### 2. Never store a token
 Interactive login uses the backend's **HttpOnly `qe_ls`** cookie; the admin portal uses a separate
@@ -56,8 +60,10 @@ Every request sets `credentials: "include"`. Mutations read the `qe_csrf` cookie
 `qeet-id-react`.
 
 ### 4. Never redirect to an unvalidated URL
-`safeReturnTo(returnTo)` guards every `window.location.href`. An open redirect on the login host is
-a phishing primitive — **always** run a candidate URL through it.
+`safeReturnTo(returnTo)` guards every `window.location.href` (via `goTo`). It allows only the API's
+own `/oauth/authorize` URL, or a root-relative path to one of the hosted login's allowed pages
+(`/device`). An open redirect on the login host is a phishing primitive — **always** run a candidate
+URL through it.
 
 ### 5. The admin portal uses one-time link exchange
 The generated link is `/admin-portal#token=...`. The page must remove the fragment immediately and
@@ -82,10 +88,11 @@ bun install
 bun run dev -- -p 3003     # 3003 is REQUIRED, see below
 bun run build
 bun run typecheck
+bun run test                 # vitest run: unit + component tests, no server needed
 bun run generate:tree
 ```
 
-**There is no lint, format or test script in this repository.**
+**There is no lint or format script in this repository yet.** Tests: see the README's *Tests* section.
 
 > **Run on 3003.** `bun run dev` alone binds 3000. `qeet-id-server`'s `.env.example` sets
 > `LOGIN_BASE_URL=http://localhost:3003` and allowlists 3003 for CORS and WebAuthn origins.
@@ -95,9 +102,9 @@ bun run generate:tree
 
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · `verify` | `bun run typecheck` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
+| `ci.yml` · `verify` | `bun run typecheck` + `bun run test` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
 | `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the `qeet-id-deploy` test kit — never an RC number |
-| `deploy.yml` | Push to `main`: typecheck, Vercel production deploy, tag |
+| `deploy.yml` | Push to `main`: typecheck, tests, Vercel production deploy, tag |
 
 The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
 production does not use it. Health: `GET /healthz`.
@@ -105,12 +112,12 @@ production does not use it. Health: `GET /healthz`.
 ## Before you finish
 
 ```bash
-bun run typecheck && bun run build
+bun run typecheck && bun run test && bun run build
 git diff
 ```
 
 ## Escalate rather than proceed
 
 Storing a token · weakening CSRF · bypassing `safeReturnTo` · logging an admin-portal token ·
-adding a server-side secret · calling an endpoint that does not exist · anything requiring another
+adding a server-side secret other than the relay key · calling an endpoint that does not exist · anything requiring another
 repository.

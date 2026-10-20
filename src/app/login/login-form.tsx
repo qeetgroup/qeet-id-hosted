@@ -8,8 +8,10 @@ import { useTranslation } from "react-i18next";
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
-import { ApiError, apiPost } from "@/lib/api";
-import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
+import { apiPost } from "@/lib/api";
+import { ADDRESS_NOT_ALLOWED_REDIRECT, apiErrorMessage } from "@/lib/errors";
+import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "@/lib/login-context";
+import { goTo } from "@/lib/navigation";
 import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
 import { getApiBaseUrl } from "@/lib/public-config";
@@ -79,9 +81,13 @@ export function LoginForm({
   const { t } = useTranslation("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(
-    errorCode ? t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") }) : null,
-  );
+  const [error, setError] = useState<string | null>(() => {
+    if (!errorCode) return null;
+    // A social sign-in the organisation's address rules refused: the shared
+    // network message, not a provider failure with advice to try another way.
+    if (errorCode === ADDRESS_NOT_ALLOWED_REDIRECT) return t("common:errors.addressNotAllowed");
+    return t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") });
+  });
   const [loading, setLoading] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   // The pending MFA challenge token is held only in memory (never the URL) and,
@@ -105,10 +111,9 @@ export function LoginForm({
     if (!passkeyEnabled) return;
     stopAutofill.current = startPasskeyAutofill(
       () => {
-        const dest = safeReturnTo(returnTo);
-        window.location.href = dest ?? "/security";
+        goTo(safeReturnTo(returnTo) ?? "/security");
       },
-      (message) => setError(message || t("errors.passkeyFailed")),
+      (err) => setError(apiErrorMessage(err, t, t("errors.passkeyFailed"))),
     );
     return () => stopAutofill.current();
   }, []);
@@ -116,8 +121,7 @@ export function LoginForm({
   // Back to the application; with none to return to, on to the signed-in
   // security page (where the user can add a passkey).
   function continueToApp() {
-    const dest = safeReturnTo(returnTo);
-    window.location.href = dest ?? "/security";
+    goTo(safeReturnTo(returnTo) ?? "/security");
   }
 
   // After a password sign-in (with or without a second factor), offer a passkey
@@ -154,7 +158,7 @@ export function LoginForm({
       }
       await afterPasswordSignIn();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(apiErrorMessage(err, t, t("common:errors.generic")));
       setLoading(false);
     }
   }
@@ -254,7 +258,7 @@ export function LoginForm({
       continueToApp();
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : (err as Error).message || t("errors.passkeyFailed"),
+        apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")),
       );
       setPasskeyBusy(false);
     }
@@ -262,11 +266,17 @@ export function LoginForm({
 
   const busy = loading || passkeyBusy;
   const showSocial = providers.length > 0 && tenantId !== "" && returnTo !== "";
+  // A device journey carries no client to name yet, so say what the sign-in is for.
+  const title = clientName
+    ? t("titleTo", { client: clientName })
+    : returnsToDevice(returnTo)
+      ? t("titleDevice")
+      : t("title");
 
   return (
     <AuthCard
       branding={branding}
-      title={clientName ? t("titleTo", { client: clientName }) : t("title")}
+      title={title}
       subtitle={t("subtitle")}
     >
       {passwordEnabled && (

@@ -8,8 +8,10 @@ import { useTranslation } from "react-i18next";
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { MfaEnrollment } from "@/components/mfa-enrollment";
-import { ApiError, apiPost } from "@/lib/api";
+import { apiPost } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/errors";
 import { safeReturnTo } from "@/lib/login-context";
+import { goTo } from "@/lib/navigation";
 import type { Branding } from "@/lib/branding";
 
 type SignupFormProps = {
@@ -46,8 +48,7 @@ export function SignupForm({
   const busy = loading || passkeyBusy;
 
   function continueToApp() {
-    const dest = safeReturnTo(returnTo);
-    window.location.href = dest ?? "/login";
+    goTo(safeReturnTo(returnTo) ?? "/login");
   }
 
   async function passkeySignup() {
@@ -82,7 +83,7 @@ export function SignupForm({
       continueToApp();
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : (err as Error).message || t("errors.passkeyFailed"),
+        apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")),
       );
       setPasskeyBusy(false);
     }
@@ -112,7 +113,7 @@ export function SignupForm({
       }
       continueToApp();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(apiErrorMessage(err, t, t("common:errors.generic")));
       setLoading(false);
     }
   }

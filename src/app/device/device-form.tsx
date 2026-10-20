@@ -8,6 +8,8 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ScopeList } from "@/components/scope-list";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/errors";
+import { goTo } from "@/lib/navigation";
 
 type DeviceContext = { client_name: string; scopes: string[] };
 
@@ -44,13 +46,13 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         // Not signed in: send them through login, then back to this page.
-        window.location.href = loginRedirect(trimmed);
+        goTo(loginRedirect(trimmed));
         return;
       }
       if (err instanceof ApiError && [400, 404, 409].includes(err.status)) {
         setError(t("errors.codeInvalid"));
       } else {
-        setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+        setError(apiErrorMessage(err, t, t("common:errors.generic")));
       }
       setLoading(false);
     }
@@ -67,7 +69,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
       setDecision(res.status === "authorized" ? "authorized" : "denied");
       setLoading(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(apiErrorMessage(err, t, t("common:errors.generic")));
       setLoading(false);
     }
   }

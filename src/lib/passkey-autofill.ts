@@ -35,7 +35,7 @@ export async function conditionalMediationAvailable(): Promise<boolean> {
  * onSignedIn runs once the picked passkey has signed in; onError for a picked
  * passkey the server refused.
  */
-export function startPasskeyAutofill(onSignedIn: () => void, onError: (message: string) => void): () => void {
+export function startPasskeyAutofill(onSignedIn: () => void, onError: (err: unknown) => void): () => void {
   let stopped = false;
   let current: AbortController | null = null;
 
@@ -78,7 +78,7 @@ export function startPasskeyAutofill(onSignedIn: () => void, onError: (message: 
       } catch (err) {
         // The ceremony state ran out while the prompt was open: start again.
         if (err instanceof ApiError && err.code === "auth.session_expired") continue;
-        onError(err instanceof ApiError ? err.message : "");
+        onError(err);
         return;
       }
     }

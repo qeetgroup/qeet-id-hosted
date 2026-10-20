@@ -8,7 +8,8 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { type LoginFactor, MfaChallenge } from "@/components/mfa-challenge";
 import { MfaEnrollment } from "@/components/mfa-enrollment";
-import { ApiError, apiPost } from "@/lib/api";
+import { apiPost } from "@/lib/api";
+import { apiErrorMessage, isAddressRefusal } from "@/lib/errors";
 import type { Branding } from "@/lib/branding";
 import { safeReturnTo } from "@/lib/login-context";
 
@@ -42,6 +43,9 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
   const [error, setError] = useState<string | null>(token ? null : t("magic.missingToken"));
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
+  // The organisation's address rules refused this network: nothing on this
+  // page (a new link, another method) would help from here.
+  const [addressRefused, setAddressRefused] = useState(false);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const started = useRef(false);
 
@@ -65,7 +69,8 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
         window.location.href = safeReturnTo(res.return_to ?? "") ?? "/security";
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+        setAddressRefused(isAddressRefusal(err));
+        setError(apiErrorMessage(err, t, t("common:errors.generic")));
       });
   }, [token, t]);
 
@@ -75,7 +80,7 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
       await apiPost("/v1/auth/magic-link/resend", { token });
       setResent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(apiErrorMessage(err, t, t("common:errors.generic")));
     } finally {
       setResending(false);
     }
@@ -110,6 +115,13 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
         <p role="status" className="sr-only">
           {t("magic.signingIn")}
         </p>
+      </AuthCard>
+    );
+  }
+  if (addressRefused) {
+    return (
+      <AuthCard branding={branding} title={t("magic.addressTitle")}>
+        <FormAlert>{error}</FormAlert>
       </AuthCard>
     );
   }

@@ -67,5 +67,5 @@ The contract is owned by **`qeet-id-server`**.
 
 ## What does not exist here
 
-**No CI workflow. No tests. No lint or format script.** The Vercel build is the only gate.
+**No lint or format script.** CI (`ci.yml`) runs typecheck, the Vitest suite and the build.
 Magic-link consumption lives in `qeet-id-console`, not here.
