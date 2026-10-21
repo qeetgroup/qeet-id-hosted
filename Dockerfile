@@ -24,7 +24,8 @@ RUN for attempt in 1 2 3; do \
 # The build also runs natively. Its output is JavaScript except for sharp, which
 # Next traces into the standalone bundle: that one native dependency is
 # reinstalled for the TARGET architecture below, and the build fails if any
-# native addon of another architecture remains.
+# native addon of another architecture remains. Its version is read from the
+# file by path: sharp's "exports" map does not expose ./package.json.
 FROM --platform=$BUILDPLATFORM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -33,7 +34,7 @@ COPY . .
 ARG TARGETARCH
 RUN ./node_modules/.bin/next build \
  && case "$TARGETARCH" in amd64) arch=x64 ;; arm64) arch=arm64 ;; *) echo "unsupported $TARGETARCH" >&2; exit 1 ;; esac \
- && sharp=$(node -p "require('sharp/package.json').version") \
+ && sharp=$(node -p "require('./node_modules/sharp/package.json').version") \
  && mkdir /tmp/sharp && cd /tmp/sharp \
  && npm install --no-save --no-package-lock --no-audit --no-fund \
       --os=linux --cpu="$arch" --libc=glibc "sharp@$sharp" \
