@@ -7,11 +7,14 @@ import { getApiBaseUrl } from "@/lib/public-config";
 export class ApiError extends Error {
   status: number;
   code: string;
-  constructor(status: number, code: string, message: string) {
+  // The error's details, as the server sends them (e.g. retry_after).
+  metadata?: Record<string, unknown>;
+  constructor(status: number, code: string, message: string, metadata?: Record<string, unknown>) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.metadata = metadata;
   }
 }
 
@@ -47,11 +50,14 @@ async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
   const data = text ? safeParse(text) : null;
   if (!res.ok) {
-    const err = (data as { error?: { code?: string; message?: string } } | null)?.error;
+    const err = (
+      data as { error?: { code?: string; message?: string; metadata?: Record<string, unknown> } } | null
+    )?.error;
     throw new ApiError(
       res.status,
       err?.code ?? `http_${res.status}`,
       err?.message ?? "Request failed",
+      err?.metadata,
     );
   }
   return data as T;

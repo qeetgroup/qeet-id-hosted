@@ -1,6 +1,7 @@
 import { AuthShell } from "@/components/auth-shell";
 import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
 import { getApiBaseUrl } from "@/lib/public-config";
+import { relayHeaders } from "@/lib/relay-request";
 
 import { LoginForm } from "./login-form";
 
@@ -33,6 +34,7 @@ async function fetchContext(clientID: string): Promise<LoginContext> {
       `${getApiBaseUrl()}/v1/oauth/login-context?client_id=${encodeURIComponent(clientID)}`,
       {
         cache: "no-store",
+        headers: await relayHeaders(),
       },
     );
     if (!res.ok) return {};
@@ -62,6 +64,7 @@ export default async function LoginPage({
         rememberDeviceEnabled={ctx.remember_device_enabled ?? false}
         passwordEnabled={ctx.sign_in_methods?.password ?? true}
         passkeyEnabled={ctx.sign_in_methods?.passkey ?? true}
+        magicLinkEnabled={ctx.sign_in_methods?.magic_link ?? false}
         errorCode={error ?? ""}
         branding={branding}
       />
