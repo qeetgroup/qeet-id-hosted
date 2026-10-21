@@ -1,6 +1,7 @@
 {
   "title": "Sign in to continue",
   "titleTo": "Sign in to continue to {{client}}",
+  "titleDevice": "Sign in to approve a device",
   "subtitle": "Use your Qeet ID account.",
   "fields": {
     "email": "Email",
@@ -18,11 +19,42 @@
   "social": {
     "divider": "or continue with"
   },
+  "magic": {
+    "link": "Email me a sign-in link",
+    "hint": "We'll email you a link that signs you in once. It works for a short time.",
+    "submit": "Send sign-in link",
+    "busy": "Sending…",
+    "sent": "If {{email}} has an account here, a sign-in link is on its way. It works once and for a short time.",
+    "back": "Back to sign in",
+    "signingIn": "Signing you in…",
+    "signingInText": "One moment while we check your link.",
+    "failedTitle": "This link can't sign you in",
+    "failedText": "It may have been used already or expired. We can send a new one to the same address.",
+    "resend": "Send a new link",
+    "resent": "If the address has an account here, a new sign-in link is on its way.",
+    "missingToken": "This page needs the link from your email.",
+    "goToLogin": "Sign in another way",
+    "addressTitle": "You can't sign in from this network"
+  },
   "noAccount": "Don't have an account?",
   "signUp": "Sign up",
   "mfa": {
     "title": "Two-step verification",
     "subtitle": "Enter the 6-digit code from your authenticator app.",
+    "subtitleAny": "Confirm it's you: enter a code, or use one of the options below.",
+    "sendCodeTo": "Send a code to {{destination}}",
+    "sendCodeToIn": "Send another code to {{destination}} in {{time}}",
+    "codeSentTo": "Code sent to {{destination}}.",
+    "sendWait": "A code was sent to {{destination}} recently. You can ask for another in {{time}}.",
+    "wait": {
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes"
+    },
+    "usePasskey": "Use a passkey",
+    "pushBtn": "Approve on my phone",
+    "pushWaiting": "Approve the sign-in on your phone…",
     "subtitleRecovery": "Enter one of your saved recovery codes.",
     "label": "Verification code",
     "recoveryLabel": "Recovery code",
@@ -34,7 +66,25 @@
       "idle": "Verify",
       "busy": "Verifying…"
     },
-    "back": "Back to sign in"
+    "back": "Back to sign in",
+    "enroll": {
+      "title": "Set up two-step verification",
+      "subtitle": "Your organisation requires a second step when you sign in. Set up an authenticator app to continue.",
+      "subtitleDue": "Your organisation requires a second step when you sign in from {{date}}. Set it up now, or skip until then.",
+      "startBtn": "Set up an authenticator app",
+      "scanLabel": "Scan with your authenticator app",
+      "keyLabel": "Setup key",
+      "keyHint": "Can't scan? Enter this key in your app instead.",
+      "codeLabel": "Code from the app",
+      "confirmBtn": "Confirm and continue",
+      "skipBtn": "Skip for now",
+      "codesTitle": "Save your recovery codes",
+      "codesSubtitle": "Each code signs you in once if you lose your authenticator app. They won't be shown again.",
+      "copyBtn": "Copy",
+      "copiedBtn": "Copied",
+      "downloadBtn": "Download",
+      "continueBtn": "Continue"
+    }
   },
   "noMethods": "There's no way to sign in to this application here. Contact the organisation's administrator.",
   "errors": {

@@ -9,46 +9,79 @@ import { FormAlert } from "@/components/form-alert";
 import { ScopeList } from "@/components/scope-list";
 import { ApiError, apiPost } from "@/lib/api";
 import type { Branding } from "@/lib/branding";
+import { ADDRESS_NOT_ALLOWED } from "@/lib/errors";
+import { goTo } from "@/lib/navigation";
 
-export type ConsentParams = {
-  client_id: string;
-  redirect_uri: string;
-  scope: string;
-  state: string;
-  nonce: string;
-  code_challenge: string;
-  code_challenge_method: string;
-};
+// consentErrorKey names the message for an API refusal that ends this request:
+// it can't be decided again from this page. Other refusals keep the buttons.
+export function consentErrorKey(code: string): string | null {
+  switch (code) {
+    case "oidc.consent_request_invalid":
+    case "unauthorized":
+      return "errors.requestInvalid";
+    case "oidc.redirect_uri_not_registered":
+      return "errors.redirectNotRegistered";
+    case ADDRESS_NOT_ALLOWED:
+      return "common:errors.addressNotAllowed";
+  }
+  return null;
+}
+
+// An absolute http(s) address, the only kind of redirect the API answers with.
+function isWebAddress(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 
 export function ConsentForm({
-  params,
+  requestId,
+  scopes,
   clientName,
   branding,
 }: {
-  params: ConsentParams;
+  requestId: string;
+  scopes: string[];
   clientName?: string;
   branding?: Branding;
 }) {
   const { t } = useTranslation("consent");
-  const scopes = params.scope.split(/\s+/).filter(Boolean);
   const [error, setError] = useState<string | null>(null);
+  const [ended, setEnded] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const appName = clientName || params.client_id || t("common:fallbacks.application");
+  const appName = clientName || t("common:fallbacks.application");
 
+  // Only the recorded request's id goes with the decision: the API takes
+  // every protocol value, and where the browser goes next, from its record.
   async function decide(approve: boolean) {
     setError(null);
     setLoading(true);
     try {
-      const res = await apiPost<{ redirect: string }>("/v1/oauth/authorize/decision", {
+      const res = await apiPost<{ redirect?: string }>("/v1/oauth/authorize/decision", {
+        request_id: requestId,
         approve,
-        ...params,
       });
-      window.location.href = res.redirect;
+      if (res?.redirect && isWebAddress(res.redirect)) {
+        goTo(res.redirect);
+        return;
+      }
+      setEnded(true);
+      setError(t("errors.noRedirect"));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
-      setLoading(false);
+      const code = err instanceof ApiError ? err.code : "";
+      const key = consentErrorKey(code);
+      if (key) {
+        setEnded(true);
+        setError(t(key));
+      } else {
+        setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      }
     }
+    setLoading(false);
   }
 
   return (
@@ -66,26 +99,28 @@ export function ConsentForm({
 
       <FormAlert>{error}</FormAlert>
 
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          size="lg"
-          className="flex-1"
-          disabled={loading}
-          onClick={() => decide(false)}
-        >
-          {t("actions.deny")}
-        </Button>
-        <Button
-          size="lg"
-          className="flex-1"
-          onClick={() => decide(true)}
-          loading={loading}
-          loadingLabel={t("actions.allowing")}
-        >
-          {t("actions.allow")}
-        </Button>
-      </div>
+      {!ended && (
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            disabled={loading}
+            onClick={() => decide(false)}
+          >
+            {t("actions.deny")}
+          </Button>
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={() => decide(true)}
+            loading={loading}
+            loadingLabel={t("actions.allowing")}
+          >
+            {t("actions.allow")}
+          </Button>
+        </div>
+      )}
     </AuthCard>
   );
 }

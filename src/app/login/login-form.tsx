@@ -1,19 +1,25 @@
 "use client";
 
 import { FingerprintPatternIcon } from "@qeetrix/icons";
-import { Button, Input, OTPInput, Separator } from "@qeetrix/ui";
-import { type FormEvent, useState } from "react";
+import { Button, Input, Separator } from "@qeetrix/ui";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { ProviderIcon } from "@/components/social-providers";
-import { ApiError, apiPost } from "@/lib/api";
-import { clientIDFromReturnTo, safeReturnTo } from "@/lib/login-context";
+import { apiPost } from "@/lib/api";
+import { ADDRESS_NOT_ALLOWED_REDIRECT, apiErrorMessage } from "@/lib/errors";
+import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "@/lib/login-context";
+import { goTo } from "@/lib/navigation";
+import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
 import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
 
+import { MagicLinkRequest } from "./magic-link-request";
+import { MfaChallenge, type LoginFactor } from "@/components/mfa-challenge";
+import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { PasskeyPrompt } from "./passkey-prompt";
 
 type LoginFormProps = {
@@ -30,6 +36,9 @@ type LoginFormProps = {
   // server anyway).
   passwordEnabled: boolean;
   passkeyEnabled: boolean;
+  // magicLinkEnabled offers "email me a sign-in link"; true only when the
+  // organisation allows magic links.
+  magicLinkEnabled: boolean;
   // errorCode seeds the error banner from a redirect (e.g. a failed social
   // ceremony bounced back as ?error=social); empty when there's nothing to show.
   errorCode: string;
@@ -41,13 +50,20 @@ function titleCase(s: string) {
 }
 
 // The hosted-login session endpoint returns either the user id (cookie set) or,
-// when a second factor is enrolled, a pending MFA challenge to complete.
-type SessionResponse = {
+// when the account holds a second factor or must have one, a pending MFA
+// challenge to complete. An enrolment challenge (enrollment_required) is met
+// by setting up an authenticator app; enrollment_due_at, when present, is the
+// end of the organisation's grace period, until which it can be skipped.
+export type SessionResponse = {
   user_id?: string;
   mfa_required?: boolean;
   mfa_token?: string;
   methods?: string[];
+  factors?: LoginFactor[];
+  enrollment_required?: boolean;
+  enrollment_due_at?: string;
 };
+
 
 export function LoginForm({
   returnTo,
@@ -58,28 +74,54 @@ export function LoginForm({
   rememberDeviceEnabled,
   passwordEnabled,
   passkeyEnabled,
+  magicLinkEnabled,
   errorCode,
   branding,
 }: LoginFormProps) {
   const { t } = useTranslation("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(
-    errorCode ? t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") }) : null,
-  );
+  const [error, setError] = useState<string | null>(() => {
+    if (!errorCode) return null;
+    // A social sign-in the organisation's address rules refused: the shared
+    // network message, not a provider failure with advice to try another way.
+    if (errorCode === ADDRESS_NOT_ALLOWED_REDIRECT) return t("common:errors.addressNotAllowed");
+    return t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") });
+  });
   const [loading, setLoading] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   // The pending MFA challenge token is held only in memory (never the URL) and,
   // when set, swaps the credential form for the second-factor step.
   const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaFactors, setMfaFactors] = useState<LoginFactor[]>([]);
+  // Set for an enrolment challenge: the setup step replaces the factor step.
+  const [enrollment, setEnrollment] = useState<{ dueAt?: string } | null>(null);
   // Set after a password sign-in to offer adding a passkey before continuing.
   const [offerPasskey, setOfferPasskey] = useState(false);
+  // Asking for a one-time sign-in link instead of using a password.
+  const [magicLink, setMagicLink] = useState(false);
+  // Stops the background passkey ceremony behind the email field's
+  // suggestions; called before signing in any other way.
+  const stopAutofill = useRef<() => void>(() => {});
+
+  // Offer the user's passkeys in the browser's own prompt as the form loads.
+  // Signing in that way skips the "add a passkey" offer — they have one.
+  // Started once per form load.
+  useEffect(() => {
+    if (!passkeyEnabled) return;
+    stopAutofill.current = startPasskeyAutofill(
+      () => {
+        goTo(safeReturnTo(returnTo) ?? "/security");
+      },
+      (err) => setError(apiErrorMessage(err, t, t("errors.passkeyFailed"))),
+    );
+    return () => stopAutofill.current();
+  }, []);
 
   // Back to the application; with none to return to, on to the signed-in
   // security page (where the user can add a passkey).
   function continueToApp() {
-    const dest = safeReturnTo(returnTo);
-    window.location.href = dest ?? "/security";
+    goTo(safeReturnTo(returnTo) ?? "/security");
   }
 
   // After a password sign-in (with or without a second factor), offer a passkey
@@ -95,6 +137,7 @@ export function LoginForm({
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    stopAutofill.current();
     setError(null);
     setLoading(true);
     try {
@@ -107,13 +150,15 @@ export function LoginForm({
         ...(clientId ? { client_id: clientId } : {}),
       });
       if (res.mfa_required && res.mfa_token) {
+        setMfaFactors(res.factors ?? []);
+        setEnrollment(res.enrollment_required ? { dueAt: res.enrollment_due_at } : null);
         setMfaToken(res.mfa_token);
         setLoading(false);
         return;
       }
       await afterPasswordSignIn();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(apiErrorMessage(err, t, t("common:errors.generic")));
       setLoading(false);
     }
   }
@@ -122,10 +167,44 @@ export function LoginForm({
     return <PasskeyPrompt branding={branding} onContinue={continueToApp} />;
   }
 
+  if (magicLink) {
+    return (
+      <AuthCard
+        branding={branding}
+        title={clientName ? t("titleTo", { client: clientName }) : t("title")}
+        subtitle={t("magic.hint")}
+      >
+        <MagicLinkRequest
+          tenantId={tenantId}
+          returnTo={returnTo}
+          initialEmail={email}
+          onBack={() => setMagicLink(false)}
+        />
+      </AuthCard>
+    );
+  }
+
+  if (mfaToken && enrollment) {
+    return (
+      <MfaEnrollment
+        mfaToken={mfaToken}
+        dueAt={enrollment.dueAt}
+        branding={branding}
+        onDone={afterPasswordSignIn}
+        onBack={() => {
+          setMfaToken(null);
+          setEnrollment(null);
+          setError(null);
+        }}
+      />
+    );
+  }
+
   if (mfaToken) {
     return (
       <MfaChallenge
         mfaToken={mfaToken}
+        factors={mfaFactors}
         rememberDeviceEnabled={rememberDeviceEnabled}
         branding={branding}
         onVerified={afterPasswordSignIn}
@@ -140,11 +219,13 @@ export function LoginForm({
   // Social: a full-page redirect into the hosted social flow, which sets the SSO
   // cookie on the provider callback and returns to the authorize URL.
   function socialStart(provider: string) {
+    stopAutofill.current();
     const q = new URLSearchParams({ tenant_id: tenantId, return_to: returnTo });
     window.location.assign(`${getApiBaseUrl()}/v1/social/${provider}/start?${q.toString()}`);
   }
 
   async function passkeyLogin() {
+    stopAutofill.current();
     setError(null);
     setPasskeyBusy(true);
     try {
@@ -177,7 +258,7 @@ export function LoginForm({
       continueToApp();
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : (err as Error).message || t("errors.passkeyFailed"),
+        apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")),
       );
       setPasskeyBusy(false);
     }
@@ -185,11 +266,17 @@ export function LoginForm({
 
   const busy = loading || passkeyBusy;
   const showSocial = providers.length > 0 && tenantId !== "" && returnTo !== "";
+  // A device journey carries no client to name yet, so say what the sign-in is for.
+  const title = clientName
+    ? t("titleTo", { client: clientName })
+    : returnsToDevice(returnTo)
+      ? t("titleDevice")
+      : t("title");
 
   return (
     <AuthCard
       branding={branding}
-      title={clientName ? t("titleTo", { client: clientName }) : t("title")}
+      title={title}
       subtitle={t("subtitle")}
     >
       {passwordEnabled && (
@@ -262,6 +349,22 @@ export function LoginForm({
         </Button>
       )}
 
+      {magicLinkEnabled && tenantId !== "" && (
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          disabled={busy}
+          onClick={() => {
+            stopAutofill.current();
+            setError(null);
+            setMagicLink(true);
+          }}
+        >
+          {t("magic.link")}
+        </Button>
+      )}
+
       {showSocial && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -289,7 +392,7 @@ export function LoginForm({
         </div>
       )}
 
-      {!passwordEnabled && !passkeyEnabled && !showSocial && (
+      {!passwordEnabled && !passkeyEnabled && !showSocial && !(magicLinkEnabled && tenantId !== "") && (
         <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
       )}
 
@@ -304,137 +407,6 @@ export function LoginForm({
           </a>
         </p>
       )}
-    </AuthCard>
-  );
-}
-
-// MfaChallenge is the second step of a hosted login: the password was accepted
-// but the user has a second factor enrolled. It exchanges the in-memory
-// mfa_token plus a TOTP or recovery code for the SSO cookie.
-function MfaChallenge({
-  mfaToken,
-  rememberDeviceEnabled,
-  branding,
-  onVerified,
-  onBack,
-}: {
-  mfaToken: string;
-  rememberDeviceEnabled: boolean;
-  branding?: Branding;
-  onVerified: () => void | Promise<void>;
-  onBack: () => void;
-}) {
-  const { t } = useTranslation("login");
-  const [code, setCode] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [recovery, setRecovery] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function verify(value: string) {
-    setError(null);
-    setLoading(true);
-    try {
-      await apiPost("/v1/auth/session/mfa", {
-        mfa_token: mfaToken,
-        code: value,
-        remember,
-      });
-      await onVerified();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
-      setLoading(false);
-    }
-  }
-
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    void verify(code);
-  }
-
-  function toggleMode() {
-    setRecovery((r) => !r);
-    setCode("");
-    setError(null);
-  }
-
-  return (
-    <AuthCard
-      branding={branding}
-      title={t("mfa.title")}
-      subtitle={recovery ? t("mfa.subtitleRecovery") : t("mfa.subtitle")}
-    >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="mfa-code" className="text-sm font-medium">
-            {recovery ? t("mfa.recoveryLabel") : t("mfa.label")}
-          </label>
-          {recovery ? (
-            <Input
-              id="mfa-code"
-              type="text"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder={t("mfa.recoveryPlaceholder")}
-            />
-          ) : (
-            <OTPInput
-              value={code}
-              onChange={setCode}
-              onComplete={(v) => void verify(v)}
-              autoFocus
-              disabled={loading}
-              aria-label={t("mfa.label")}
-            />
-          )}
-        </div>
-
-        {rememberDeviceEnabled && (
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            {t("mfa.remember")}
-          </label>
-        )}
-
-        <FormAlert>{error}</FormAlert>
-
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          disabled={loading || code.length === 0}
-          loading={loading}
-          loadingLabel={t("mfa.submit.busy")}
-        >
-          {t("mfa.submit.idle")}
-        </Button>
-      </form>
-
-      <div className="flex flex-col gap-1 text-center">
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-          onClick={toggleMode}
-        >
-          {recovery ? t("mfa.useTotp") : t("mfa.useRecovery")}
-        </button>
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-          disabled={loading}
-          onClick={onBack}
-        >
-          {t("mfa.back")}
-        </button>
-      </div>
     </AuthCard>
   );
 }

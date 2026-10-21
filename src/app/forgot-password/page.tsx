@@ -1,6 +1,7 @@
 import { AuthShell } from "@/components/auth-shell";
 import { normalizeBranding } from "@/lib/branding";
 import { fetchBrandingForReturnTo } from "@/lib/login-context";
+import { relayHeaders } from "@/lib/relay-request";
 
 import { ForgotPasswordForm } from "./forgot-password-form";
 
@@ -15,7 +16,7 @@ export default async function ForgotPasswordPage({
 }) {
   const { return_to } = await searchParams;
   const returnTo = return_to ?? "";
-  const branding = normalizeBranding(await fetchBrandingForReturnTo(returnTo));
+  const branding = normalizeBranding(await fetchBrandingForReturnTo(returnTo, await relayHeaders()));
   return (
     <AuthShell branding={branding}>
       <ForgotPasswordForm returnTo={returnTo} branding={branding} />

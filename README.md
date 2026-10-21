@@ -55,18 +55,31 @@ bun run dev -- -p 3003         # http://localhost:3003
 | `bun run build` | Production build (`next build`) |
 | `bun run start` | Serve the production build |
 | `bun run typecheck` | `tsc --noEmit` |
+| `bun run test` | Unit and component tests (`vitest run`) |
+
+### Tests
+
+`bun run test` runs the whole suite once with Vitest; it needs no server and no `.env`.
+Tests sit next to the code as `*.test.ts(x)`. Component tests start with
+`// @vitest-environment jsdom`, import `@/i18n`, and answer API calls with `mockApi` from
+`src/test-api.ts`, never a live server. A flow that leaves the page goes through `goTo`
+(`src/lib/navigation.ts`), which tests mock to see where the browser is sent.
+`bunx vitest` watches while you work.
 
 ---
 
 ## Configuration
 
-Next.js inlines `NEXT_PUBLIC_*` at **build time**, so only public, non-secret values belong here.
+Next.js inlines `NEXT_PUBLIC_*` at **build time**, so only public, non-secret values may carry that prefix.
+The two relay settings are read only on the server and never reach the browser.
 
 | Variable | Required | Example (dev) | Prod |
 |---|:--:|---|---|
 | `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:4001` | `https://api.id.qeet.in` |
+| `QEET_ID_RELAY_KEY` | — | — | one of the API's `RELAY_KEYS` (server-only secret) |
+| `LOGIN_TRUSTED_PROXY_HOPS` | — | `0` | proxies in front of the app that append to `X-Forwarded-For` |
 
-The app appends `/v1/...` to this base itself.
+The app appends `/v1/...` to the API URL itself.
 
 ---
 

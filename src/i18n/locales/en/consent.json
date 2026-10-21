@@ -5,5 +5,11 @@
     "deny": "Deny",
     "allow": "Allow",
     "allowing": "…"
+  },
+  "loading": "Loading the request…",
+  "errors": {
+    "requestInvalid": "This request has expired or was already answered. Go back to the application and start again.",
+    "redirectNotRegistered": "This application can't take you back: its return address is no longer registered. You can close this window.",
+    "noRedirect": "Your answer was recorded. You can close this window."
   }
 }

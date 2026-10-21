@@ -27,7 +27,8 @@ application. Client-side redirect safety.
 ## Consumes
 
 `api.id.qeet.in` over HTTPS with `credentials: "include"` and a CSRF double-submit header ·
-`@qeetrix/ui` · `@qeetrix/icons`. **No database, no server-side secret, no state.**
+`@qeetrix/ui` · `@qeetrix/icons`. **No database, no state, and no server-side secret except the
+optional relay key** (`QEET_ID_RELAY_KEY`, see `src/lib/relay.ts`).
 
 ## Provides
 
@@ -36,7 +37,8 @@ package. Its outward contract is the set of `/v1/...` endpoints it calls.
 
 ## Security boundaries
 
-**The trust boundary is `qeet-id-server`.** This app runs in a hostile environment with no secret.
+**The trust boundary is `qeet-id-server`.** This app runs in a hostile environment; its only secret is the optional relay key, which lets
+the API trust the visitor address it names and grants nothing else.
 
 | Boundary | Enforcement |
 |---|---|
@@ -46,6 +48,7 @@ package. Its outward contract is the set of `/v1/...` endpoints it calls.
 | MFA challenge | `mfa_token` in memory only — **never the URL** |
 | Admin portal | One-time fragment credential exchanged for a short-lived HttpOnly session |
 | Build-time config | `NEXT_PUBLIC_*` only — treat every value as public |
+| Relay key | `QEET_ID_RELAY_KEY` read only in server pages (`src/lib/relay-request.ts`); never `NEXT_PUBLIC_*` |
 
 ### The admin-portal exception
 
@@ -93,6 +96,6 @@ Product-level fan-out: `qeet-id-context/CHANGE-MATRIX.md`.
 3. **Never redirect to an unvalidated URL.** An open redirect here is a phishing primitive.
 4. **Never log or expose an admin-portal token.**
 5. **Never put the MFA challenge token in the URL.**
-6. **Never add a server-side secret** — this app is stateless by design.
+6. **Never add a server-side secret** beyond the optional relay key — this app is stateless by design.
 7. **Never call an endpoint you have not verified** in `qeet-id-server`.
 8. **Never change another repository** from a task scoped to this one.
