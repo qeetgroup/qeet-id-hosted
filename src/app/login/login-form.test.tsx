@@ -104,6 +104,15 @@ describe("LoginForm", () => {
     window.history.replaceState(null, "", "/");
   });
 
+  it("says why a social sign-in was refused for an unverified account", () => {
+    renderLogin(AUTHORIZE, "Acme", "account_unverified");
+    expect(
+      screen.getByText(
+        "An account already uses this email address, but it hasn't been verified. Verify it, or reset its password from the link we email you, then sign in with this provider.",
+      ),
+    ).toBeTruthy();
+  });
+
   it("shows the server's reason when sign-in is refused", async () => {
     mockApi({
       "POST /v1/auth/session": {
