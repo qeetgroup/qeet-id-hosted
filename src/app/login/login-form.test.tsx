@@ -79,6 +79,31 @@ describe("LoginForm", () => {
     expect(goTo).not.toHaveBeenCalled();
   });
 
+  it("asks for the second factor a social sign-in came back with, and clears it from the address", async () => {
+    const calls = mockApi({ "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } } });
+    const factors = JSON.stringify([
+      { type: "totp" },
+      { type: "recovery_code" },
+      { type: "email", id: "f-1", destination: "a***@example.com" },
+    ]);
+    window.history.replaceState(
+      null,
+      "",
+      `/login?return_to=${encodeURIComponent(AUTHORIZE)}#${new URLSearchParams({ mfa_token: "social-mfa", methods: "totp,email", factors })}`,
+    );
+    renderLogin();
+
+    expect(await screen.findByText("Two-step verification")).toBeTruthy();
+    expect(window.location.hash).toBe("");
+    expect(window.location.search).toContain("return_to=");
+    fireEvent.click(screen.getByRole("button", { name: "Use a recovery code" }));
+    fireEvent.change(screen.getByLabelText("Recovery code"), { target: { value: "aaaa-bbbb-cccc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+    expect(calls[0]).toMatchObject({ method: "POST", path: "/v1/auth/session/mfa", body: { mfa_token: "social-mfa" } });
+    window.history.replaceState(null, "", "/");
+  });
+
   it("shows the server's reason when sign-in is refused", async () => {
     mockApi({
       "POST /v1/auth/session": {
