@@ -104,6 +104,11 @@ describe("LoginForm", () => {
     window.history.replaceState(null, "", "/");
   });
 
+  it("says a suspended account isn't signed in by a social provider", () => {
+    renderLogin(AUTHORIZE, "Acme", "account_inactive");
+    expect(screen.getByText("Your account isn't active. Contact your administrator.")).toBeTruthy();
+  });
+
   it("says why a social sign-in was refused for an unverified account", () => {
     renderLogin(AUTHORIZE, "Acme", "account_unverified");
     expect(
