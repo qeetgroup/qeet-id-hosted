@@ -92,6 +92,7 @@
     "noPasskeySelected": "No passkey was selected.",
     "passkeyFailed": "Passkey sign-in failed.",
     "social": "We couldn't sign you in with that provider. Please try again or use another method.",
+    "account_inactive": "Your account isn't active. Contact your administrator.",
     "account_unverified": "An account already uses this email address, but it hasn't been verified. Verify it, or reset its password from the link we email you, then sign in with this provider.",
     "registration_closed": "This organisation only accepts invited members. Ask an administrator for an invitation, or sign in with an account you already have."
   }
