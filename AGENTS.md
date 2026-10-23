@@ -51,7 +51,11 @@ Interactive login uses the backend's **HttpOnly `qe_ls`** cookie; the admin port
 HttpOnly cookie. This app cannot read either and must never try. Do not put a token in
 `localStorage`, `sessionStorage`, a cookie, or React state.
 
-The pending MFA challenge token is held **in memory only, never in the URL**. Keep it that way.
+The pending MFA challenge token is held **in memory only, never in the URL**. Keep it that way. The
+one hand-over the server makes through the address — a social sign-in that must meet a second factor
+comes back to `/login` with the challenge in the URL **fragment** (never sent to a server or in a
+Referer) — is read on load, the fragment cleared at once, and the token then held in memory like any
+other (`src/lib/social-challenge.ts`).
 
 ### 3. CSRF is not optional
 Every request sets `credentials: "include"`. Mutations read the `qe_csrf` cookie and echo it as

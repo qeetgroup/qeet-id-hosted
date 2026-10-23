@@ -14,6 +14,7 @@ import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "@/lib/login
 import { goTo } from "@/lib/navigation";
 import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
+import { readSocialChallenge } from "@/lib/social-challenge";
 import { getApiBaseUrl } from "@/lib/public-config";
 import type { Branding } from "@/lib/branding";
 
@@ -116,6 +117,20 @@ export function LoginForm({
       (err) => setError(apiErrorMessage(err, t, t("errors.passkeyFailed"))),
     );
     return () => stopAutofill.current();
+  }, []);
+
+  // Back from a social sign-in that must meet a second factor first: take the
+  // challenge from the URL fragment into memory, clear the fragment, and go
+  // straight to the second-factor step (or the setup of one). After the
+  // autofill effect, so the passkey prompt it started is stopped.
+  useEffect(() => {
+    const challenge = readSocialChallenge(window.location.hash);
+    if (!challenge) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    stopAutofill.current();
+    setMfaFactors(challenge.factors);
+    setEnrollment(challenge.enrollment);
+    setMfaToken(challenge.mfaToken);
   }, []);
 
   // Back to the application; with none to return to, on to the signed-in
