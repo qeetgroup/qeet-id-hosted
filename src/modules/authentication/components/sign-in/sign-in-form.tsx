@@ -30,6 +30,9 @@ import { SocialProviders } from "./social-providers";
 type SignInFormProps = {
   returnTo: string;
   clientName: string;
+  // The application's logo and home page, when its registration has them.
+  clientLogoUri?: string;
+  clientUri?: string;
   tenantId: string;
   providers: string[];
   selfRegistrationEnabled: boolean;
@@ -53,6 +56,8 @@ type SignInFormProps = {
 export function SignInForm({
   returnTo,
   clientName,
+  clientLogoUri,
+  clientUri,
   tenantId,
   providers,
   selfRegistrationEnabled,
@@ -170,7 +175,11 @@ export function SignInForm({
     return (
       <AuthCard
         branding={branding}
-        context={clientName ? <ClientIdentity name={clientName} /> : null}
+        context={
+          clientName ? (
+            <ClientIdentity name={clientName} logoUri={clientLogoUri} uri={clientUri} />
+          ) : null
+        }
         title={t("title")}
         subtitle={t("magic.hint")}
       >
@@ -276,7 +285,11 @@ export function SignInForm({
   return (
     <AuthCard
       branding={branding}
-      context={clientName ? <ClientIdentity name={clientName} /> : null}
+      context={
+        clientName ? (
+          <ClientIdentity name={clientName} logoUri={clientLogoUri} uri={clientUri} />
+        ) : null
+      }
       title={t("title")}
       subtitle={subtitle}
     >

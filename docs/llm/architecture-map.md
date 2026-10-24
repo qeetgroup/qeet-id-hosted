@@ -8,7 +8,7 @@
 | Repository identity | [`qeet-repo.yml`](../../qeet-repo.yml) |
 | Agent instructions | [`AGENTS.md`](../../AGENTS.md) |
 | **API client, CSRF seeding** | `src/platform/api/client.ts` |
-| Login context (app name, tenant policy, branding) | `src/platform/api/login-context.ts`; server pages use `getLoginContext` in `src/platform/api/server.ts` |
+| Login context (app name, logo and home page, tenant policy, branding) | `src/platform/api/login-context.ts`; server pages use `getLoginContext` in `src/platform/api/server.ts` |
 | **Return-to validation (open-redirect guard)** | `src/platform/navigation/return-to.ts` |
 | Enterprise-setup client (backend `/v1/admin-portal/*`) | `src/modules/enterprise-setup/api/admin-portal.ts` |
 | Branding normalisation and CSS variables | `src/platform/branding/branding.ts` |

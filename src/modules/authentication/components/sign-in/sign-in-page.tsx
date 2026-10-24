@@ -14,6 +14,8 @@ export async function SignInPage({ returnTo, errorCode }: { returnTo: string; er
       <SignInForm
         returnTo={returnTo}
         clientName={ctx.client_name ?? ""}
+        clientLogoUri={ctx.logo_uri}
+        clientUri={ctx.client_uri}
         tenantId={ctx.tenant_id ?? ""}
         providers={ctx.providers ?? []}
         selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
