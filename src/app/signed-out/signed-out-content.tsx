@@ -27,14 +27,14 @@ function webPage(url: string): boolean {
  * message, or continues to the application that asked to be returned to,
  * through the API, which only follows a ticket it signed.
  */
-export function LoggedOutContent({
+export function SignedOutContent({
   frontchannel = [],
   continueTicket = "",
 }: {
   frontchannel?: string[];
   continueTicket?: string;
 }) {
-  const { t } = useTranslation("loggedOut");
+  const { t } = useTranslation("signOut");
   const pages = frontchannel.filter(webPage);
   const [pending, setPending] = useState(pages.length);
   const finished = useRef(false);

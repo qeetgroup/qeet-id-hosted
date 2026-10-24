@@ -7,11 +7,11 @@ vi.mock("@/lib/navigation", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/lib/navigation";
 import { AUTHORIZE, mockApi } from "@/test-api";
-import { SignupForm } from "./signup-form";
+import { SignUpForm } from "./sign-up-form";
 
-function renderSignup(selfRegistrationEnabled = true) {
+function renderSignUp(selfRegistrationEnabled = true) {
   render(
-    <SignupForm
+    <SignUpForm
       returnTo={AUTHORIZE}
       clientName="Acme"
       tenantId="tenant-1"
@@ -35,10 +35,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("SignupForm", () => {
+describe("SignUpForm", () => {
   it("creates the account in the application's tenant and returns to it", async () => {
     const calls = mockApi({ "POST /v1/auth/register": { status: 201, body: {} } });
-    renderSignup();
+    renderSignUp();
 
     fillPasswordForm();
 
@@ -59,7 +59,7 @@ describe("SignupForm", () => {
 
   it("stops passwords that don't match before sending anything", async () => {
     const calls = mockApi({});
-    renderSignup();
+    renderSignUp();
 
     fillPasswordForm("something else");
 
@@ -69,7 +69,7 @@ describe("SignupForm", () => {
 
   it("says sign-ups are closed when the application doesn't allow them", () => {
     mockApi({});
-    renderSignup(false);
+    renderSignUp(false);
 
     expect(screen.getByText(/Sign-ups aren't open for this application/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Create account" })).toBeNull();

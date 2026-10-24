@@ -18,15 +18,21 @@ Each route is a self-contained step in the hosted-auth journey (`src/app/`):
 
 | Route | Purpose |
 |---|---|
-| `/login` | Sign in — password, **passkey / WebAuthn**, social, magic-link, OTP, and MFA step-up |
-| `/signup` | Create an account |
+| `/sign-in` | Sign in — password, **passkey / WebAuthn**, social, magic-link, OTP, and MFA step-up |
+| `/sign-up` | Create an account |
 | `/forgot-password` | Request a password-reset email |
-| `/reset` | Set a new password from a reset link |
+| `/reset-password` | Set a new password from a reset link |
+| `/magic-link` | Finish signing in from an emailed magic link |
 | `/consent` | OAuth **consent** screen shown during the authorize flow |
 | `/device` | **Device authorization** grant — enter the user code from a TV/CLI |
 | `/admin-portal` | WorkOS-style admin-portal entry for an external IT admin (no Qeet ID account required) |
-| `/logged-out` | Post-logout landing |
+| `/sign-out` | Confirm a sign-out that didn't name its session |
+| `/signed-out` | Post-sign-out landing |
 | `/security` | The signed-in user's passkeys — see, rename and add one (also offered after a password sign-in) |
+
+The former paths — `/login`, `/signup`, `/logout`, `/logged-out`, `/reset`, `/magic` — redirect to
+these (query and fragment kept), because `qeet-id-server` and already-sent emails still link to
+them ([`next.config.ts`](next.config.ts)).
 
 ---
 

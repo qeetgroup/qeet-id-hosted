@@ -15,7 +15,7 @@ import { getApiBaseUrl } from "@/lib/public-config";
  * /v1/oauth/logout, which ends the session and tells the applications.
  * Declining leaves the person signed in.
  */
-export function LogoutConfirm({
+export function SignOutConfirm({
   ticket,
   clientId,
   postLogoutRedirect,
@@ -26,7 +26,7 @@ export function LogoutConfirm({
   postLogoutRedirect: string;
   state: string;
 }) {
-  const { t } = useTranslation("loggedOut");
+  const { t } = useTranslation("signOut");
   const [appName, setAppName] = useState("");
   const [declined, setDeclined] = useState(false);
 

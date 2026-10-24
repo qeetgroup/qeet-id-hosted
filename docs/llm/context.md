@@ -40,8 +40,9 @@ the **external admin portal**. Applying per-tenant branding.
 **It decides nothing.** Credential verification, MFA policy, token issuance, consent recording and
 session lifetime all belong to `qeet-id-server`. It holds no state, no database, no secret.
 
-**Magic-link consumption is not here** — it lives in `qeet-id-console` at `/_auth/magic`. A
-product-surface asymmetry worth knowing before looking for it.
+**Magic links are split by where they were requested.** One asked for from hosted sign-in lands on
+`/magic-link` here; one asked for from the console still lands in `qeet-id-console`. Worth knowing
+before looking for it.
 
 ## Architecture
 
@@ -153,7 +154,7 @@ lint or format script yet, and no end-to-end browser tests.
 | CSRF handling, seeding | `src/lib/api.ts` | **Critical** | Security review |
 | Admin-portal exchange and cookie calls | `src/app/admin-portal/page.tsx`, `src/lib/admin-portal.ts` | **Critical** | Security review |
 | Redirect validation | `safeReturnTo` usage | **Critical** | Security review |
-| MFA token handling | `src/app/login/login-form.tsx` | High | Review — memory only |
+| MFA token handling | `src/app/sign-in/sign-in-form.tsx` | High | Review — memory only |
 | Branding injection | `src/lib/branding.ts` | Medium | Review |
 
 ## Known constraints

@@ -30,7 +30,7 @@ export function MfaEnrollment({
   onDone: () => void | Promise<void>;
   onBack?: () => void;
 }) {
-  const { t, i18n } = useTranslation("login");
+  const { t, i18n } = useTranslation("signIn");
   const [app, setApp] = useState<Enrollment | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);

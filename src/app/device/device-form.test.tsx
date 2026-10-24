@@ -29,7 +29,7 @@ describe("DeviceForm", () => {
 
     await waitFor(() =>
       expect(goTo).toHaveBeenCalledWith(
-        `/login?return_to=${encodeURIComponent("/device?user_code=ABCD-EFGH")}`,
+        `/sign-in?return_to=${encodeURIComponent("/device?user_code=ABCD-EFGH")}`,
       ),
     );
   });

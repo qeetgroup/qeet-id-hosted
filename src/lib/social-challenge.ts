@@ -1,6 +1,6 @@
 import type { LoginFactor } from "@/components/mfa-challenge";
 
-// A hosted social sign-in that must meet a second factor comes back to /login
+// A hosted social sign-in that must meet a second factor comes back to /sign-in
 // with the challenge in the URL fragment — which the browser never sends to a
 // server or in a Referer — instead of a session: the challenge token, its
 // methods, the factors it can be met with (JSON, as a password sign-in's

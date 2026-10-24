@@ -14,7 +14,7 @@ import { safeReturnTo } from "@/lib/login-context";
 import { goTo } from "@/lib/navigation";
 import type { Branding } from "@/lib/branding";
 
-type SignupFormProps = {
+type SignUpFormProps = {
   returnTo: string;
   clientName: string;
   tenantId: string;
@@ -22,14 +22,14 @@ type SignupFormProps = {
   branding?: Branding;
 };
 
-export function SignupForm({
+export function SignUpForm({
   returnTo,
   clientName,
   tenantId,
   selfRegistrationEnabled,
   branding,
-}: SignupFormProps) {
-  const { t } = useTranslation("signup");
+}: SignUpFormProps) {
+  const { t } = useTranslation("signUp");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,14 +44,14 @@ export function SignupForm({
   // authenticator app before its session (the challenge token stays in memory).
   const [enrollment, setEnrollment] = useState<{ token: string; dueAt?: string } | null>(null);
 
-  const loginHref = `/login${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
+  const signInHref = `/sign-in${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
   const busy = loading || passkeyBusy;
 
   function continueToApp() {
-    goTo(safeReturnTo(returnTo) ?? "/login");
+    goTo(safeReturnTo(returnTo) ?? "/sign-in");
   }
 
-  async function passkeySignup() {
+  async function passkeySignUp() {
     setError(null);
     setPasskeyBusy(true);
     try {
@@ -222,7 +222,7 @@ export function SignupForm({
                 size="lg"
                 className="w-full"
                 disabled={busy || !email}
-                onClick={passkeySignup}
+                onClick={passkeySignUp}
                 loading={passkeyBusy}
                 loadingLabel={t("passkey.busy")}
               >
@@ -251,7 +251,7 @@ export function SignupForm({
       <p className="text-muted-foreground text-center text-sm">
         {t("haveAccount")}{" "}
         <a
-          href={loginHref}
+          href={signInHref}
           className="text-foreground font-medium underline-offset-2 hover:underline"
         >
           {t("signIn")}

@@ -10,13 +10,13 @@ import { ApiError, apiPost } from "@/lib/api";
 import type { Branding } from "@/lib/branding";
 import { safeReturnTo } from "@/lib/login-context";
 
-type ResetFormProps = {
+type ResetPasswordFormProps = {
   token: string;
   returnTo: string;
   branding?: Branding;
 };
 
-export function ResetForm({ token, returnTo, branding }: ResetFormProps) {
+export function ResetPasswordForm({ token, returnTo, branding }: ResetPasswordFormProps) {
   const { t } = useTranslation("recovery");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -27,7 +27,7 @@ export function ResetForm({ token, returnTo, branding }: ResetFormProps) {
   // After the reset, sign in again — and, when the reset started on the way
   // into an application, continue to it (only our own authorize endpoint).
   const dest = safeReturnTo(returnTo);
-  const loginHref = `/login${dest ? `?return_to=${encodeURIComponent(dest)}` : ""}`;
+  const signInHref = `/sign-in${dest ? `?return_to=${encodeURIComponent(dest)}` : ""}`;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -60,11 +60,11 @@ export function ResetForm({ token, returnTo, branding }: ResetFormProps) {
             {t("reset.done")}
           </p>
           <Button
-            render={<a href={loginHref} aria-label={t("reset.goToLogin")} />}
+            render={<a href={signInHref} aria-label={t("reset.goToSignIn")} />}
             size="lg"
             className="w-full"
           >
-            {t("reset.goToLogin")}
+            {t("reset.goToSignIn")}
           </Button>
         </div>
       ) : !token ? (

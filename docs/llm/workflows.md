@@ -82,7 +82,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 ## Change MFA entry
 
 ```text
-1  src/app/login/login-form.tsx
+1  src/app/sign-in/sign-in-form.tsx
 2  the mfa_token stays in React memory — NEVER the URL, NEVER storage
 3  POST /v1/auth/session/mfa with the remember flag
 4  bun run typecheck && bun run test && bun run build

@@ -48,7 +48,7 @@ export function MfaChallenge({
   onVerified: () => void | Promise<void>;
   onBack: () => void;
 }) {
-  const { t } = useTranslation("login");
+  const { t } = useTranslation("signIn");
   const [code, setCode] = useState("");
   const [remember, setRemember] = useState(false);
   const [recovery, setRecovery] = useState(false);

@@ -23,7 +23,7 @@ import { MfaChallenge, type LoginFactor } from "@/components/mfa-challenge";
 import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { PasskeyPrompt } from "./passkey-prompt";
 
-type LoginFormProps = {
+type SignInFormProps = {
   returnTo: string;
   clientName: string;
   tenantId: string;
@@ -66,7 +66,7 @@ export type SessionResponse = {
 };
 
 
-export function LoginForm({
+export function SignInForm({
   returnTo,
   clientName,
   tenantId,
@@ -78,8 +78,8 @@ export function LoginForm({
   magicLinkEnabled,
   errorCode,
   branding,
-}: LoginFormProps) {
-  const { t } = useTranslation("login");
+}: SignInFormProps) {
+  const { t } = useTranslation("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(() => {
@@ -239,7 +239,7 @@ export function LoginForm({
     window.location.assign(`${getApiBaseUrl()}/v1/social/${provider}/start?${q.toString()}`);
   }
 
-  async function passkeyLogin() {
+  async function passkeySignIn() {
     stopAutofill.current();
     setError(null);
     setPasskeyBusy(true);
@@ -354,7 +354,7 @@ export function LoginForm({
           size="lg"
           className="w-full"
           disabled={busy}
-          onClick={passkeyLogin}
+          onClick={passkeySignIn}
           loading={passkeyBusy}
           loadingLabel={t("passkey.busy")}
         >
@@ -415,7 +415,7 @@ export function LoginForm({
         <p className="text-muted-foreground text-center text-sm">
           {t("noAccount")}{" "}
           <a
-            href={`/signup${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
+            href={`/sign-up${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
             className="text-foreground font-medium underline-offset-2 hover:underline"
           >
             {t("signUp")}

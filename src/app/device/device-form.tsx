@@ -15,9 +15,9 @@ type DeviceContext = { client_name: string; scopes: string[] };
 
 // Where the device-flow context lives on the backend, and where we bounce the
 // user if they aren't signed in yet (so they land back here afterward).
-function loginRedirect(code: string): string {
+function signInRedirect(code: string): string {
   const returnTo = `/device?user_code=${encodeURIComponent(code)}`;
-  return `/login?return_to=${encodeURIComponent(returnTo)}`;
+  return `/sign-in?return_to=${encodeURIComponent(returnTo)}`;
 }
 
 export function DeviceForm({ userCode }: { userCode: string }) {
@@ -45,8 +45,8 @@ export function DeviceForm({ userCode }: { userCode: string }) {
       setLoading(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        // Not signed in: send them through login, then back to this page.
-        goTo(loginRedirect(trimmed));
+        // Not signed in: send them through sign-in, then back to this page.
+        goTo(signInRedirect(trimmed));
         return;
       }
       if (err instanceof ApiError && [400, 404, 409].includes(err.status)) {

@@ -6,6 +6,21 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: true,
   transpilePackages: ["@qeetrix/ui"],
+  // The pages' former paths, which qeet-id-server still redirects to and
+  // already-sent reset and magic-link emails still carry. The query (return_to,
+  // tokens, logout tickets) is passed through, and the browser keeps any URL
+  // fragment (a social MFA challenge) across the hop. Temporary, so a rollback
+  // doesn't leave browsers holding a cached redirect to a page that's gone.
+  async redirects() {
+    return [
+      { source: "/login", destination: "/sign-in", permanent: false },
+      { source: "/signup", destination: "/sign-up", permanent: false },
+      { source: "/logout", destination: "/sign-out", permanent: false },
+      { source: "/logged-out", destination: "/signed-out", permanent: false },
+      { source: "/reset", destination: "/reset-password", permanent: false },
+      { source: "/magic", destination: "/magic-link", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

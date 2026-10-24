@@ -3,17 +3,13 @@ import { type BrandingDTO, normalizeBranding } from "@/lib/branding";
 import { getApiBaseUrl } from "@/lib/public-config";
 import { relayHeaders } from "@/lib/relay-request";
 
-import { LoginForm } from "./login-form";
+import { SignUpForm } from "./sign-up-form";
 
 
 type LoginContext = {
   client_name?: string;
   tenant_id?: string;
-  providers?: string[];
   self_registration_enabled?: boolean;
-  remember_device_enabled?: boolean;
-  // Which sign-in methods the organisation allows; absent = all of them.
-  sign_in_methods?: { password?: boolean; passkey?: boolean; magic_link?: boolean };
   branding?: BrandingDTO;
 };
 
@@ -25,8 +21,9 @@ function clientIDFromReturnTo(returnTo: string): string {
   }
 }
 
-// Fetched server-side: the client's display name + the tenant's enabled social
-// providers, so the form can greet the user and render the right buttons.
+// Self-registration is a per-tenant policy. We resolve the tenant + whether
+// signup is open from the originating client (same login-context the sign-in
+// page uses); the backend re-checks the gate on POST, so this only drives UI.
 async function fetchContext(clientID: string): Promise<LoginContext> {
   if (!clientID) return {};
   try {
@@ -44,28 +41,22 @@ async function fetchContext(clientID: string): Promise<LoginContext> {
   }
 }
 
-export default async function LoginPage({
+export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ return_to?: string; error?: string }>;
+  searchParams: Promise<{ return_to?: string }>;
 }) {
-  const { return_to, error } = await searchParams;
+  const { return_to } = await searchParams;
   const returnTo = return_to ?? "";
   const ctx = await fetchContext(clientIDFromReturnTo(returnTo));
   const branding = normalizeBranding(ctx.branding);
   return (
     <AuthShell branding={branding}>
-      <LoginForm
+      <SignUpForm
         returnTo={returnTo}
         clientName={ctx.client_name ?? ""}
         tenantId={ctx.tenant_id ?? ""}
-        providers={ctx.providers ?? []}
         selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
-        rememberDeviceEnabled={ctx.remember_device_enabled ?? false}
-        passwordEnabled={ctx.sign_in_methods?.password ?? true}
-        passkeyEnabled={ctx.sign_in_methods?.passkey ?? true}
-        magicLinkEnabled={ctx.sign_in_methods?.magic_link ?? false}
-        errorCode={error ?? ""}
         branding={branding}
       />
     </AuthShell>

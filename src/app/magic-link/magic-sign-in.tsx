@@ -39,7 +39,7 @@ type Challenge = { token: string; factors: LoginFactor[]; enrollment: boolean; d
  * address again. Where a second factor is required, its step comes first.
  */
 export function MagicSignIn({ token, branding }: MagicSignInProps) {
-  const { t } = useTranslation("login");
+  const { t } = useTranslation("signIn");
   const [error, setError] = useState<string | null>(token ? null : t("magic.missingToken"));
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
@@ -103,7 +103,7 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
         branding={branding}
         onVerified={continueJourney}
         onBack={() => {
-          window.location.href = `/login${challenge.returnTo ? `?return_to=${encodeURIComponent(challenge.returnTo)}` : ""}`;
+          window.location.href = `/sign-in${challenge.returnTo ? `?return_to=${encodeURIComponent(challenge.returnTo)}` : ""}`;
         }}
       />
     );
@@ -138,8 +138,8 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
             {t("magic.resend")}
           </Button>
         ) : null}
-        <Button render={<a href="/login" />} variant="outline" className="w-full">
-          {t("magic.goToLogin")}
+        <Button render={<a href="/sign-in" />} variant="outline" className="w-full">
+          {t("magic.goToSignIn")}
         </Button>
       </div>
     </AuthCard>

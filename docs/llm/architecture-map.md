@@ -11,20 +11,23 @@
 | Admin-portal client | `src/lib/admin-portal.ts` |
 | Per-tenant branding fetch | `src/lib/branding.ts` |
 | Root layout | `src/app/layout.tsx` |
-| Root redirect → `/login` | `src/app/page.tsx` |
+| Root redirect → `/sign-in` | `src/app/page.tsx` |
+| Former paths (`/login`, `/signup`, …) → current ones | `next.config.ts` `redirects()` |
 | Global styles | `src/app/globals.css` |
 
 ## Routes — every segment
 
 | Route | Files | Purpose |
 |---|---|---|
-| `/login` | `src/app/login/{page,login-form,passkey-prompt}.tsx` | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
-| `/signup` | `src/app/signup/{page,signup-form}.tsx` | account creation + passkey registration |
+| `/sign-in` | `src/app/sign-in/{page,sign-in-form,passkey-prompt,magic-link-request}.tsx` | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
+| `/sign-up` | `src/app/sign-up/{page,sign-up-form}.tsx` | account creation + passkey registration |
 | `/forgot-password` | `src/app/forgot-password/` | request a reset |
-| `/reset` | `src/app/reset/` | set a new password |
+| `/reset-password` | `src/app/reset-password/` | set a new password |
+| `/magic-link` | `src/app/magic-link/` | consume an emailed magic link (one requested from hosted sign-in) |
 | `/consent` | `src/app/consent/` | OAuth consent screen |
 | `/device` | `src/app/device/` | device-grant user-code entry |
-| `/logged-out` | `src/app/logged-out/` | post-logout landing |
+| `/sign-out` | `src/app/sign-out/` | confirm a sign-out sent without an `id_token_hint` |
+| `/signed-out` | `src/app/signed-out/` | post-sign-out landing, front-channel logout iframes |
 | `/security` | `src/app/security/` | signed-in user's passkeys: list, rename, add (hosted-login session cookie); where sign-in lands with no app to return to |
 | `/admin-portal` | `src/app/admin-portal/` | One-time fragment exchange, then cookie-authenticated SAML/SCIM self-service |
 
@@ -33,7 +36,7 @@
 ```text
 src/components/   auth-card · auth-shell · form-alert · scope-list · social-providers
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
-                  loggedOut,login,recovery,security,signup}.json      (English only)
+                  recovery,security,signIn,signOut,signUp}.json      (English only)
 ```
 
 ## Config

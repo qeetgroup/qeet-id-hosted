@@ -7,7 +7,7 @@ vi.mock("@/lib/navigation", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/lib/navigation";
 import { mockApi, TEST_API } from "@/test-api";
-import { LogoutConfirm } from "./logout-confirm";
+import { SignOutConfirm } from "./sign-out-confirm";
 
 beforeEach(() => vi.mocked(goTo).mockReset());
 afterEach(() => {
@@ -18,7 +18,7 @@ afterEach(() => {
 describe("Sign-out confirmation", () => {
   it("signs out only when the person confirms, carrying the API's ticket back", async () => {
     mockApi({ "GET /v1/oauth/login-context": { status: 200, body: { client_name: "Acme Notes" } } });
-    render(<LogoutConfirm ticket="tkt" clientId="app-1" postLogoutRedirect="https://app.example/bye" state="s1" />);
+    render(<SignOutConfirm ticket="tkt" clientId="app-1" postLogoutRedirect="https://app.example/bye" state="s1" />);
 
     expect(await screen.findByText("Acme Notes asked to sign you out of Qeet ID.")).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
@@ -32,7 +32,7 @@ describe("Sign-out confirmation", () => {
 
   it("leaves the person signed in when they decline", async () => {
     mockApi({});
-    render(<LogoutConfirm ticket="tkt" clientId="" postLogoutRedirect="" state="" />);
+    render(<SignOutConfirm ticket="tkt" clientId="" postLogoutRedirect="" state="" />);
     fireEvent.click(screen.getByRole("button", { name: "Stay signed in" }));
     expect(await screen.findByText("You're still signed in")).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
@@ -40,7 +40,7 @@ describe("Sign-out confirmation", () => {
 
   it("offers nothing without a ticket", () => {
     mockApi({});
-    render(<LogoutConfirm ticket="" clientId="" postLogoutRedirect="" state="" />);
+    render(<SignOutConfirm ticket="" clientId="" postLogoutRedirect="" state="" />);
     expect(screen.getByText("This sign-out link isn't valid")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
   });

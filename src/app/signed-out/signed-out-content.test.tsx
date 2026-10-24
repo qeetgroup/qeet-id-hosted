@@ -7,7 +7,7 @@ vi.mock("@/lib/navigation", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/lib/navigation";
 import { TEST_API } from "@/test-api";
-import { FRONTCHANNEL_TIMEOUT_MS, LoggedOutContent } from "./logged-out-content";
+import { FRONTCHANNEL_TIMEOUT_MS, SignedOutContent } from "./signed-out-content";
 
 beforeEach(() => {
   vi.mocked(goTo).mockReset();
@@ -22,7 +22,7 @@ const pages = ["https://a.example/fc?iss=qeet&sid=s1", "https://b.example/fc?iss
 
 describe("Signed-out page", () => {
   it("loads every application's sign-out page before saying the person is signed out", () => {
-    const { container } = render(<LoggedOutContent frontchannel={pages} />);
+    const { container } = render(<SignedOutContent frontchannel={pages} />);
     const frames = container.querySelectorAll("iframe");
     expect([...frames].map((f) => f.getAttribute("src"))).toEqual(pages);
     expect(screen.queryByText("You're signed out")).toBeNull();
@@ -34,7 +34,7 @@ describe("Signed-out page", () => {
 
   it("still says so when an application's page never answers", () => {
     vi.useFakeTimers();
-    render(<LoggedOutContent frontchannel={pages} />);
+    render(<SignedOutContent frontchannel={pages} />);
     expect(screen.queryByText("You're signed out")).toBeNull();
     act(() => {
       vi.advanceTimersByTime(FRONTCHANNEL_TIMEOUT_MS);
@@ -43,14 +43,14 @@ describe("Signed-out page", () => {
   });
 
   it("continues to the application through the API's signed ticket once the pages have loaded", () => {
-    const { container } = render(<LoggedOutContent frontchannel={[pages[0]]} continueTicket="tkt" />);
+    const { container } = render(<SignedOutContent frontchannel={[pages[0]]} continueTicket="tkt" />);
     expect(goTo).not.toHaveBeenCalled();
     fireEvent.load(container.querySelector("iframe") as HTMLIFrameElement);
     expect(goTo).toHaveBeenCalledWith(`${TEST_API}/v1/oauth/logout/continue?ticket=tkt`);
   });
 
   it("loads nothing that isn't a web page", () => {
-    const { container } = render(<LoggedOutContent frontchannel={["javascript:alert(1)"]} />);
+    const { container } = render(<SignedOutContent frontchannel={["javascript:alert(1)"]} />);
     expect(container.querySelectorAll("iframe")).toHaveLength(0);
     expect(screen.getByText("You're signed out")).toBeTruthy();
   });

@@ -33,7 +33,7 @@
     "resend": "Send a new link",
     "resent": "If the address has an account here, a new sign-in link is on its way.",
     "missingToken": "This page needs the link from your email.",
-    "goToLogin": "Sign in another way",
+    "goToSignIn": "Sign in another way",
     "addressTitle": "You can't sign in from this network"
   },
   "noAccount": "Don't have an account?",

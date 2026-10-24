@@ -21,7 +21,7 @@ export function ForgotPasswordForm({ returnTo, branding }: ForgotPasswordFormPro
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const loginHref = `/login${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
+  const signInHref = `/sign-in${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,10 +83,10 @@ export function ForgotPasswordForm({ returnTo, branding }: ForgotPasswordFormPro
 
       <div className="text-center">
         <a
-          href={loginHref}
+          href={signInHref}
           className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
         >
-          {t("forgot.backToLogin")}
+          {t("forgot.backToSignIn")}
         </a>
       </div>
     </AuthCard>

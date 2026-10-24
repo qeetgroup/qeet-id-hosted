@@ -101,7 +101,7 @@ export function SecurityView() {
     return (
       <AuthCard title={t("signedOut.title")} subtitle={t("signedOut.body")}>
         <FormAlert>{error}</FormAlert>
-        <a href="/login" className={buttonVariants({ size: "lg", className: "w-full" })}>
+        <a href="/sign-in" className={buttonVariants({ size: "lg", className: "w-full" })}>
           {t("signedOut.action")}
         </a>
       </AuthCard>

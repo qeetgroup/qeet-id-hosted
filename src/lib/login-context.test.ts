@@ -50,7 +50,7 @@ describe("safeReturnTo for the hosted login's own pages", () => {
   it.each([
     ["a page that isn't on the list", "/security"],
     ["a look-alike page", "/devices"],
-    ["a path that climbs out of the device page", "/device/../logout"],
+    ["a path that climbs out of the device page", "/device/../sign-out"],
     ["a protocol-relative path", "//evil.example/device"],
     ["a backslash path", "/\\evil.example/device"],
     ["an encoded protocol-relative path", "/%2Fevil.example/device"],

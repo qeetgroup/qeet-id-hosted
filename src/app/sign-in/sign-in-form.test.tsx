@@ -7,11 +7,11 @@ vi.mock("@/lib/navigation", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/lib/navigation";
 import { AUTHORIZE, mockApi } from "@/test-api";
-import { LoginForm } from "./login-form";
+import { SignInForm } from "./sign-in-form";
 
-function renderLogin(returnTo = AUTHORIZE, clientName = "Acme", errorCode = "") {
+function renderSignIn(returnTo = AUTHORIZE, clientName = "Acme", errorCode = "") {
   render(
-    <LoginForm
+    <SignInForm
       returnTo={returnTo}
       clientName={clientName}
       tenantId="tenant-1"
@@ -38,10 +38,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("LoginForm", () => {
+describe("SignInForm", () => {
   it("signs in for the application and returns to it", async () => {
     const calls = mockApi({ "POST /v1/auth/session": { status: 200, body: { user_id: "u-1" } } });
-    renderLogin();
+    renderSignIn();
 
     signIn();
 
@@ -57,7 +57,7 @@ describe("LoginForm", () => {
 
   it("goes to the security page when there is no application to return to", async () => {
     mockApi({ "POST /v1/auth/session": { status: 200, body: { user_id: "u-1" } } });
-    renderLogin("");
+    renderSignIn("");
 
     signIn();
 
@@ -71,7 +71,7 @@ describe("LoginForm", () => {
         body: { mfa_required: true, mfa_token: "mfa-1", factors: [{ type: "totp" }] },
       },
     });
-    renderLogin();
+    renderSignIn();
 
     signIn();
 
@@ -89,9 +89,9 @@ describe("LoginForm", () => {
     window.history.replaceState(
       null,
       "",
-      `/login?return_to=${encodeURIComponent(AUTHORIZE)}#${new URLSearchParams({ mfa_token: "social-mfa", methods: "totp,email", factors })}`,
+      `/sign-in?return_to=${encodeURIComponent(AUTHORIZE)}#${new URLSearchParams({ mfa_token: "social-mfa", methods: "totp,email", factors })}`,
     );
-    renderLogin();
+    renderSignIn();
 
     expect(await screen.findByText("Two-step verification")).toBeTruthy();
     expect(window.location.hash).toBe("");
@@ -105,12 +105,12 @@ describe("LoginForm", () => {
   });
 
   it("says a suspended account isn't signed in by a social provider", () => {
-    renderLogin(AUTHORIZE, "Acme", "account_inactive");
+    renderSignIn(AUTHORIZE, "Acme", "account_inactive");
     expect(screen.getByText("Your account isn't active. Contact your administrator.")).toBeTruthy();
   });
 
   it("says why a social sign-in was refused for an unverified account", () => {
-    renderLogin(AUTHORIZE, "Acme", "account_unverified");
+    renderSignIn(AUTHORIZE, "Acme", "account_unverified");
     expect(
       screen.getByText(
         "An account already uses this email address, but it hasn't been verified. Verify it, or reset its password from the link we email you, then sign in with this provider.",
@@ -125,7 +125,7 @@ describe("LoginForm", () => {
         body: { error: { code: "invalid_credentials", message: "Email or password is incorrect." } },
       },
     });
-    renderLogin();
+    renderSignIn();
 
     signIn();
 
@@ -135,7 +135,7 @@ describe("LoginForm", () => {
 
   it("shows a generic message when the API can't be reached", async () => {
     mockApi({ "POST /v1/auth/session": new TypeError("Failed to fetch") });
-    renderLogin();
+    renderSignIn();
 
     signIn();
 
@@ -157,7 +157,7 @@ describe("LoginForm", () => {
       "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } },
     });
     // A device journey has no client to name.
-    renderLogin(device, "");
+    renderSignIn(device, "");
     expect(screen.getByRole("heading", { name: "Sign in to approve a device" })).toBeTruthy();
 
     signIn();
@@ -177,14 +177,14 @@ describe("LoginForm", () => {
         body: { error: { code: "auth.address_not_allowed", message: "refused" } },
       },
     });
-    renderLogin();
+    renderSignIn();
     signIn();
     expect(await screen.findByText(network)).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
     cleanup();
 
     // The social callback sends the browser back with ?error=address_not_allowed.
-    renderLogin(AUTHORIZE, "Acme", "address_not_allowed");
+    renderSignIn(AUTHORIZE, "Acme", "address_not_allowed");
     expect(screen.getByText(network)).toBeTruthy();
     expect(screen.queryByText(/couldn't sign you in with that provider/)).toBeNull();
   });

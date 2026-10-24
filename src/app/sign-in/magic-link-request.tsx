@@ -20,7 +20,7 @@ type MagicLinkRequestProps = {
  * the same whether or not the address has an account.
  */
 export function MagicLinkRequest({ tenantId, returnTo, initialEmail, onBack }: MagicLinkRequestProps) {
-  const { t } = useTranslation("login");
+  const { t } = useTranslation("signIn");
   const [email, setEmail] = useState(initialEmail);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
