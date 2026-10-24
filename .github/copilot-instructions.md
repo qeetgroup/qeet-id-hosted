@@ -25,7 +25,7 @@ repository → source.
 
 ## Commands
 
-`bun run dev -- -p 3003` · `bun run build` · `bun run typecheck`
+`bun run dev -- -p 3003` · `bun run build` · `bun run typecheck` · `bun run test` · `bun run check`
 
 ## Do not
 

@@ -11,5 +11,6 @@ node_modules
 Dockerfile
 .dockerignore
 docs
-project.tree
+.vscode
+coverage
 .DS_Store

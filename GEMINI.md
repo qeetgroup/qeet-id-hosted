@@ -35,13 +35,13 @@ The **hosted authentication UI for Qeet ID** (`login.id.qeet.in`). Next.js 16 Ap
 
 ## Commands
 
-`bun run dev -- -p 3003` · `bun run build` · `bun run typecheck`
+`bun run dev -- -p 3003` · `bun run build` · `bun run typecheck` · `bun run test` · `bun run check`
 
 That list is complete — **do not invent commands.**
 
 ## Before finishing
 
 ```bash
-bun run typecheck && bun run build
+bun run typecheck && bun run check && bun run test && bun run build
 git diff
 ```

@@ -19,6 +19,7 @@ runtime:
   framework: Next.js 16.2.6      # App Router, React Compiler
   react: "^19.2.6"
   package_manager: bun@1.3.14
+  lint_format: "@biomejs/biome 2.5.15"   # biome.json
   design_system: "@qeetrix/ui 2.1.5"     # pinned exactly; icons from @qeetrix/icons 1.0.11
   dev_port: 3003                          # REQUIRED — backend allowlists it
 architecture:
@@ -41,9 +42,11 @@ commands:
   dev:   bun run dev -- -p 3003
   build: bun run build
   typecheck: bun run typecheck
+  test: bun run test
+  check: bun run check            # Biome: format + lint + import order
 ci:
   workflows: [ci.yml, deploy.yml]
-  jobs: [verify, image, deploy]   # verify = typecheck + build (push develop/release/**, PRs)
+  jobs: [verify, image, deploy]   # verify = typecheck + check + test + build (push develop/release/**, PRs)
   runner: ubuntu-latest
   deploy: push main -> gate -> vercel build/deploy --prod -> tag vX.Y.Z + GitHub release (release/x.y.z merge -> exactly vx.y.z; job runs only on main)
   release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/qeetgroup/qeet-id-login:sha-<commit>, linux/amd64+arm64 (consumed by the Qeet ID Kit, qeet-id-kit)"

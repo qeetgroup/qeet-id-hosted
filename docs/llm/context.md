@@ -143,9 +143,9 @@ the wrong host.
 `bun run test` runs the Vitest suite: unit tests for `src/lib` (including `safeReturnTo`) and
 component tests for the sign-in, sign-up, forgot-password and reset forms. Component tests use
 jsdom, answer API calls with `mockApi` (`src/test-api.ts`), and mock `goTo`
-(`src/lib/navigation.ts`) to see where a flow sends the browser. `ci.yml` runs typecheck, tests and
-the build on every PR; `deploy.yml` runs typecheck and tests before the Vercel deploy. There is no
-lint or format script yet, and no end-to-end browser tests.
+(`src/lib/navigation.ts`) to see where a flow sends the browser. `ci.yml` runs typecheck, Biome
+(`bun run check`), tests and the build on every PR; `deploy.yml` runs the same checks before the
+Vercel deploy. There are no end-to-end browser tests yet.
 
 ## Security-critical areas
 

@@ -62,6 +62,9 @@ bun run dev -- -p 3003         # http://localhost:3003
 | `bun run start` | Serve the production build |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run test` | Unit and component tests (`vitest run`) |
+| `bun run check` | Biome: formatting, lint and import order (what CI runs) |
+| `bun run lint` | Biome lint only |
+| `bun run format` | Biome: rewrite formatting in place |
 
 ### Tests
 

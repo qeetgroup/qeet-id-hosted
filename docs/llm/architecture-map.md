@@ -70,5 +70,5 @@ The contract is owned by **`qeet-id-server`**.
 
 ## What does not exist here
 
-**No lint or format script.** CI (`ci.yml`) runs typecheck, the Vitest suite and the build.
-Magic-link consumption lives in `qeet-id-console`, not here.
+**No end-to-end browser tests.** CI (`ci.yml`) runs typecheck, Biome (`bun run check`), the Vitest
+suite and the build.

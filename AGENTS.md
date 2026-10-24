@@ -93,10 +93,12 @@ bun run dev -- -p 3003     # 3003 is REQUIRED, see below
 bun run build
 bun run typecheck
 bun run test                 # vitest run: unit + component tests, no server needed
-bun run generate:tree
+bun run check                # Biome: format + lint + import order — what CI runs
+bun run format               # Biome: rewrite formatting in place
 ```
 
-**There is no lint or format script in this repository yet.** Tests: see the README's *Tests* section.
+Biome (`biome.json`) is the formatter and linter. A suppression carries a one-line reason
+(`// biome-ignore <rule>: <why>`). Tests: see the README's *Tests* section.
 
 > **Run on 3003.** `bun run dev` alone binds 3000. `qeet-id-server`'s `.env.example` sets
 > `LOGIN_BASE_URL=http://localhost:3003` and allowlists 3003 for CORS and WebAuthn origins.
@@ -106,9 +108,9 @@ bun run generate:tree
 
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · `verify` | `bun run typecheck` + `bun run test` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
+| `ci.yml` · `verify` | `bun run typecheck` + `bun run check` + `bun run test` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
 | `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the Qeet ID Kit (`qeet-id-kit`) — never an RC number |
-| `deploy.yml` | Push to `main`: typecheck, tests, Vercel production deploy, tag |
+| `deploy.yml` | Push to `main`: typecheck, format and lint, tests, Vercel production deploy, tag |
 
 The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
 production does not use it. Health: `GET /healthz`.
@@ -116,7 +118,7 @@ production does not use it. Health: `GET /healthz`.
 ## Before you finish
 
 ```bash
-bun run typecheck && bun run test && bun run build
+bun run typecheck && bun run check && bun run test && bun run build
 git diff
 ```
 
