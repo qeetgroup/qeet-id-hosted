@@ -48,7 +48,7 @@ export function EnterpriseSetupPage() {
   const branding = normalizeBranding(state.status === "ready" ? state.context.branding : undefined);
 
   return (
-    <AuthShell branding={branding} className="lg:grid-cols-[0.85fr_1.15fr]">
+    <AuthShell branding={branding} wide={state.status === "ready"}>
       {state.status === "loading" && (
         <AuthCard title={t("page.opening")} subtitle={t("page.verifying")}>
           <div className="flex justify-center py-4">
@@ -61,7 +61,9 @@ export function EnterpriseSetupPage() {
           <p className="text-sm text-muted-foreground">{t("page.askForNew")}</p>
         </AuthCard>
       )}
-      {state.status === "ready" && <EnterpriseSetupView context={state.context} />}
+      {state.status === "ready" && (
+        <EnterpriseSetupView context={state.context} branding={branding} />
+      )}
     </AuthShell>
   );
 }

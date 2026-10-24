@@ -1,12 +1,14 @@
 "use client";
 
-import { Button, Input } from "@qeetrix/ui";
+import { MailIcon } from "@qeetrix/icons";
+import { Button } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AuthCard } from "@/platform/components/auth-card";
 import { FormAlert } from "@/platform/components/form-alert";
+import { IconInput } from "@/platform/components/icon-input";
 
 type ForgotPasswordFormProps = {
   returnTo: string;
@@ -54,7 +56,8 @@ export function ForgotPasswordForm({ returnTo, branding }: ForgotPasswordFormPro
             <label htmlFor="email" className="text-sm font-medium">
               {t("forgot.label")}
             </label>
-            <Input
+            <IconInput
+              icon={MailIcon}
               id="email"
               type="email"
               autoComplete="email"

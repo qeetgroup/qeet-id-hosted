@@ -1,7 +1,7 @@
 "use client";
 
 import { FingerprintPatternIcon } from "@qeetrix/icons";
-import { Alert, AlertDescription, Button, buttonVariants, Input, Spinner } from "@qeetrix/ui";
+import { Alert, AlertDescription, Button, Input, Spinner } from "@qeetrix/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/platform/api/client";
@@ -108,9 +108,9 @@ export function SecurityView() {
     return (
       <AuthCard title={t("signedOut.title")} subtitle={t("signedOut.body")}>
         <FormAlert>{error}</FormAlert>
-        <a href="/sign-in" className={buttonVariants({ size: "lg", className: "w-full" })}>
+        <Button render={<a href="/sign-in" />} size="lg" className="w-full">
           {t("signedOut.action")}
-        </a>
+        </Button>
       </AuthCard>
     );
   }
@@ -136,7 +136,7 @@ export function SecurityView() {
 
   const { items, enrollment_allowed: enrollmentAllowed } = state.list;
   return (
-    <AuthCard className="max-w-md" title={t("title")} subtitle={t("subtitle")}>
+    <AuthCard title={t("title")} subtitle={t("subtitle")}>
       {items.length === 0 ? (
         <p className="text-muted-foreground text-center text-sm">{t("list.empty")}</p>
       ) : (

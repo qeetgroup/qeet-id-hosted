@@ -1,19 +1,11 @@
 @import "@qeetrix/ui/styles.css";
 
 /* ---------------------------------------------------------------------------
- * Hosted-login design language
- * The @qeetrix/ui import above provides Tailwind v4, design tokens, and the
- * Cal Sans / Fira Code @font-face declarations. Everything below is the
- * premium split-screen shell's own layer: brand-panel artwork, entrance
- * motion, and the tenant-brandable gradient anchors. Per-tenant colors flow in
- * via --qeet-brand / --qeet-brand-2 (see lib/branding.ts); these are the
- * default Qeet brand fallbacks.
+ * Hosted design language, on Qeetrix tokens only (so light and dark both follow the theme).
+ * The @qeetrix/ui import above provides Tailwind v4, the semantic tokens and the Qeet fonts;
+ * below are the few rules utilities can't express: the brand panel's glow and grid, the
+ * shared control size, and the entrance motion. A tenant's colour arrives as --primary.
  * ------------------------------------------------------------------------- */
-:root {
-  --qeet-brand: #f26d0e;
-  --qeet-brand-2: #d85301;
-}
-
 /* Auth headings use the display face (Cal Sans Display) for a confident,
  * branded feel; body/labels stay on the UI/text faces from the tokens. */
 .auth-title {
@@ -21,60 +13,60 @@
   letter-spacing: -0.02em;
 }
 
-/* Brand panel — the left column on ≥lg. A layered gradient built from the
- * tenant (or default Qeet) brand colors, with a soft mesh highlight. */
+/* Brand panel — the left column on ≥lg: the theme's subtle surface, a soft glow of the brand
+ * colour, and a faint grid fading out from behind the headline. */
 .auth-brand-panel {
-  background:
+  background-color: var(--qx-color-surface-subtle);
+  background-image:
     radial-gradient(
-      120% 120% at 12% 8%,
-      color-mix(in oklab, var(--qeet-brand) 78%, white) 0%,
-      transparent 52%
+      55% 45% at 88% 10%,
+      color-mix(in oklab, var(--primary) 16%, transparent),
+      transparent 72%
     ),
     radial-gradient(
-      130% 130% at 100% 100%,
-      color-mix(in oklab, var(--qeet-brand-2) 88%, black) 0%,
-      transparent 46%
-    ),
-    linear-gradient(135deg, var(--qeet-brand) 0%, var(--qeet-brand-2) 100%);
-  color: #fff;
+      45% 35% at 8% 96%,
+      color-mix(in oklab, var(--primary) 9%, transparent),
+      transparent 72%
+    );
 }
 
-/* Fine grid overlay for depth, masked to fade toward the edges. */
 .auth-brand-panel::before {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: -1;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 44px 44px;
-  -webkit-mask-image: radial-gradient(120% 90% at 30% 20%, #000 0%, transparent 75%);
-  mask-image: radial-gradient(120% 90% at 30% 20%, #000 0%, transparent 75%);
+    linear-gradient(to right, var(--qx-color-border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--qx-color-border-subtle) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(85% 65% at 70% 25%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(85% 65% at 70% 25%, #000 0%, transparent 75%);
   pointer-events: none;
 }
 
-/* Slow drifting highlight blob. */
-.auth-blob {
-  position: absolute;
-  width: 42rem;
-  height: 42rem;
-  right: -12rem;
-  top: -8rem;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 62%);
-  filter: blur(6px);
-  animation: auth-float 16s ease-in-out infinite;
-  pointer-events: none;
+/* One control height on every hosted screen: fields, selects and buttons are all 3rem, set
+ * where the design system computes its sizes (:root). Large buttons carry a fixed height of
+ * their own, so they follow it here. */
+:root {
+  --qx-density-control-height: 3rem;
 }
 
-@keyframes auth-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(-3rem, 2rem, 0) scale(1.08);
-  }
+[data-slot="button"][data-size="lg"] {
+  height: var(--qx-component-button-height);
+}
+
+/* Control text at 1rem, which also keeps iOS from zooming into a focused field. The language
+ * picker in the card's corner stays compact. */
+[data-slot="button"]:is([data-size="default"], [data-size="lg"]),
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="select-trigger"]:not(.auth-language) {
+  font-size: 1rem;
+}
+
+/* Room for the lock icon laid over the start of a password field (IconPasswordInput). */
+.icon-password-input > input {
+  padding-inline-start: 3rem;
 }
 
 /* Content entrance — a subtle rise+fade for the card/form. */
@@ -95,9 +87,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .auth-rise {
-    animation: none;
-  }
-  .auth-blob {
     animation: none;
   }
 }

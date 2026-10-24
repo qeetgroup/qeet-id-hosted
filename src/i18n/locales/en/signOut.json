@@ -6,8 +6,8 @@
   "frontchannelFrame": "Signing out of an application",
   "confirm": {
     "title": "Sign out?",
-    "subtitle": "You're about to sign out of Qeet ID.",
-    "askedBy": "{{app}} asked to sign you out of Qeet ID.",
+    "subtitle": "You're about to sign out of your Qeet account.",
+    "askedBy": "{{app}} asked to sign you out of your Qeet account.",
     "body": "You'll be signed out of the applications you signed in to here.",
     "signOut": "Sign out",
     "stay": "Stay signed in",

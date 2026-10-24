@@ -1,10 +1,12 @@
 "use client";
 
-import { Button, Input } from "@qeetrix/ui";
+import { MailIcon } from "@qeetrix/icons";
+import { Button } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, apiPost } from "@/platform/api/client";
 import { FormAlert } from "@/platform/components/form-alert";
+import { IconInput } from "@/platform/components/icon-input";
 
 type MagicLinkRequestProps = {
   tenantId: string;
@@ -68,7 +70,8 @@ export function MagicLinkRequest({
         <label htmlFor="magic-email" className="text-sm font-medium">
           {t("fields.email")}
         </label>
-        <Input
+        <IconInput
+          icon={MailIcon}
           id="magic-email"
           type="email"
           autoComplete="email"
@@ -78,7 +81,6 @@ export function MagicLinkRequest({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
         />
-        <p className="text-muted-foreground text-xs">{t("magic.hint")}</p>
       </div>
       <FormAlert>{error}</FormAlert>
       <Button

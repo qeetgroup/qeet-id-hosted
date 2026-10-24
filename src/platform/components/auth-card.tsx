@@ -1,58 +1,41 @@
 "use client";
 
-import { QeetLogo } from "@qeetrix/icons";
-import { Card, CardContent, cn } from "@qeetrix/ui";
+import { Card, CardContent } from "@qeetrix/ui";
 import type { ReactNode } from "react";
 
 import type { Branding } from "@/platform/branding/branding";
 
+import { BrandLogo } from "./brand-logo";
+
 type AuthCardProps = {
-  /** Per-tenant branding; renders the tenant logo in place of the Qeet mark. */
+  /** Per-tenant branding; renders the tenant logo in place of the Qeet logo. */
   branding?: Branding;
+  /** What the screen acts for, shown above the title — the application being signed in to. */
+  context?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   children?: ReactNode;
-  className?: string;
 };
 
 /**
- * The consistent card frame for every hosted-login form: a centered logo +
- * display-font title + subtitle, then the form body. Lives inside <AuthShell>'s
- * right column. Owns the logo so the tenant brand (or the Qeet mark) shows on
- * the light card surface — including on mobile, where the brand panel is hidden.
+ * The card frame for every hosted screen: the brand logo, an optional context line, the
+ * display-font title and subtitle, then the screen's body. Owns the brand so it shows on mobile
+ * too, where the brand panel is hidden. On a phone it drops the card itself — no border, surface
+ * or shadow — so the content sits on the page, as Google's and Microsoft's sign-in pages do.
  */
-export function AuthCard({ branding, title, subtitle, children, className }: AuthCardProps) {
+export function AuthCard({ branding, context, title, subtitle, children }: AuthCardProps) {
   return (
-    <Card
-      className={cn(
-        "w-full max-w-sm border-border/60 shadow-xl shadow-black/5 backdrop-blur-sm",
-        className,
-      )}
-    >
-      <CardContent className="space-y-6 pt-7 pb-7">
-        <div className="space-y-4 text-center">
-          <div className="flex justify-center">
-            {branding?.logoUrl ? (
-              // biome-ignore lint/performance/noImgElement: tenant logos load from any host
-              <img src={branding.logoUrl} alt="" className="h-10 w-auto max-w-50 object-contain" />
-            ) : (
-              // The Qeet mark follows the theme: the light-surface file, swapped for the
-              // dark-surface one under `.dark`.
-              <>
-                <QeetLogo height={40} aria-label="Qeet" className="dark:hidden" />
-                <QeetLogo
-                  variant="dark"
-                  height={40}
-                  aria-label="Qeet"
-                  className="hidden dark:block"
-                />
-              </>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <h1 className="auth-title text-2xl font-semibold tracking-tight">{title}</h1>
-            {subtitle ? <p className="text-muted-foreground text-sm">{subtitle}</p> : null}
-          </div>
+    <Card className="w-full max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:py-0 max-sm:shadow-none sm:rounded-2xl sm:border-border/60 sm:shadow-[0_32px_80px_-32px_rgba(28,12,4,0.22)]">
+      <CardContent className="space-y-7 px-0 sm:px-10 sm:py-10">
+        <div className="flex items-center">
+          <BrandLogo branding={branding} height={28} />
+        </div>
+        {context}
+        <div className="space-y-2">
+          <h1 className="auth-title text-3xl leading-tight font-semibold tracking-tight sm:text-[2.5rem]">
+            {title}
+          </h1>
+          {subtitle ? <p className="text-muted-foreground text-base">{subtitle}</p> : null}
         </div>
         {children}
       </CardContent>

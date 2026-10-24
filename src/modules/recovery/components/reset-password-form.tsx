@@ -1,12 +1,13 @@
 "use client";
 
-import { Button, Input, PasswordStrengthMeter } from "@qeetrix/ui";
+import { Button, PasswordStrengthMeter } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AuthCard } from "@/platform/components/auth-card";
 import { FormAlert } from "@/platform/components/form-alert";
+import { IconPasswordInput } from "@/platform/components/icon-password-input";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
 type ResetPasswordFormProps = {
@@ -74,9 +75,8 @@ export function ResetPasswordForm({ token, returnTo, branding }: ResetPasswordFo
             <label htmlFor="password" className="text-sm font-medium">
               {t("reset.fields.password")}
             </label>
-            <Input
+            <IconPasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               autoFocus
               required
@@ -94,9 +94,8 @@ export function ResetPasswordForm({ token, returnTo, branding }: ResetPasswordFo
             <label htmlFor="confirm" className="text-sm font-medium">
               {t("reset.fields.confirm")}
             </label>
-            <Input
+            <IconPasswordInput
               id="confirm"
-              type="password"
               autoComplete="new-password"
               required
               minLength={8}

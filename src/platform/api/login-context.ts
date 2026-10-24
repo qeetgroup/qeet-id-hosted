@@ -8,6 +8,9 @@ import { getApiBaseUrl } from "@/platform/config/public-config";
  */
 export type LoginContext = {
   client_name?: string;
+  // The application's logo and home page, from its registration (https only); absent when unset.
+  logo_uri?: string;
+  client_uri?: string;
   tenant_id?: string;
   providers?: string[];
   self_registration_enabled?: boolean;

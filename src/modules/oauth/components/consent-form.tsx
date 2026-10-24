@@ -86,7 +86,6 @@ export function ConsentForm({
   return (
     <AuthCard
       branding={branding}
-      className="max-w-md"
       title={t("title")}
       subtitle={
         <>

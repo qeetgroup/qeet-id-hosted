@@ -1,11 +1,12 @@
 {
-  "title": "Sign in to continue",
-  "titleTo": "Sign in to continue to {{client}}",
-  "titleDevice": "Sign in to approve a device",
-  "subtitle": "Use your Qeet ID account.",
+  "title": "Sign in",
+  "subtitle": "Use your Qeet account.",
+  "subtitleTo": "Use your Qeet account to continue to {{client}}.",
+  "subtitleDevice": "Use your Qeet account to approve a device.",
   "fields": {
-    "email": "Email",
-    "password": "Password"
+    "email": "Email address",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password"
   },
   "submit": {
     "idle": "Sign in",
@@ -13,11 +14,12 @@
   },
   "forgotPassword": "Forgot password?",
   "passkey": {
-    "idle": "Sign in with a passkey",
+    "idle": "Continue with a passkey",
     "busy": "Waiting for passkey…"
   },
+  "emailDivider": "Or sign in with email",
   "social": {
-    "divider": "or continue with"
+    "divider": "Or continue with"
   },
   "magic": {
     "link": "Email me a sign-in link",

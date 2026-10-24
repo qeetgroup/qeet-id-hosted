@@ -4,13 +4,26 @@
     "addressNotAllowed": "Your organisation doesn't allow sign-in from this network. Contact your administrator."
   },
   "brand": {
-    "headline": "Secure access, beautifully simple.",
-    "subhead": "Passkeys-first authentication for modern teams — sign in without passwords, protected by hardware-backed security.",
+    "eyebrow": "Secure access\nfor a brighter tomorrow",
+    "headline": "One identity.",
+    "headlineSecond": "Every",
+    "headlineAccent": "possibility.",
+    "subhead": "A seamless and secure way to access your applications. Built for modern teams and trusted by enterprises.",
     "features": {
-      "passkeys": "Passkeys",
-      "mfa": "Adaptive MFA"
+      "passkeys": {
+        "title": "Passkeys-first authentication",
+        "body": "Fast, simple and phishing-resistant"
+      },
+      "adaptive": {
+        "title": "Adaptive security",
+        "body": "Keeps your account protected"
+      },
+      "apps": {
+        "title": "One identity for all your apps",
+        "body": "Access Qeet and third-party applications"
+      }
     },
-    "footer": "Protected by Qeet ID"
+    "footer": "Trusted identity platform\nby Qeet Group"
   },
   "scopes": {
     "openid": "Verify your identity",
@@ -39,5 +52,17 @@
     "body": "This page couldn't load. Try again, or come back in a moment.",
     "retry": "Try again",
     "reference": "Reference: {{reference}}"
+  },
+  "language": "Language",
+  "theme": {
+    "toggle": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "legal": {
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "security": "Security"
   }
 }

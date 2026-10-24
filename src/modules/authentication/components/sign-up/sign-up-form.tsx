@@ -1,7 +1,7 @@
 "use client";
 
-import { FingerprintPatternIcon } from "@qeetrix/icons";
-import { Button, Input, PasswordStrengthMeter } from "@qeetrix/ui";
+import { FingerprintPatternIcon, MailIcon, UserIcon } from "@qeetrix/icons";
+import { Button, PasswordStrengthMeter } from "@qeetrix/ui";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
@@ -10,6 +10,8 @@ import { apiErrorMessage } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
 import { AuthCard } from "@/platform/components/auth-card";
 import { FormAlert } from "@/platform/components/form-alert";
+import { IconInput } from "@/platform/components/icon-input";
+import { IconPasswordInput } from "@/platform/components/icon-password-input";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
@@ -143,7 +145,8 @@ export function SignUpForm({
             <label htmlFor="name" className="text-sm font-medium">
               {t("fields.name")}
             </label>
-            <Input
+            <IconInput
+              icon={UserIcon}
               id="name"
               type="text"
               autoComplete="name"
@@ -155,7 +158,8 @@ export function SignUpForm({
             <label htmlFor="email" className="text-sm font-medium">
               {t("fields.email")}
             </label>
-            <Input
+            <IconInput
+              icon={MailIcon}
               id="email"
               type="email"
               autoComplete="email webauthn"
@@ -172,9 +176,8 @@ export function SignUpForm({
                 <label htmlFor="password" className="text-sm font-medium">
                   {t("fields.password")}
                 </label>
-                <Input
+                <IconPasswordInput
                   id="password"
-                  type="password"
                   autoComplete="new-password"
                   required
                   minLength={8}
@@ -191,9 +194,8 @@ export function SignUpForm({
                 <label htmlFor="confirm" className="text-sm font-medium">
                   {t("fields.confirm")}
                 </label>
-                <Input
+                <IconPasswordInput
                   id="confirm"
-                  type="password"
                   autoComplete="new-password"
                   required
                   minLength={8}
@@ -253,7 +255,7 @@ export function SignUpForm({
         {t("haveAccount")}{" "}
         <a
           href={signInHref}
-          className="text-foreground font-medium underline-offset-2 hover:underline"
+          className="text-link hover:text-link-hover font-medium underline-offset-4 hover:underline"
         >
           {t("signIn")}
         </a>

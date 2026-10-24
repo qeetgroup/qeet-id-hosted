@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, cn, Separator } from "@qeetrix/ui";
+import { Button, cn } from "@qeetrix/ui";
 import {
   Apple,
   Atlassian,
@@ -31,6 +31,8 @@ import {
   Zoom,
 } from "@thesvg/react";
 import { useTranslation } from "react-i18next";
+
+import { OrDivider } from "./or-divider";
 
 // Provider → brand-logo map for the hosted login's social buttons. Mirrors the
 // catalog in the admin app's auth/social.tsx (kept as a focused copy rather than
@@ -99,6 +101,9 @@ function titleCase(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// One column on a phone; side by side from sm up, three to a row at most.
+const COLUMNS = ["", "sm:grid-cols-1", "sm:grid-cols-2", "sm:grid-cols-3"];
+
 /** The organisation's social providers as sign-in buttons, under an "or" divider. */
 export function SocialProviders({
   providers,
@@ -111,21 +116,15 @@ export function SocialProviders({
 }) {
   const { t } = useTranslation("signIn");
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-muted-foreground text-xs whitespace-nowrap">
-          {t("social.divider")}
-        </span>
-        <Separator className="flex-1" />
-      </div>
-      <div className="grid gap-2">
+    <div className="space-y-5">
+      <OrDivider>{t("social.divider")}</OrDivider>
+      <div className={cn("grid gap-3", COLUMNS[Math.min(providers.length, 3)])}>
         {providers.map((p) => (
           <Button
             key={p}
             type="button"
             variant="outline"
-            className="w-full justify-center gap-2"
+            className="w-full justify-center gap-2.5"
             disabled={disabled}
             onClick={() => onSelect(p)}
           >
