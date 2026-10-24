@@ -24,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: constant, no user input */}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
         {/* Runtime public config (API origin) — see src/lib/public-config.ts. */}
         <Script src="/public-config.js" strategy="beforeInteractive" />

@@ -105,7 +105,7 @@ export function SignInForm({
 
   // Offer the user's passkeys in the browser's own prompt as the form loads.
   // Signing in that way skips the "add a passkey" offer — they have one.
-  // Started once per form load.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: started once per form load
   useEffect(() => {
     if (!passkeyEnabled) return;
     stopAutofill.current = startPasskeyAutofill(
@@ -350,9 +350,7 @@ export function SignInForm({
           loading={passkeyBusy}
           loadingLabel={t("passkey.busy")}
         >
-          <>
-            <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
-          </>
+          <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
         </Button>
       )}
 

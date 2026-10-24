@@ -45,6 +45,7 @@ function BrandPanel({ branding }: { branding?: Branding }) {
 
       <div className="relative z-10 flex items-center gap-3">
         {branding?.logoUrl ? (
+          // biome-ignore lint/performance/noImgElement: tenant logos load from any host
           <img src={branding.logoUrl} alt="" className="h-8 w-auto max-w-45 object-contain" />
         ) : (
           <>

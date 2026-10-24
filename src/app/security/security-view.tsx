@@ -52,6 +52,7 @@ export function SecurityView() {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loads once on opening
   useEffect(() => {
     setSupported(passkeysSupported());
     void load();
@@ -187,9 +188,7 @@ export function SecurityView() {
             loading={adding}
             loadingLabel={t("add.busy")}
           >
-            <>
-              <FingerprintPatternIcon className="mr-2 size-4" /> {t("add.idle")}
-            </>
+            <FingerprintPatternIcon className="mr-2 size-4" /> {t("add.idle")}
           </Button>
         </form>
       )}

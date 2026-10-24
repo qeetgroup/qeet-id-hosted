@@ -51,9 +51,7 @@ export function PasskeyPrompt({
           loading={busy}
           loadingLabel={t("prompt.busy")}
         >
-          <>
-            <FingerprintPatternIcon className="mr-2 size-4" /> {t("prompt.add")}
-          </>
+          <FingerprintPatternIcon className="mr-2 size-4" /> {t("prompt.add")}
         </Button>
         <Button variant="ghost" size="lg" className="w-full" disabled={busy} onClick={onContinue}>
           {t("prompt.skip")}

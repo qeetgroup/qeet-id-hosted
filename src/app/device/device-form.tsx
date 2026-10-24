@@ -39,7 +39,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     setLoading(true);
     try {
       const res = await apiGet<DeviceContext>(
-        "/v1/oauth/device?user_code=" + encodeURIComponent(trimmed),
+        `/v1/oauth/device?user_code=${encodeURIComponent(trimmed)}`,
       );
       setCtx(res);
       setLoading(false);

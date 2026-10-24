@@ -230,9 +230,7 @@ export function SignUpForm({
                 loading={passkeyBusy}
                 loadingLabel={t("passkey.busy")}
               >
-                <>
-                  <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
-                </>
+                <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
               </Button>
               <FormAlert>{error}</FormAlert>
             </>

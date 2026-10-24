@@ -93,6 +93,7 @@ function SamlPanel() {
       .catch((err) => setLoadError(err instanceof ApiError ? err.message : "Failed to load."));
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loads once on opening
   useEffect(() => {
     reload();
   }, []);
@@ -316,6 +317,7 @@ function ScimPanel() {
       .catch((e) => setErr(e instanceof ApiError ? e.message : "Failed to load."));
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loads once on opening
   useEffect(() => {
     reload();
   }, []);

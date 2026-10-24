@@ -33,6 +33,7 @@ export function AuthCard({ branding, title, subtitle, children, className }: Aut
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
             {branding?.logoUrl ? (
+              // biome-ignore lint/performance/noImgElement: tenant logos load from any host
               <img src={branding.logoUrl} alt="" className="h-10 w-auto max-w-50 object-contain" />
             ) : (
               // The Qeet mark follows the theme: the light-surface file, swapped for the
