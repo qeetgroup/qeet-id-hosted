@@ -1,0 +1,61 @@
+{
+  "page": {
+    "opening": "Opening enterprise setup",
+    "verifying": "Verifying this secure link…",
+    "unavailable": "This link isn't available",
+    "unavailableBody": "It may have expired, been revoked, already been used, or the URL is incomplete.",
+    "askForNew": "Ask whoever sent you this link to generate a new one."
+  },
+  "view": {
+    "title": "Configure SSO for {{tenant}}",
+    "expires": "This link expires {{date}}. You can return to it until then."
+  },
+  "saml": {
+    "title": "Connections",
+    "description": "Your organisation's SAML identity provider(s).",
+    "empty": "No connections yet — add one below.",
+    "loadFailed": "Failed to load.",
+    "test": "Test",
+    "delete": "Delete",
+    "confirmDelete": "Delete the \"{{name}}\" connection?",
+    "checkOk": "OK",
+    "checkFail": "Fail",
+    "testFailed": "Test failed.",
+    "deleteFailed": "Delete failed."
+  },
+  "create": {
+    "title": "Add a connection",
+    "description": "Enter the details from your identity provider (Okta, Entra ID, Google Workspace, …).",
+    "name": "Connection name",
+    "entityId": "IdP entity ID / issuer",
+    "ssoUrl": "IdP SSO URL",
+    "certificate": "IdP signing certificate",
+    "certificatePlaceholder": "-----BEGIN CERTIFICATE----- … or bare base64 from IdP metadata",
+    "emailAttribute": "Email attribute",
+    "emailAttributePlaceholder": "email (blank = use NameID)",
+    "nameAttribute": "Display-name attribute",
+    "nameAttributePlaceholder": "displayName (optional)",
+    "status": "Initial status",
+    "draft": "Draft (not yet live)",
+    "active": "Active",
+    "submit": "Add connection",
+    "submitting": "Adding…",
+    "failed": "Could not create the connection."
+  },
+  "scim": {
+    "title": "SCIM provisioning",
+    "description": "Point your IdP's SCIM connector at this endpoint and bearer token.",
+    "provisioned_one": "{{count}} user provisioned via SCIM.",
+    "provisioned_other": "{{count}} users provisioned via SCIM.",
+    "roll": "Roll token",
+    "enable": "Enable SCIM",
+    "disable": "Disable",
+    "confirmDisable": "Disable SCIM provisioning? Your IdP will stop syncing.",
+    "newToken": "Your new SCIM bearer token",
+    "newTokenBody": "Copy it now — for security it is shown once and cannot be retrieved again.",
+    "saved": "I've saved it",
+    "loadFailed": "Failed to load.",
+    "rotateFailed": "Rotate failed.",
+    "revokeFailed": "Revoke failed."
+  }
+}

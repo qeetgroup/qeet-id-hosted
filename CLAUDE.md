@@ -1,4 +1,4 @@
-# CLAUDE.md — qeet-id-login
+# CLAUDE.md — qeet-id-hosted
 
 **Read [AGENTS.md](AGENTS.md) first.** It is the model-neutral instruction file and the source of
 truth for this repository. This file adds only Claude-specific guidance.
@@ -23,12 +23,13 @@ Read them when a task needs organization or product understanding; this reposito
 
 ## The things most likely to trip you up here
 
-1. **Never store a token.** Login and admin-portal sessions are backend HttpOnly cookies — unreadable here, by design.
+1. **Never store a token.** Login and enterprise-setup sessions are backend HttpOnly cookies — unreadable here, by design.
 2. **CSRF is not optional.** `credentials: "include"` everywhere; mutations echo `qe_csrf` as `X-CSRF-Token`. Names must match `qeet-id-server` and `qeet-id-react`.
-3. **Never redirect to an unvalidated URL** — always use `safeReturnTo`. An open redirect on the login host is a phishing primitive.
-4. **The admin-portal link token is one-time.** Read it only from the URL fragment, clear the fragment immediately, and exchange it once for the backend's HttpOnly portal-session cookie. Never store or log it.
+3. **Never redirect to an unvalidated URL** — always use `safeReturnTo`. An open redirect on the sign-in host is a phishing primitive.
+4. **The enterprise-setup link token is one-time.** Read it only from the URL fragment, clear the fragment immediately, and exchange it once for the backend's HttpOnly portal-session cookie. Never store or log it.
 5. **Keep the MFA challenge token in memory** — never the URL, never storage.
 6. **Stay stateless.** No server-side secret except the optional relay key `QEET_ID_RELAY_KEY` (server pages only, never `NEXT_PUBLIC_*`); everything else is `NEXT_PUBLIC_*`, public by construction.
+7. **Every inline script carries the request's nonce** (`nonce={nonce}` from the root layout); never relax the Content-Security-Policy in `src/platform/security/` — `bun run test:e2e` fails on any violation.
 
 ## Working style
 
@@ -39,7 +40,7 @@ Read them when a task needs organization or product understanding; this reposito
 ## Finishing a change
 
 ```bash
-bun run typecheck && bun run test && bun run build
+bun run typecheck && bun run check && bun run test && bun run build
 git diff
 ```
 

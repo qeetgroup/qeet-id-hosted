@@ -1,0 +1,132 @@
+// Browser HTTP client for the hosted login/consent flow. The backend sets
+// HttpOnly cookies for login and enterprise-setup sessions, so every request uses
+// `credentials: "include"`. Mutations echo the CSRF double-submit token.
+
+import { getApiBaseUrl } from "@/platform/config/public-config";
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  // The error's details, as the server sends them (e.g. retry_after).
+  metadata?: Record<string, unknown>;
+  constructor(status: number, code: string, message: string, metadata?: Record<string, unknown>) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.metadata = metadata;
+  }
+}
+
+function apiURL(path: string): string {
+  return new URL(path.replace(/^\//, ""), `${getApiBaseUrl()}/`).toString();
+}
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// ensureCsrf seeds the double-submit cookie. The backend issues `qe_csrf` on any
+// GET; we read it back and echo it on mutations. (In dev CSRF is disabled; in
+// prod the cookie must be readable here — set a shared CookieDomain across the
+// login and API subdomains.)
+async function csrfHeader(): Promise<Record<string, string>> {
+  let tok = readCookie("qe_csrf");
+  if (!tok) {
+    try {
+      await fetch(apiURL("/healthz"), { credentials: "include" });
+    } catch {
+      /* best-effort seed */
+    }
+    tok = readCookie("qe_csrf");
+  }
+  return tok ? { "X-CSRF-Token": tok } : {};
+}
+
+async function parse<T>(res: Response): Promise<T> {
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  const data = text ? safeParse(text) : null;
+  if (!res.ok) {
+    const err = (
+      data as {
+        error?: { code?: string; message?: string; metadata?: Record<string, unknown> };
+      } | null
+    )?.error;
+    throw new ApiError(
+      res.status,
+      err?.code ?? `http_${res.status}`,
+      err?.message ?? "Request failed",
+      err?.metadata,
+    );
+  }
+  return data as T;
+}
+
+function safeParse(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return s;
+  }
+}
+
+export async function apiGet<T = unknown>(path: string): Promise<T> {
+  const res = await fetch(apiURL(path), {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    credentials: "include",
+  });
+  return parse<T>(res);
+}
+
+export async function apiPost<T = unknown>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(apiURL(path), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(await csrfHeader()),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: "include",
+  });
+  return parse<T>(res);
+}
+
+export async function apiExchangeBearer<T = unknown>(path: string, token: string): Promise<T> {
+  const res = await fetch(apiURL(path), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+  return parse<T>(res);
+}
+
+export async function apiPatch<T = unknown>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(apiURL(path), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(await csrfHeader()),
+    },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  return parse<T>(res);
+}
+
+export async function apiDelete<T = unknown>(path: string): Promise<T> {
+  const res = await fetch(apiURL(path), {
+    method: "DELETE",
+    headers: { Accept: "application/json", ...(await csrfHeader()) },
+    credentials: "include",
+  });
+  return parse<T>(res);
+}

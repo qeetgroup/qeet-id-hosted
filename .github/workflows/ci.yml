@@ -33,16 +33,43 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Test
-        run: bun run test
+      - name: Format and lint
+        run: bun run check
+
+      - name: Test with coverage floor
+        run: bun run test:coverage
 
       - name: Build
         run: bun run build
 
+  # Every page under its Content-Security-Policy, and its WCAG 2.2 AA scan, in a real
+  # browser against the production build (tests/e2e).
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install the test browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build and run the browser tests
+        run: bun run test:e2e
+
   # Release branches only: publish one immutable, commit-addressed image
-  # (ghcr.io/qeetgroup/qeet-id-login:sha-<commit>) after Verify passes. No rc.N
-  # is computed here — qeet-id-deploy assembles the product release candidate
-  # (qeet-id-deploy: docs/test-kit/application-contract.md). Production keeps
+  # (ghcr.io/<owner>/qeet-id-login:sha-<commit>) after Verify passes. No rc.N
+  # is computed here — qeet-id-kit assembles the product release candidate
+  # (qeet-id-kit: docs/application-contract.md). Production keeps
   # deploying to Vercel from deploy.yml; this job does not touch it.
   image:
     name: Release image
@@ -71,7 +98,9 @@ jobs:
           {
             echo "release=$release"
             echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "image=ghcr.io/$GITHUB_REPOSITORY"
+            # The repository's former name, which qeet-id-kit reads; switch to
+            # ghcr.io/$GITHUB_REPOSITORY once the kit reads qeet-id-hosted (QTID-955).
+            echo "image=ghcr.io/$GITHUB_REPOSITORY_OWNER/qeet-id-login"
           } >> "$GITHUB_OUTPUT"
 
       # The Dockerfile builds natively and installs sharp for each target
@@ -126,5 +155,5 @@ jobs:
             echo "| Digest | \`$digest\` |"
             echo "| Release | \`$RELEASE\` |"
             echo
-            echo "Assemble a product RC in qeet-id-deploy → Actions → **publish-candidate** with login = \`$GITHUB_SHA\`."
+            echo "Assemble a product RC in qeet-id-kit → Actions → **publish-candidate** with login = \`$GITHUB_SHA\`."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,39 +1,55 @@
-# Architecture Map — qeet-id-login
+# Architecture Map — qeet-id-hosted
 
-**Level:** L2 · **Last verified:** 2026-09-05
+**Level:** L2 · **Last verified:** 2026-10-24
 **Verification scope:** every path confirmed to exist.
 
 | Need | Path |
 |---|---|
 | Repository identity | [`qeet-repo.yml`](../../qeet-repo.yml) |
 | Agent instructions | [`AGENTS.md`](../../AGENTS.md) |
-| **API client, CSRF seeding** | `src/lib/api.ts` |
-| Admin-portal client | `src/lib/admin-portal.ts` |
-| Per-tenant branding fetch | `src/lib/branding.ts` |
+| **API client, CSRF seeding** | `src/platform/api/client.ts` |
+| Login context (app name, tenant policy, branding) | `src/platform/api/login-context.ts`; server pages use `getLoginContext` in `src/platform/api/server.ts` |
+| **Return-to validation (open-redirect guard)** | `src/platform/navigation/return-to.ts` |
+| Enterprise-setup client (backend `/v1/admin-portal/*`) | `src/modules/enterprise-setup/api/admin-portal.ts` |
+| Branding normalisation and CSS variables | `src/platform/branding/branding.ts` |
 | Root layout | `src/app/layout.tsx` |
-| Root redirect → `/login` | `src/app/page.tsx` |
+| Root redirect → `/sign-in` | `src/app/page.tsx` |
+| Error pages: not found · failed page · failed root layout | `src/app/{not-found,error,global-error}.tsx` → `src/platform/components/{not-found-page,error-page}.tsx` |
+| Runtime config written into every page | `src/app/layout.tsx` → `publicConfigScript` in `src/platform/config/public-config.ts` |
+| Former paths (`/login`, `/signup`, …) → current ones | `next.config.ts` `redirects()` |
 | Global styles | `src/app/globals.css` |
 
 ## Routes — every segment
 
-| Route | Files | Purpose |
-|---|---|---|
-| `/login` | `src/app/login/{page,login-form,passkey-prompt}.tsx` | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
-| `/signup` | `src/app/signup/{page,signup-form}.tsx` | account creation + passkey registration |
-| `/forgot-password` | `src/app/forgot-password/` | request a reset |
-| `/reset` | `src/app/reset/` | set a new password |
-| `/consent` | `src/app/consent/` | OAuth consent screen |
-| `/device` | `src/app/device/` | device-grant user-code entry |
-| `/logged-out` | `src/app/logged-out/` | post-logout landing |
-| `/security` | `src/app/security/` | signed-in user's passkeys: list, rename, add (hosted-login session cookie); where sign-in lands with no app to return to |
-| `/admin-portal` | `src/app/admin-portal/` | One-time fragment exchange, then cookie-authenticated SAML/SCIM self-service |
+Each route is `src/app/(<group>)/<route>/page.tsx`, which reads the URL and renders the module page
+named here. Groups don't change the URL: `(auth)` holds the sign-in journeys, `(account)` the
+signed-in self-service pages, `(enterprise)` enterprise setup.
 
-## Components and i18n
+| Route | Module page (`src/modules/…`) | Purpose |
+|---|---|---|
+| `/sign-in` | `authentication/components/sign-in/` (form, passkey prompt, magic-link request, social providers) | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
+| `/sign-up` | `authentication/components/sign-up/` | account creation + passkey registration |
+| `/magic-link` | `authentication/components/magic-link/` | consume an emailed magic link (one requested from hosted sign-in) |
+| `/forgot-password` | `recovery/components/forgot-password-*` | request a reset |
+| `/reset-password` | `recovery/components/reset-password-*` | set a new password |
+| `/consent` | `oauth/components/consent-*` | OAuth consent screen |
+| `/device` | `oauth/components/device-*` | device-grant user-code entry |
+| `/sign-out` | `sign-out/components/sign-out-*` | confirm a sign-out sent without an `id_token_hint` |
+| `/sign-out/done` | `sign-out/components/signed-out-*` | post-sign-out landing, front-channel logout iframes |
+| `/security` | `account/components/` | signed-in user's passkeys: list, rename, add (hosted-login session cookie); where sign-in lands with no app to return to |
+| `/enterprise-setup` | `enterprise-setup/components/` | one-time fragment exchange, then cookie-authenticated SAML/SCIM self-service |
+
+The MFA steps live in `authentication/components/mfa/`; the session answer types in
+`authentication/session.ts`.
+
+## Shared code and i18n
 
 ```text
-src/components/   auth-card · auth-shell · form-alert · scope-list · social-providers
+src/platform/     api/ (client · errors · login-context · relay · server) · config/ · navigation/
+                  (return-to · go-to) · branding/ · webauthn/ (passkeys) · components/ (auth-card ·
+                  auth-shell · form-alert)
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
-                  loggedOut,login,recovery,security,signup}.json      (English only)
+                  enterpriseSetup,recovery,security,signIn,signOut,signUp}.json   (English only)
 ```
 
 ## Config
@@ -65,7 +81,11 @@ POST /v1/admin-portal/session        one-time fragment-token exchange
 
 The contract is owned by **`qeet-id-server`**.
 
-## What does not exist here
+## Security headers and startup
 
-**No lint or format script.** CI (`ci.yml`) runs typecheck, the Vitest suite and the build.
-Magic-link consumption lives in `qeet-id-console`, not here.
+| Need | Path |
+|---|---|
+| Each page's Content-Security-Policy and nonce | `src/proxy.ts` → `src/platform/security/content-security-policy.ts` |
+| Headers on every response (Referrer-Policy, nosniff, X-Frame-Options, Permissions-Policy) | `src/platform/security/security-headers.ts`, applied in `next.config.ts` |
+| Startup check on the server's settings | `src/instrumentation.ts` → `src/platform/config/server-config.ts` |
+| Browser tests: CSP and accessibility | `tests/e2e/`, `playwright.config.ts` |

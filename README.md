@@ -1,4 +1,4 @@
-# Qeet ID — Hosted Login
+# Qeet ID — Hosted
 
 The **hosted authentication UI** for [Qeet ID](https://github.com/qeetgroup/qeet-id-server) —
 the passkeys-first identity platform. This is the branded, centralized set of pages the Qeet ID
@@ -8,7 +8,8 @@ holds no database and no secrets.
 
 - **Stack:** Next.js 16 (App Router) · React 19 + React Compiler · TypeScript · `@qeetrix/ui` · i18next
 - **Runtime:** static/SSR on Vercel · talks only to the Qeet ID API (`NEXT_PUBLIC_API_URL`)
-- **Prod:** [`https://login.id.qeet.in`](https://login.id.qeet.in) → API `https://api.id.qeet.in`
+- **Prod:** [`https://accounts.id.qeet.in`](https://accounts.id.qeet.in) → API `https://api.id.qeet.in`
+  (moving from `login.id.qeet.in`, which redirects here once the move is done — QTID-957)
 
 ---
 
@@ -18,15 +19,21 @@ Each route is a self-contained step in the hosted-auth journey (`src/app/`):
 
 | Route | Purpose |
 |---|---|
-| `/login` | Sign in — password, **passkey / WebAuthn**, social, magic-link, OTP, and MFA step-up |
-| `/signup` | Create an account |
+| `/sign-in` | Sign in — password, **passkey / WebAuthn**, social, magic-link, OTP, and MFA step-up |
+| `/sign-up` | Create an account |
 | `/forgot-password` | Request a password-reset email |
-| `/reset` | Set a new password from a reset link |
+| `/reset-password` | Set a new password from a reset link |
+| `/magic-link` | Finish signing in from an emailed magic link |
 | `/consent` | OAuth **consent** screen shown during the authorize flow |
 | `/device` | **Device authorization** grant — enter the user code from a TV/CLI |
-| `/admin-portal` | WorkOS-style admin-portal entry for an external IT admin (no Qeet ID account required) |
-| `/logged-out` | Post-logout landing |
+| `/enterprise-setup` | SAML/SCIM setup for an invited external IT admin, with no Qeet ID account (the backend's admin portal) |
+| `/sign-out` | Confirm a sign-out that didn't name its session |
+| `/sign-out/done` | Post-sign-out landing |
 | `/security` | The signed-in user's passkeys — see, rename and add one (also offered after a password sign-in) |
+
+The former paths — `/login`, `/signup`, `/logout`, `/logged-out`, `/reset`, `/magic`, `/admin-portal` — redirect to
+these (query and fragment kept), because `qeet-id-server` and already-sent emails still link to
+them ([`next.config.ts`](next.config.ts)).
 
 ---
 
@@ -56,14 +63,19 @@ bun run dev -- -p 3003         # http://localhost:3003
 | `bun run start` | Serve the production build |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run test` | Unit and component tests (`vitest run`) |
+| `bun run test:coverage` | The same, held to the coverage floor in `vitest.config.mts` (CI) |
+| `bun run test:e2e` | Build, then every page in Chromium: its Content-Security-Policy and a WCAG 2.2 AA scan |
+| `bun run check` | Biome: formatting, lint and import order (what CI runs) |
+| `bun run lint` | Biome lint only |
+| `bun run format` | Biome: rewrite formatting in place |
 
 ### Tests
 
 `bun run test` runs the whole suite once with Vitest; it needs no server and no `.env`.
-Tests sit next to the code as `*.test.ts(x)`. Component tests start with
+Tests live in a `__tests__/` folder beside the code they cover, as `*.test.ts(x)`. Component tests start with
 `// @vitest-environment jsdom`, import `@/i18n`, and answer API calls with `mockApi` from
-`src/test-api.ts`, never a live server. A flow that leaves the page goes through `goTo`
-(`src/lib/navigation.ts`), which tests mock to see where the browser is sent.
+`src/testing/mock-api.ts`, never a live server. A flow that leaves the page goes through `goTo`
+(`src/platform/navigation/go-to.ts`), which tests mock to see where the browser is sent.
 `bunx vitest` watches while you work.
 
 ---
@@ -87,12 +99,18 @@ The app appends `/v1/...` to the API URL itself.
 
 ```
 src/
-  app/          App Router routes (one folder per screen above) + layout.tsx + globals.css
-  components/   Shared UI built on @qeetrix/ui
-  i18n/         i18next setup + locale resources
-  lib/          API client + helpers
-next.config.ts  reactCompiler: true · transpilePackages: ["@qeetrix/ui"]
+  app/          routes only, grouped by audience: (auth) · (account) · (enterprise);
+                layout.tsx, the error and not-found pages, globals.css
+  modules/      one folder per product area: authentication · recovery · sign-out · oauth ·
+                account · enterprise-setup (components, tests, and an API client where needed)
+  platform/     shared by the modules: API client, config, navigation, branding, passkeys, page shell
+  i18n/         i18next setup + every locale file
+  testing/      Vitest setup and the API mock
+biome.json      formatter, linter and the import rules that keep this layout
+next.config.ts  reactCompiler: true · transpilePackages: ["@qeetrix/ui"] · old-path redirects
 ```
+
+The conventions and what enforces them: [AGENTS.md](AGENTS.md).
 
 ---
 
@@ -101,13 +119,13 @@ next.config.ts  reactCompiler: true · transpilePackages: ["@qeetrix/ui"]
 This app is **presentation only** — the backend owns all auth logic:
 
 - **API** — every call goes to `NEXT_PUBLIC_API_URL`; the backend must allow this origin via CORS
-  (`ALLOWED_ORIGINS` includes `https://login.id.qeet.in` in prod).
+  (`ALLOWED_ORIGINS` includes `https://accounts.id.qeet.in` in prod).
 - **Passkeys / WebAuthn** — ceremonies are validated against the backend's Relying Party config.
-  Because passkeys are used on both `login.id.qeet.in` and `console.id.qeet.in`, the backend must set
+  Because passkeys are used on both `accounts.id.qeet.in` and `console.id.qeet.in`, the backend must set
   `WEBAUTHN_RP_ID=id.qeet.in` and list both origins in `WEBAUTHN_RP_ORIGINS` (the parent domain
-  covers both sub-domains).
+  covers both sub-domains, so passkeys made on `login.id.qeet.in` keep working).
 - **OIDC** — the OAuth authorize flow redirects here; the relying-party client's `redirect_uri`s must
-  include the prod login/console URLs.
+  include the prod hosted and console URLs.
 
 ---
 
@@ -122,14 +140,16 @@ Deployed as a standard **Next.js** project on Vercel (auto-detected — no frame
 
 **Steps**
 
-1. Import `qeetgroup/qeet-id-login` in Vercel (Framework Preset auto-detects **Next.js**).
+1. Import `qeetgroup/qeet-id-hosted` in Vercel (Framework Preset auto-detects **Next.js**).
 2. Environment variables (Production + Preview):
    ```
    NEXT_PUBLIC_API_URL=https://api.id.qeet.in
    ```
 3. Deploy.
-4. Add the custom domain **`login.id.qeet.in`** → create the CNAME Vercel provides in GoDaddy
-   (`login.id` → `cname.vercel-dns.com`).
+4. Add the custom domain **`accounts.id.qeet.in`** → create the CNAME Vercel provides in GoDaddy
+   (`accounts.id` → `cname.vercel-dns.com`).
+5. Keep **`login.id.qeet.in`** on the project as a redirect (308) to `accounts.id.qeet.in`, so links
+   already sent and bookmarks still land. The order of the whole move is in QTID-957.
 
 `@qeetrix/ui` resolves from the public npm registry, so a standalone install needs no monorepo.
 

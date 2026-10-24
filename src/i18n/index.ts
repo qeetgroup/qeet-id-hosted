@@ -5,11 +5,12 @@ import { initReactI18next } from "react-i18next";
 import common from "./locales/en/common.json";
 import consent from "./locales/en/consent.json";
 import device from "./locales/en/device.json";
-import loggedOut from "./locales/en/loggedOut.json";
-import login from "./locales/en/login.json";
+import enterpriseSetup from "./locales/en/enterpriseSetup.json";
 import recovery from "./locales/en/recovery.json";
 import security from "./locales/en/security.json";
-import signup from "./locales/en/signup.json";
+import signIn from "./locales/en/signIn.json";
+import signOut from "./locales/en/signOut.json";
+import signUp from "./locales/en/signUp.json";
 
 // Languages the UI ships catalogs for. Adding a locale is a two-step change:
 //  1. drop `src/i18n/locales/<lng>/*.json` (mirror the `en` namespaces),
@@ -31,13 +32,14 @@ export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
 const resources = {
   en: {
     common,
-    login,
+    signIn,
+    signUp,
+    signOut,
     consent,
     device,
-    loggedOut,
+    enterpriseSetup,
     recovery,
     security,
-    signup,
   },
 } as const;
 

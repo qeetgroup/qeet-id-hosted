@@ -1,0 +1,204 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "@/i18n";
+
+vi.mock("@/platform/navigation/go-to", () => ({ goTo: vi.fn() }));
+
+import { goTo } from "@/platform/navigation/go-to";
+import { AUTHORIZE, mockApi } from "@/testing/mock-api";
+import { SignInForm } from "../components/sign-in/sign-in-form";
+
+function renderSignIn(returnTo = AUTHORIZE, clientName = "Acme", errorCode = "") {
+  render(
+    <SignInForm
+      returnTo={returnTo}
+      clientName={clientName}
+      tenantId="tenant-1"
+      providers={[]}
+      selfRegistrationEnabled={false}
+      rememberDeviceEnabled={false}
+      passwordEnabled
+      passkeyEnabled={false}
+      magicLinkEnabled={false}
+      errorCode={errorCode}
+    />,
+  );
+}
+
+function signIn() {
+  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+}
+
+beforeEach(() => vi.mocked(goTo).mockReset());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("SignInForm", () => {
+  it("signs in for the application and returns to it", async () => {
+    const calls = mockApi({ "POST /v1/auth/session": { status: 200, body: { user_id: "u-1" } } });
+    renderSignIn();
+
+    signIn();
+
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+    expect(calls).toEqual([
+      {
+        method: "POST",
+        path: "/v1/auth/session",
+        body: { email: "ada@example.com", password: "correct horse", client_id: "app-1" },
+      },
+    ]);
+  });
+
+  it("goes to the security page when there is no application to return to", async () => {
+    mockApi({ "POST /v1/auth/session": { status: 200, body: { user_id: "u-1" } } });
+    renderSignIn("");
+
+    signIn();
+
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith("/security"));
+  });
+
+  it("asks for the second factor instead of continuing when MFA is required", async () => {
+    mockApi({
+      "POST /v1/auth/session": {
+        status: 200,
+        body: { mfa_required: true, mfa_token: "mfa-1", factors: [{ type: "totp" }] },
+      },
+    });
+    renderSignIn();
+
+    signIn();
+
+    expect(await screen.findByText("Two-step verification")).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+  });
+
+  it("asks for the second factor a social sign-in came back with, and clears it from the address", async () => {
+    const calls = mockApi({
+      "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } },
+    });
+    const factors = JSON.stringify([
+      { type: "totp" },
+      { type: "recovery_code" },
+      { type: "email", id: "f-1", destination: "a***@example.com" },
+    ]);
+    window.history.replaceState(
+      null,
+      "",
+      `/sign-in?return_to=${encodeURIComponent(AUTHORIZE)}#${new URLSearchParams({ mfa_token: "social-mfa", methods: "totp,email", factors })}`,
+    );
+    renderSignIn();
+
+    expect(await screen.findByText("Two-step verification")).toBeTruthy();
+    expect(window.location.hash).toBe("");
+    expect(window.location.search).toContain("return_to=");
+    fireEvent.click(screen.getByRole("button", { name: "Use a recovery code" }));
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "aaaa-bbbb-cccc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+    expect(calls[0]).toMatchObject({
+      method: "POST",
+      path: "/v1/auth/session/mfa",
+      body: { mfa_token: "social-mfa" },
+    });
+    window.history.replaceState(null, "", "/");
+  });
+
+  it("says a suspended account isn't signed in by a social provider", () => {
+    renderSignIn(AUTHORIZE, "Acme", "account_inactive");
+    expect(screen.getByText("Your account isn't active. Contact your administrator.")).toBeTruthy();
+  });
+
+  it("says why a social sign-in was refused for an unverified account", () => {
+    renderSignIn(AUTHORIZE, "Acme", "account_unverified");
+    expect(
+      screen.getByText(
+        "An account already uses this email address, but it hasn't been verified. Verify it, or reset its password from the link we email you, then sign in with this provider.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("shows the server's reason when sign-in is refused", async () => {
+    mockApi({
+      "POST /v1/auth/session": {
+        status: 401,
+        body: {
+          error: { code: "invalid_credentials", message: "Email or password is incorrect." },
+        },
+      },
+    });
+    renderSignIn();
+
+    signIn();
+
+    expect(await screen.findByText("Email or password is incorrect.")).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+  });
+
+  it("shows a generic message when the API can't be reached", async () => {
+    mockApi({ "POST /v1/auth/session": new TypeError("Failed to fetch") });
+    renderSignIn();
+
+    signIn();
+
+    expect(await screen.findByText("Something went wrong. Please try again.")).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+  });
+
+  it("comes back to approve the device after the second factor", async () => {
+    const device = "/device?user_code=ABCD-EFGH";
+    const calls = mockApi({
+      "POST /v1/auth/session": {
+        status: 200,
+        body: {
+          mfa_required: true,
+          mfa_token: "mfa-1",
+          factors: [{ type: "totp" }, { type: "recovery_code" }],
+        },
+      },
+      "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } },
+    });
+    // A device journey has no client to name.
+    renderSignIn(device, "");
+    expect(screen.getByRole("heading", { name: "Sign in to approve a device" })).toBeTruthy();
+
+    signIn();
+    fireEvent.click(await screen.findByRole("button", { name: "Use a recovery code" }));
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "aaaa-bbbb-cccc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith(device));
+    expect(calls.map((c) => c.path)).toEqual(["/v1/auth/session", "/v1/auth/session/mfa"]);
+  });
+
+  it("says a refused network the same way for a password and a social sign-in", async () => {
+    const network =
+      "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
+    mockApi({
+      "POST /v1/auth/session": {
+        status: 403,
+        body: { error: { code: "auth.address_not_allowed", message: "refused" } },
+      },
+    });
+    renderSignIn();
+    signIn();
+    expect(await screen.findByText(network)).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+    cleanup();
+
+    // The social callback sends the browser back with ?error=address_not_allowed.
+    renderSignIn(AUTHORIZE, "Acme", "address_not_allowed");
+    expect(screen.getByText(network)).toBeTruthy();
+    expect(screen.queryByText(/couldn't sign you in with that provider/)).toBeNull();
+  });
+});
