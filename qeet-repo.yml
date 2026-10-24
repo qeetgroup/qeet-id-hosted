@@ -1,11 +1,11 @@
-# qeet-id-login — repository context metadata (Level 2).
+# qeet-id-hosted — repository context metadata (Level 2).
 schema_version: 1
-context: {type: repository, level: L2, canonical: true, last_verified: "2026-08-28"}
+context: {type: repository, level: L2, canonical: true, last_verified: "2026-10-24"}
 inheritance:
   organization: {repository: qeetgroup/qeet-context, level: L0}
   product:      {repository: qeetgroup/qeet-id-context, level: L1}
 repository:
-  name: qeet-id-login
+  name: qeet-id-hosted   # was qeet-id-login; package.json, /healthz and qeet-id-kit still use that name
   product: qeet-id
   type: frontend
   role: primary
@@ -25,40 +25,48 @@ runtime:
 architecture:
   style: stateless-thin-client
   statement: "holds no database and no secrets — every action is an API call"
-  routes: [/sign-in, /sign-up, /forgot-password, /reset-password, /magic-link, /consent, /device, /sign-out, /signed-out, /admin-portal, /security]
-  legacy_redirects: {/login: /sign-in, /signup: /sign-up, /logout: /sign-out, /logged-out: /signed-out, /reset: /reset-password, /magic: /magic-link}   # next.config.ts; server + sent emails still use the old paths
-  src: [src/app, src/components, src/lib, src/i18n]
+  routes: [/sign-in, /sign-up, /forgot-password, /reset-password, /magic-link, /consent, /device, /sign-out, /sign-out/done, /enterprise-setup, /security]
+  legacy_redirects: {/login: /sign-in, /signup: /sign-up, /logout: /sign-out, /logged-out: /sign-out/done, /reset: /reset-password, /magic: /magic-link, /admin-portal: /enterprise-setup}   # next.config.ts; server + sent emails still use the old paths
+  src: [src/app, src/modules, src/platform, src/i18n, src/testing]
+  layers: "app → modules → platform → i18n; a module never imports another (biome.json)"
+  guardrails: [biome noRestrictedImports, fetch only in platform/api, 500-line files, translation keys, coverage floor, server-only]
 contracts:
   consumes: {api: qeet-id-server}
-  base_url_env: PUBLIC_API_URL    # runtime (src/lib/public-config.ts); falls back to build-time NEXT_PUBLIC_API_URL (Vercel)
+  base_url_env: PUBLIC_API_URL    # runtime (src/platform/config/public-config.ts); falls back to build-time NEXT_PUBLIC_API_URL (Vercel)
   base_url_default: http://localhost:4001
   auth_scheme: HttpOnly cookies + CSRF double-submit
-  session_cookie: qe_ls          # interactive login; admin portal has its own scoped cookie
+  session_cookie: qe_ls          # interactive login; enterprise setup has its own scoped cookie
   csrf: {cookie: qe_csrf, header: X-CSRF-Token, seed: "GET /healthz"}
 role_in_product:
   statement: "The ONLY host where an interactive Qeet ID session is established."
-  flows: [password, passkey, social, MFA, sign-up, recovery, OAuth consent, device grant, admin portal]
+  flows: [password, passkey, social, MFA, sign-up, recovery, OAuth consent, device grant, enterprise setup]
 commands:
   dev:   bun run dev -- -p 3003
   build: bun run build
   typecheck: bun run typecheck
   test: bun run test
   check: bun run check            # Biome: format + lint + import order
+  test_e2e: bun run test:e2e      # Playwright: each page's CSP + WCAG 2.2 AA (axe)
 ci:
   workflows: [ci.yml, deploy.yml]
-  jobs: [verify, image, deploy]   # verify = typecheck + check + test + build (push develop/release/**, PRs)
+  jobs: [verify, e2e, image, deploy]   # verify = typecheck + check + test:coverage + build; e2e = test:e2e
   runner: ubuntu-latest
   deploy: push main -> gate -> vercel build/deploy --prod -> tag vX.Y.Z + GitHub release (release/x.y.z merge -> exactly vx.y.z; job runs only on main)
-  release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/qeetgroup/qeet-id-login:sha-<commit>, linux/amd64+arm64 (consumed by the Qeet ID Kit, qeet-id-kit)"
+  release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/<owner>/<repository>:sha-<commit> (qeet-id-hosted since the rename; qeet-id-kit still lists qeet-id-login), linux/amd64+arm64 (consumed by the Qeet ID Kit, qeet-id-kit)"
 container:
   dockerfile: Dockerfile          # Next standalone server; not used by Vercel production
   runtime_env: [PUBLIC_API_URL, PORT, HOSTNAME]
   health: GET /healthz -> 200
 security:
   sensitive_paths:
-    - src/lib/api.ts             # CSRF seeding + credentials: include
-    - src/lib/admin-portal.ts    # one-time fragment exchange, then cookie-only requests
-  never: [store a token, weaken CSRF, log an admin-portal token, unsafe redirect]
+    - src/platform/api/client.ts # CSRF seeding + credentials: include
+    - src/modules/enterprise-setup/components/enterprise-setup-page.tsx   # one-time fragment exchange
+    - src/modules/enterprise-setup/api/admin-portal.ts                     # then cookie-only requests
+    - src/proxy.ts                                                         # per-request nonce CSP
+    - src/platform/security/                                               # CSP + security headers
+  never: [store a token, weaken CSRF, log an enterprise-setup link token, unsafe redirect, relax the CSP, inline script without the nonce]
+  headers: "CSP per request (nonce, strict-dynamic, frame-ancestors 'none'); Referrer-Policy no-referrer; nosniff; X-Frame-Options DENY; Permissions-Policy"
+  startup_check: src/instrumentation.ts   # malformed PUBLIC_API_URL / LOGIN_TRUSTED_PROXY_HOPS / QEET_ID_RELAY_KEY → every request fails, log names it
 llm_context:
   primary_instructions: AGENTS.md
   canonical: docs/llm/context.md

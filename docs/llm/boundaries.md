@@ -1,13 +1,13 @@
-# Boundaries — qeet-id-login
+# Boundaries — qeet-id-hosted
 
-**Level:** L2 · **Last verified:** 2026-09-05
+**Level:** L2 · **Last verified:** 2026-10-24
 **Verification scope:** ownership from `qeet-id-context/REPOSITORIES.md`; endpoint list and auth
 model read from source.
 
 ## Owns
 
-The interactive authentication UI at `login.id.qeet.in`: login, signup, recovery, MFA entry, OAuth
-consent, device-grant user-code entry, and the external admin portal. Per-tenant branding
+The interactive authentication UI at `login.id.qeet.in`: sign-in, sign-up, recovery, MFA entry, OAuth
+consent, device-grant user-code entry, and enterprise setup for an external IT administrator. Per-tenant branding
 application. Client-side redirect safety.
 
 ## Does not own
@@ -17,7 +17,7 @@ application. Client-side redirect safety.
 | **Credential verification, MFA policy, lockout** | `qeet-id-server` |
 | **Token issuance and session lifetime** | `qeet-id-server` |
 | Consent recording | `qeet-id-server` |
-| Admin-portal token issuance and scoping | `qeet-id-server` |
+| Enterprise-setup link issuance and scoping (the backend's admin portal) | `qeet-id-server` |
 | The API contract | `qeet-id-server` |
 | Operator UI | `qeet-id-console` |
 | Magic-link **consumption** | `qeet-id-console` |
@@ -28,7 +28,7 @@ application. Client-side redirect safety.
 
 `api.id.qeet.in` over HTTPS with `credentials: "include"` and a CSRF double-submit header ·
 `@qeetrix/ui` · `@qeetrix/icons`. **No database, no state, and no server-side secret except the
-optional relay key** (`QEET_ID_RELAY_KEY`, see `src/lib/relay.ts`).
+optional relay key** (`QEET_ID_RELAY_KEY`, see `src/platform/api/relay.ts`).
 
 ## Provides
 
@@ -42,17 +42,18 @@ the API trust the visitor address it names and grants nothing else.
 
 | Boundary | Enforcement |
 |---|---|
-| Session | Backend HttpOnly cookies: `qe_ls` for login and a path-scoped admin-portal session |
+| Session | Backend HttpOnly cookies: `qe_ls` for login and a path-scoped enterprise-setup session |
 | CSRF | `qe_csrf` echoed as `X-CSRF-Token` on mutations |
 | Redirect | `safeReturnTo` on every `window.location.href` |
+| Script injection and framing | Per-request nonce CSP (`src/proxy.ts`); `frame-ancestors 'none'` on every page |
 | MFA challenge | `mfa_token` in memory only — **never the URL** |
-| Admin portal | One-time fragment credential exchanged for a short-lived HttpOnly session |
+| Enterprise setup | One-time fragment credential exchanged for a short-lived HttpOnly session |
 | Build-time config | `NEXT_PUBLIC_*` only — treat every value as public |
-| Relay key | `QEET_ID_RELAY_KEY` read only in server pages (`src/lib/relay-request.ts`); never `NEXT_PUBLIC_*` |
+| Relay key | `QEET_ID_RELAY_KEY` read only in server pages (`src/platform/api/server.ts`, marked `server-only`); never `NEXT_PUBLIC_*` |
 
-### The admin-portal exception
+### The enterprise-setup exception
 
-`/admin-portal#token=...` carries a one-time credential in the fragment. The client clears that
+`/enterprise-setup#token=...` (generated as `/admin-portal#token=...`, which redirects) carries a one-time credential in the fragment. The client clears that
 fragment immediately and exchanges the credential at `POST /v1/admin-portal/session`; all later
 requests use token-free paths and the backend's HttpOnly, SameSite=Strict portal-session cookie.
 
@@ -62,9 +63,9 @@ never include it in React state, logs, error messages, telemetry, or analytics.*
 ## Cross-repository dependencies
 
 ```text
-qeet-id-server ──contract + sets qe_ls──►  qeet-id-login
-qeetrix-ui     ──@qeetrix/ui──────────►  qeet-id-login
-every Qeet product ──OIDC redirect────►  qeet-id-login
+qeet-id-server ──contract + sets qe_ls──►  qeet-id-hosted
+qeetrix-ui     ──@qeetrix/ui──────────►  qeet-id-hosted
+every Qeet product ──OIDC redirect────►  qeet-id-hosted
 ```
 
 **Everything redirects here.** This app initiates no contract but is the destination of the
@@ -94,7 +95,7 @@ Product-level fan-out: `qeet-id-context/CHANGE-MATRIX.md`.
 1. **Never store a token** — not in storage, not in a cookie, not in state.
 2. **Never weaken CSRF**, and never add a skip flag.
 3. **Never redirect to an unvalidated URL.** An open redirect here is a phishing primitive.
-4. **Never log or expose an admin-portal token.**
+4. **Never log or expose an enterprise-setup link token.**
 5. **Never put the MFA challenge token in the URL.**
 6. **Never add a server-side secret** beyond the optional relay key — this app is stateless by design.
 7. **Never call an endpoint you have not verified** in `qeet-id-server`.

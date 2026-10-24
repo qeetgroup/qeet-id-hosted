@@ -10,7 +10,15 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    exclude: [...configDefaults.exclude, ".next/**"],
-    setupFiles: ["./src/test-setup.ts"],
+    exclude: [...configDefaults.exclude, ".next/**", "tests/e2e/**"],
+    setupFiles: ["./src/testing/setup.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/__tests__/**", "src/testing/**"],
+      // A floor at today's coverage, so a change never lowers it. Raise these as
+      // tests are added; never lower them to make a change pass.
+      thresholds: { statements: 49, branches: 45, functions: 44, lines: 49 },
+    },
   },
 });

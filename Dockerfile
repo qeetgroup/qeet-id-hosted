@@ -4,7 +4,7 @@
 # image is built by ci.yml on release/** branches and run by the Qeet ID Kit
 # (qeet-id-kit; DEV / TEST / STAGING). Runtime configuration (no rebuild per
 # environment):
-#   PUBLIC_API_URL   browser-facing Qeet ID API origin (src/lib/public-config.ts)
+#   PUBLIC_API_URL   browser-facing Qeet ID API origin (src/platform/config/public-config.ts)
 #   PORT / HOSTNAME  listen address (defaults 3000 / 0.0.0.0)
 # Health: GET /healthz -> 200.
 

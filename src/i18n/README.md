@@ -22,7 +22,7 @@ src/i18n/
       common.json     cross-screen strings: generic error, scope labels, provider names, fallbacks
       signIn.json     /sign-in, /magic-link — sign-in form, passkey, social divider, MFA
       signUp.json     /sign-up — account creation
-      signOut.json    /sign-out, /signed-out — sign-out confirmation and signed-out message
+      signOut.json    /sign-out, /sign-out/done — sign-out confirmation and signed-out message
       recovery.json   /forgot-password, /reset-password — password recovery
       consent.json    /consent — OAuth authorize-access screen
       device.json     /device — device-flow entry, authorize, and terminal states

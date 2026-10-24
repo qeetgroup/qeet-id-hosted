@@ -1,6 +1,6 @@
-# Repository Context — qeet-id-login
+# Repository Context — qeet-id-hosted
 
-**Level:** L2 · **Status:** active · **Evidence state:** verified · **Last verified:** 2026-09-05
+**Level:** L2 · **Status:** active · **Evidence state:** verified · **Last verified:** 2026-10-24
 **Verification scope:** routes, API client, CSRF behaviour and endpoint list read from source.
 Port requirement cross-checked against `qeet-id-server`'s `.env.example`.
 
@@ -18,7 +18,7 @@ backend API; this app holds no database and no secrets."*
 
 ```text
 qeet-context (L0)  →  qeet-id-context (L1)  →  qeet-id-server (contract + enforcement)
-                                            →  qeet-id-login (L2 — this document)
+                                            →  qeet-id-hosted (L2 — this document)
 ```
 
 ## Why this repository matters more than its size suggests
@@ -33,7 +33,7 @@ cross-product SSO model depends on that being the single point of interactive au
 
 Rendering the interactive flows: password, passkey, social, MFA (TOTP + recovery code), signup with
 passkey registration, forgot/reset password, **OAuth consent**, **device-grant user-code entry**, and
-the **external admin portal**. Applying per-tenant branding.
+**enterprise setup** for an external IT administrator. Applying per-tenant branding.
 
 ## Non-responsibilities
 
@@ -49,20 +49,20 @@ before looking for it.
 ```text
 browser
   ↓  credentials: "include"  +  X-CSRF-Token on cookie-authenticated mutations
-src/lib/api.ts          the single client
+src/platform/api/client.ts   the single client
   ↓
 api.id.qeet.in
   ↓
-backend sets scoped HttpOnly login or admin-portal cookies
+backend sets scoped HttpOnly login or enterprise-setup cookies
 ```
 
 Server components fetch per-tenant branding per page via
-`GET /v1/oauth/login-context?client_id=…` (`src/lib/branding.ts`), so a user sees their own
+`GET /v1/oauth/login-context?client_id=…` (`getLoginContext` in `src/platform/api/server.ts`), so a user sees their own
 organization's identity before signing in.
 
 ## Session and CSRF
 
-**Evidence:** `src/lib/api.ts`
+**Evidence:** `src/platform/api/client.ts`
 
 The file's own header comment states the model:
 
@@ -84,16 +84,16 @@ identical contract.
 **in React memory only and never placed in the URL**, then exchanged at `/v1/auth/session/mfa` with a
 `remember` flag.
 
-## The admin portal — the highest-risk surface here
+## Enterprise setup — the highest-risk surface here
 
-`/admin-portal` lets an IT administrator at a **customer** configure SAML or SCIM **without a Qeet
-ID account**. A generated link contains a one-time credential in its URL fragment, which browsers
+`/enterprise-setup` lets an IT administrator at a **customer** configure SAML or SCIM **without a Qeet
+ID account**; the backend still calls it the admin portal (`/v1/admin-portal/*`). A generated link contains a one-time credential in its URL fragment, which browsers
 do not send in HTTP requests.
 
 ```text
 tenant admin generates a capability-scoped, time-limited link
   ↓
-login.id.qeet.in/admin-portal#token=...
+login.id.qeet.in/enterprise-setup#token=...   (generated as /admin-portal#token=..., redirected)
   ↓  clear fragment, then one-time bearer exchange
 POST /v1/admin-portal/session
   ↓  short-lived HttpOnly, SameSite=Strict portal session
@@ -112,11 +112,11 @@ immediately when its parent link is revoked.
 ## Redirect safety
 
 `safeReturnTo(returnTo)` guards every `window.location.href` assignment (made through `goTo` in
-`src/lib/navigation.ts`). It allows two things only: the API's own `/oauth/authorize` URL, and a
+`src/platform/navigation/go-to.ts`). It allows two things only: the API's own `/oauth/authorize` URL, and a
 root-relative path to an allowed hosted-login page (`LOCAL_RETURN_PATHS`, today `/device`), checked
 as given and once decoded for `//` and backslashes. **An open redirect on the login host is a
 phishing primitive** — it is the one page a user is trained to trust with credentials. Always route
-a candidate URL through it, and add a hostile case to `src/lib/login-context.test.ts` with any change.
+a candidate URL through it, and add a hostile case to `src/platform/navigation/__tests__/return-to.test.ts` with any change.
 
 ## Configuration
 
@@ -140,27 +140,30 @@ the wrong host.
 
 ## Testing and CI
 
-`bun run test` runs the Vitest suite: unit tests for `src/lib` (including `safeReturnTo`) and
-component tests for the sign-in, sign-up, forgot-password and reset forms. Component tests use
-jsdom, answer API calls with `mockApi` (`src/test-api.ts`), and mock `goTo`
-(`src/lib/navigation.ts`) to see where a flow sends the browser. `ci.yml` runs typecheck, Biome
+`bun run test` runs the Vitest suite: unit tests for `src/platform` (including `safeReturnTo`, the
+Content-Security-Policy and the startup check) and component tests for the forms and pages. Component tests use
+jsdom, answer API calls with `mockApi` (`src/testing/mock-api.ts`), and mock `goTo`
+(`src/platform/navigation/go-to.ts`) to see where a flow sends the browser. `ci.yml` runs typecheck, Biome
 (`bun run check`), tests and the build on every PR; `deploy.yml` runs the same checks before the
-Vercel deploy. There are no end-to-end browser tests yet.
+Vercel deploy. The **Browser tests** job (`bun run test:e2e`) opens every page of the production build in
+Chromium and fails on any Content-Security-Policy violation or axe WCAG 2.2 AA finding.
 
 ## Security-critical areas
 
 | Area | Path | Risk | Review |
 |---|---|---|---|
-| CSRF handling, seeding | `src/lib/api.ts` | **Critical** | Security review |
-| Admin-portal exchange and cookie calls | `src/app/admin-portal/page.tsx`, `src/lib/admin-portal.ts` | **Critical** | Security review |
+| CSRF handling, seeding | `src/platform/api/client.ts` | **Critical** | Security review |
+| Enterprise-setup exchange and cookie calls | `src/modules/enterprise-setup/components/enterprise-setup-page.tsx`, `src/modules/enterprise-setup/api/admin-portal.ts` | **Critical** | Security review |
 | Redirect validation | `safeReturnTo` usage | **Critical** | Security review |
-| MFA token handling | `src/app/sign-in/sign-in-form.tsx` | High | Review — memory only |
-| Branding injection | `src/lib/branding.ts` | Medium | Review |
+| MFA token handling | `src/modules/authentication/components/sign-in/sign-in-form.tsx` | High | Review — memory only |
+| Branding injection | `src/platform/branding/branding.ts` | Medium | Review |
+| Content-Security-Policy and security headers | `src/proxy.ts`, `src/platform/security/` | **Critical** | Security review |
 
 ## Known constraints
 
-- **Test coverage is still thin** beyond the forms above: consent, device approval, the MFA steps
-  and the admin portal have no component tests yet.
+- **Test coverage is still thin** in places: the MFA steps and enterprise setup have no component
+  tests yet (the browser tests only render them). The coverage floor in `vitest.config.ts` stops it
+  dropping.
 - **Port 3003 is load-bearing** and set only by a README instruction, not by configuration.
 - `@qeetrix/ui` and `@qeetrix/icons` are **pinned exactly** (`2.1.5`, `1.0.11`): their releases
   have removed exports in patch versions, so a caret range is not safe. Social-provider buttons

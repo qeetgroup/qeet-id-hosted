@@ -25,12 +25,12 @@ Each route is a self-contained step in the hosted-auth journey (`src/app/`):
 | `/magic-link` | Finish signing in from an emailed magic link |
 | `/consent` | OAuth **consent** screen shown during the authorize flow |
 | `/device` | **Device authorization** grant — enter the user code from a TV/CLI |
-| `/admin-portal` | WorkOS-style admin-portal entry for an external IT admin (no Qeet ID account required) |
+| `/enterprise-setup` | SAML/SCIM setup for an invited external IT admin, with no Qeet ID account (the backend's admin portal) |
 | `/sign-out` | Confirm a sign-out that didn't name its session |
-| `/signed-out` | Post-sign-out landing |
+| `/sign-out/done` | Post-sign-out landing |
 | `/security` | The signed-in user's passkeys — see, rename and add one (also offered after a password sign-in) |
 
-The former paths — `/login`, `/signup`, `/logout`, `/logged-out`, `/reset`, `/magic` — redirect to
+The former paths — `/login`, `/signup`, `/logout`, `/logged-out`, `/reset`, `/magic`, `/admin-portal` — redirect to
 these (query and fragment kept), because `qeet-id-server` and already-sent emails still link to
 them ([`next.config.ts`](next.config.ts)).
 
@@ -62,6 +62,8 @@ bun run dev -- -p 3003         # http://localhost:3003
 | `bun run start` | Serve the production build |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run test` | Unit and component tests (`vitest run`) |
+| `bun run test:coverage` | The same, held to the coverage floor in `vitest.config.ts` (CI) |
+| `bun run test:e2e` | Build, then every page in Chromium: its Content-Security-Policy and a WCAG 2.2 AA scan |
 | `bun run check` | Biome: formatting, lint and import order (what CI runs) |
 | `bun run lint` | Biome lint only |
 | `bun run format` | Biome: rewrite formatting in place |
@@ -69,10 +71,10 @@ bun run dev -- -p 3003         # http://localhost:3003
 ### Tests
 
 `bun run test` runs the whole suite once with Vitest; it needs no server and no `.env`.
-Tests sit next to the code as `*.test.ts(x)`. Component tests start with
+Tests live in a `__tests__/` folder beside the code they cover, as `*.test.ts(x)`. Component tests start with
 `// @vitest-environment jsdom`, import `@/i18n`, and answer API calls with `mockApi` from
-`src/test-api.ts`, never a live server. A flow that leaves the page goes through `goTo`
-(`src/lib/navigation.ts`), which tests mock to see where the browser is sent.
+`src/testing/mock-api.ts`, never a live server. A flow that leaves the page goes through `goTo`
+(`src/platform/navigation/go-to.ts`), which tests mock to see where the browser is sent.
 `bunx vitest` watches while you work.
 
 ---
@@ -96,12 +98,18 @@ The app appends `/v1/...` to the API URL itself.
 
 ```
 src/
-  app/          App Router routes (one folder per screen above) + layout.tsx + globals.css
-  components/   Shared UI built on @qeetrix/ui
-  i18n/         i18next setup + locale resources
-  lib/          API client + helpers
-next.config.ts  reactCompiler: true · transpilePackages: ["@qeetrix/ui"]
+  app/          routes only, grouped by audience: (auth) · (account) · (enterprise);
+                layout.tsx, the error and not-found pages, globals.css
+  modules/      one folder per product area: authentication · recovery · sign-out · oauth ·
+                account · enterprise-setup (components, tests, and an API client where needed)
+  platform/     shared by the modules: API client, config, navigation, branding, passkeys, page shell
+  i18n/         i18next setup + every locale file
+  testing/      Vitest setup and the API mock
+biome.json      formatter, linter and the import rules that keep this layout
+next.config.ts  reactCompiler: true · transpilePackages: ["@qeetrix/ui"] · old-path redirects
 ```
+
+The conventions and what enforces them: [AGENTS.md](AGENTS.md).
 
 ---
 
@@ -131,7 +139,7 @@ Deployed as a standard **Next.js** project on Vercel (auto-detected — no frame
 
 **Steps**
 
-1. Import `qeetgroup/qeet-id-login` in Vercel (Framework Preset auto-detects **Next.js**).
+1. Import `qeetgroup/qeet-id-hosted` in Vercel (Framework Preset auto-detects **Next.js**).
 2. Environment variables (Production + Preview):
    ```
    NEXT_PUBLIC_API_URL=https://api.id.qeet.in
