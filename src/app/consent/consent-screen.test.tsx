@@ -42,7 +42,9 @@ describe("Consent", () => {
     });
     fireEvent.click(await openConsent({ request_id: "req-1" }));
 
-    await waitFor(() => expect(goTo).toHaveBeenCalledWith("https://app.example/cb?code=c1&state=s1"));
+    await waitFor(() =>
+      expect(goTo).toHaveBeenCalledWith("https://app.example/cb?code=c1&state=s1"),
+    );
     const decision = calls.find((c) => c.path === "/v1/oauth/authorize/decision");
     expect(decision?.body).toEqual({ request_id: "req-1", approve: true });
   });
@@ -61,7 +63,10 @@ describe("Consent", () => {
     const looked = calls.map((c) => c.path);
     expect(looked).toContain("/v1/oauth/authorize/request");
     // Branding and name are looked up for the recorded client, app-1.
-    const context = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).find((u) => u.includes("login-context"));
+    const context = vi
+      .mocked(fetch)
+      .mock.calls.map(([u]) => String(u))
+      .find((u) => u.includes("login-context"));
     expect(context).toContain("client_id=app-1");
   });
 
@@ -88,7 +93,11 @@ describe("Consent", () => {
         body: { error: { code: "oidc.consent_request_invalid", message: "invalid" } },
       },
     });
-    render(await ConsentPage({ searchParams: Promise.resolve({ request_id: "gone", client_id: "app-1" }) }));
+    render(
+      await ConsentPage({
+        searchParams: Promise.resolve({ request_id: "gone", client_id: "app-1" }),
+      }),
+    );
 
     expect(await screen.findByText(/expired or was already answered/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
@@ -96,7 +105,9 @@ describe("Consent", () => {
 
   it("refuses a link with no request id without asking the API", async () => {
     const calls = mockApi({});
-    render(await ConsentPage({ searchParams: Promise.resolve({ client_id: "app-1", scope: "openid" }) }));
+    render(
+      await ConsentPage({ searchParams: Promise.resolve({ client_id: "app-1", scope: "openid" }) }),
+    );
 
     expect(await screen.findByText(/expired or was already answered/)).toBeTruthy();
     expect(calls).toHaveLength(0);
@@ -117,4 +128,3 @@ describe("Consent", () => {
     expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
   });
 });
-

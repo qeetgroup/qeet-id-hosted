@@ -38,7 +38,9 @@ export function MfaEnrollment({
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const due = dueAt ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" }).format(new Date(dueAt)) : null;
+  const due = dueAt
+    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" }).format(new Date(dueAt))
+    : null;
 
   async function attempt(fn: () => Promise<void>) {
     setError(null);
@@ -98,7 +100,11 @@ export function MfaEnrollment({
 
   if (codes) {
     return (
-      <AuthCard branding={branding} title={t("mfa.enroll.codesTitle")} subtitle={t("mfa.enroll.codesSubtitle")}>
+      <AuthCard
+        branding={branding}
+        title={t("mfa.enroll.codesTitle")}
+        subtitle={t("mfa.enroll.codesSubtitle")}
+      >
         <ul className="bg-muted/30 grid grid-cols-2 gap-2 rounded-lg border p-4 font-mono text-sm">
           {codes.map((c) => (
             <li key={c}>{c}</li>
@@ -138,7 +144,12 @@ export function MfaEnrollment({
               {t("mfa.enroll.scanLabel")}
             </p>
             <div className="flex justify-center">
-              <QRCode value={app.provisioning_url} size={200} aria-labelledby="enroll-scan" aria-describedby="enroll-key" />
+              <QRCode
+                value={app.provisioning_url}
+                size={200}
+                aria-labelledby="enroll-scan"
+                aria-describedby="enroll-key"
+              />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -177,7 +188,14 @@ export function MfaEnrollment({
       ) : (
         <div className="space-y-4">
           <FormAlert>{error}</FormAlert>
-          <Button type="button" size="lg" className="w-full" disabled={loading} loading={loading} onClick={start}>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            disabled={loading}
+            loading={loading}
+            onClick={start}
+          >
             {t("mfa.enroll.startBtn")}
           </Button>
         </div>

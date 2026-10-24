@@ -5,11 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { AuthCard } from "@/components/auth-card";
 import { AuthShell } from "@/components/auth-shell";
-import {
-  exchangePortalSession,
-  fetchPortalContext,
-  type PortalContext,
-} from "@/lib/admin-portal";
+import { exchangePortalSession, fetchPortalContext, type PortalContext } from "@/lib/admin-portal";
 import { normalizeBranding } from "@/lib/branding";
 
 import { AdminPortalView } from "./admin-portal-view";
@@ -37,7 +33,9 @@ export default function AdminPortalPage() {
       );
     }
 
-    void (token ? exchangePortalSession(token).then((result) => result.context) : fetchPortalContext())
+    void (
+      token ? exchangePortalSession(token).then((result) => result.context) : fetchPortalContext()
+    )
       .then((context) => setState({ status: "ready", context }))
       .catch(() => setState({ status: "error" }));
   }, []);

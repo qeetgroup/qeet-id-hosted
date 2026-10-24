@@ -36,10 +36,16 @@ export function visitorAddress(forwardedFor: string | null, hops: number): strin
 }
 
 /** The headers naming the visitor's address to the API, or none. */
-export function relayHeadersFor(forwardedFor: string | null, env: Record<string, string | undefined> = process.env): Record<string, string> {
+export function relayHeadersFor(
+  forwardedFor: string | null,
+  env: Record<string, string | undefined> = process.env,
+): Record<string, string> {
   const key = env.QEET_ID_RELAY_KEY;
   if (!key) return {};
-  const address = visitorAddress(forwardedFor, Number.parseInt(env.LOGIN_TRUSTED_PROXY_HOPS ?? "0", 10));
+  const address = visitorAddress(
+    forwardedFor,
+    Number.parseInt(env.LOGIN_TRUSTED_PROXY_HOPS ?? "0", 10),
+  );
   if (!address) return {};
   return { [RELAY_KEY_HEADER]: key, [RELAY_CLIENT_IP_HEADER]: address };
 }

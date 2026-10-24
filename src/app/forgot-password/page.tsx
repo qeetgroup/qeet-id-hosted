@@ -16,7 +16,9 @@ export default async function ForgotPasswordPage({
 }) {
   const { return_to } = await searchParams;
   const returnTo = return_to ?? "";
-  const branding = normalizeBranding(await fetchBrandingForReturnTo(returnTo, await relayHeaders()));
+  const branding = normalizeBranding(
+    await fetchBrandingForReturnTo(returnTo, await relayHeaders()),
+  );
   return (
     <AuthShell branding={branding}>
       <ForgotPasswordForm returnTo={returnTo} branding={branding} />

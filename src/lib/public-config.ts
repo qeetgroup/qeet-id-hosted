@@ -22,7 +22,9 @@ const trimSlash = (u: string) => u.replace(/\/+$/, "");
 /** Base URL of the Qeet ID API (no trailing slash), for server and browser code. */
 export function getApiBaseUrl(): string {
   if (typeof window === "undefined") {
-    return trimSlash(process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL);
+    return trimSlash(
+      process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL,
+    );
   }
   return trimSlash(
     window.__QEET_PUBLIC_CONFIG__?.apiUrl || process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL,

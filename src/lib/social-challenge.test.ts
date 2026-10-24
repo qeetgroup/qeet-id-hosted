@@ -22,8 +22,9 @@ describe("readSocialChallenge", () => {
       { type: "push" },
     ]);
     expect(
-      readSocialChallenge(`#${new URLSearchParams({ mfa_token: "t", factors: JSON.stringify([{ type: "x" }, { type: "totp" }]) })}`)
-        ?.factors,
+      readSocialChallenge(
+        `#${new URLSearchParams({ mfa_token: "t", factors: JSON.stringify([{ type: "x" }, { type: "totp" }]) })}`,
+      )?.factors,
     ).toEqual([{ type: "totp" }]);
   });
 

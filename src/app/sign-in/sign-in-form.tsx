@@ -7,20 +7,19 @@ import { useTranslation } from "react-i18next";
 
 import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
+import { type LoginFactor, MfaChallenge } from "@/components/mfa-challenge";
+import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { ProviderIcon } from "@/components/social-providers";
 import { apiPost } from "@/lib/api";
+import type { Branding } from "@/lib/branding";
 import { ADDRESS_NOT_ALLOWED_REDIRECT, apiErrorMessage } from "@/lib/errors";
 import { clientIDFromReturnTo, returnsToDevice, safeReturnTo } from "@/lib/login-context";
 import { goTo } from "@/lib/navigation";
 import { startPasskeyAutofill } from "@/lib/passkey-autofill";
 import { shouldOfferPasskey } from "@/lib/passkeys";
-import { readSocialChallenge } from "@/lib/social-challenge";
 import { getApiBaseUrl } from "@/lib/public-config";
-import type { Branding } from "@/lib/branding";
-
+import { readSocialChallenge } from "@/lib/social-challenge";
 import { MagicLinkRequest } from "./magic-link-request";
-import { MfaChallenge, type LoginFactor } from "@/components/mfa-challenge";
-import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { PasskeyPrompt } from "./passkey-prompt";
 
 type SignInFormProps = {
@@ -64,7 +63,6 @@ export type SessionResponse = {
   enrollment_required?: boolean;
   enrollment_due_at?: string;
 };
-
 
 export function SignInForm({
   returnTo,
@@ -272,9 +270,7 @@ export function SignInForm({
       });
       continueToApp();
     } catch (err) {
-      setError(
-        apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")),
-      );
+      setError(apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")));
       setPasskeyBusy(false);
     }
   }
@@ -289,11 +285,7 @@ export function SignInForm({
       : t("title");
 
   return (
-    <AuthCard
-      branding={branding}
-      title={title}
-      subtitle={t("subtitle")}
-    >
+    <AuthCard branding={branding} title={title} subtitle={t("subtitle")}>
       {passwordEnabled && (
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
@@ -407,9 +399,12 @@ export function SignInForm({
         </div>
       )}
 
-      {!passwordEnabled && !passkeyEnabled && !showSocial && !(magicLinkEnabled && tenantId !== "") && (
-        <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
-      )}
+      {!passwordEnabled &&
+        !passkeyEnabled &&
+        !showSocial &&
+        !(magicLinkEnabled && tenantId !== "") && (
+          <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
+        )}
 
       {selfRegistrationEnabled && (
         <p className="text-muted-foreground text-center text-sm">

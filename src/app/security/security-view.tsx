@@ -45,7 +45,9 @@ export function SecurityView() {
       setState({ status: "ready", list: await listPasskeys() });
     } catch (err) {
       setState(
-        err instanceof ApiError && err.status === 401 ? { status: "signedOut" } : { status: "error" },
+        err instanceof ApiError && err.status === 401
+          ? { status: "signedOut" }
+          : { status: "error" },
       );
     }
   }
@@ -90,7 +92,10 @@ export function SecurityView() {
   if (state.status === "loading") {
     return (
       <AuthCard title={t("title")}>
-        <p role="status" className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+        <p
+          role="status"
+          className="text-muted-foreground flex items-center justify-center gap-2 text-sm"
+        >
           <Spinner size="sm" /> {t("loading")}
         </p>
       </AuthCard>

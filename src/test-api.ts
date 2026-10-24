@@ -20,7 +20,8 @@ export function mockApi(routes: Record<string, Reply>): ApiCall[] {
       const url = new URL(String(input));
       const method = init?.method ?? "GET";
       // The CSRF seed request a mutation makes when no qe_csrf cookie is set.
-      if (method === "GET" && url.pathname === "/healthz") return new Response(null, { status: 204 });
+      if (method === "GET" && url.pathname === "/healthz")
+        return new Response(null, { status: 204 });
       const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
       calls.push({ method, path: url.pathname, body });
       const reply = routes[`${method} ${url.pathname}`];

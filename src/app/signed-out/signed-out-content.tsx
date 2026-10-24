@@ -49,7 +49,9 @@ export function SignedOutContent({
     if (!done || finished.current) return;
     finished.current = true;
     if (continueTicket) {
-      goTo(`${getApiBaseUrl()}/v1/oauth/logout/continue?ticket=${encodeURIComponent(continueTicket)}`);
+      goTo(
+        `${getApiBaseUrl()}/v1/oauth/logout/continue?ticket=${encodeURIComponent(continueTicket)}`,
+      );
     }
   }, [done, continueTicket]);
 

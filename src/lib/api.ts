@@ -51,7 +51,9 @@ async function parse<T>(res: Response): Promise<T> {
   const data = text ? safeParse(text) : null;
   if (!res.ok) {
     const err = (
-      data as { error?: { code?: string; message?: string; metadata?: Record<string, unknown> } } | null
+      data as {
+        error?: { code?: string; message?: string; metadata?: Record<string, unknown> };
+      } | null
     )?.error;
     throw new ApiError(
       res.status,

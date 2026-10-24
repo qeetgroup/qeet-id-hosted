@@ -9,8 +9,8 @@ import { FormAlert } from "@/components/form-alert";
 import { type LoginFactor, MfaChallenge } from "@/components/mfa-challenge";
 import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { apiPost } from "@/lib/api";
-import { apiErrorMessage, isAddressRefusal } from "@/lib/errors";
 import type { Branding } from "@/lib/branding";
+import { apiErrorMessage, isAddressRefusal } from "@/lib/errors";
 import { safeReturnTo } from "@/lib/login-context";
 
 type MagicSignInProps = {
@@ -30,7 +30,13 @@ type MagicSessionResponse = {
   enrollment_due_at?: string;
 };
 
-type Challenge = { token: string; factors: LoginFactor[]; enrollment: boolean; dueAt?: string; returnTo: string };
+type Challenge = {
+  token: string;
+  factors: LoginFactor[];
+  enrollment: boolean;
+  dueAt?: string;
+  returnTo: string;
+};
 
 /**
  * Exchanges the emailed one-time link for the hosted sign-in session, then
@@ -92,7 +98,12 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
     };
     if (challenge.enrollment) {
       return (
-        <MfaEnrollment mfaToken={challenge.token} dueAt={challenge.dueAt} branding={branding} onDone={continueJourney} />
+        <MfaEnrollment
+          mfaToken={challenge.token}
+          dueAt={challenge.dueAt}
+          branding={branding}
+          onDone={continueJourney}
+        />
       );
     }
     return (
@@ -111,7 +122,11 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
 
   if (!error) {
     return (
-      <AuthCard branding={branding} title={t("magic.signingIn")} subtitle={t("magic.signingInText")}>
+      <AuthCard
+        branding={branding}
+        title={t("magic.signingIn")}
+        subtitle={t("magic.signingInText")}
+      >
         <p role="status" className="sr-only">
           {t("magic.signingIn")}
         </p>
@@ -134,7 +149,14 @@ export function MagicSignIn({ token, branding }: MagicSignInProps) {
             {t("magic.resent")}
           </p>
         ) : token ? (
-          <Button type="button" size="lg" className="w-full" onClick={resend} loading={resending} loadingLabel={t("magic.busy")}>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={resend}
+            loading={resending}
+            loadingLabel={t("magic.busy")}
+          >
             {t("magic.resend")}
           </Button>
         ) : null}

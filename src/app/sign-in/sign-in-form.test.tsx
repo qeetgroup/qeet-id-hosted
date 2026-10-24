@@ -80,7 +80,9 @@ describe("SignInForm", () => {
   });
 
   it("asks for the second factor a social sign-in came back with, and clears it from the address", async () => {
-    const calls = mockApi({ "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } } });
+    const calls = mockApi({
+      "POST /v1/auth/session/mfa": { status: 200, body: { user_id: "u-1" } },
+    });
     const factors = JSON.stringify([
       { type: "totp" },
       { type: "recovery_code" },
@@ -97,10 +99,16 @@ describe("SignInForm", () => {
     expect(window.location.hash).toBe("");
     expect(window.location.search).toContain("return_to=");
     fireEvent.click(screen.getByRole("button", { name: "Use a recovery code" }));
-    fireEvent.change(screen.getByLabelText("Recovery code"), { target: { value: "aaaa-bbbb-cccc" } });
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "aaaa-bbbb-cccc" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
-    expect(calls[0]).toMatchObject({ method: "POST", path: "/v1/auth/session/mfa", body: { mfa_token: "social-mfa" } });
+    expect(calls[0]).toMatchObject({
+      method: "POST",
+      path: "/v1/auth/session/mfa",
+      body: { mfa_token: "social-mfa" },
+    });
     window.history.replaceState(null, "", "/");
   });
 
@@ -122,7 +130,9 @@ describe("SignInForm", () => {
     mockApi({
       "POST /v1/auth/session": {
         status: 401,
-        body: { error: { code: "invalid_credentials", message: "Email or password is incorrect." } },
+        body: {
+          error: { code: "invalid_credentials", message: "Email or password is incorrect." },
+        },
       },
     });
     renderSignIn();
@@ -162,7 +172,9 @@ describe("SignInForm", () => {
 
     signIn();
     fireEvent.click(await screen.findByRole("button", { name: "Use a recovery code" }));
-    fireEvent.change(screen.getByLabelText("Recovery code"), { target: { value: "aaaa-bbbb-cccc" } });
+    fireEvent.change(screen.getByLabelText("Recovery code"), {
+      target: { value: "aaaa-bbbb-cccc" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
 
     await waitFor(() => expect(goTo).toHaveBeenCalledWith(device));
@@ -170,7 +182,8 @@ describe("SignInForm", () => {
   });
 
   it("says a refused network the same way for a password and a social sign-in", async () => {
-    const network = "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
+    const network =
+      "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
     mockApi({
       "POST /v1/auth/session": {
         status: 403,

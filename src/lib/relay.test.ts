@@ -18,12 +18,17 @@ describe("visitorAddress", () => {
 describe("relayHeadersFor", () => {
   it("names the visitor's address with the relay key", () => {
     expect(
-      relayHeadersFor("198.51.100.7", { QEET_ID_RELAY_KEY: "k".repeat(40), LOGIN_TRUSTED_PROXY_HOPS: "1" }),
+      relayHeadersFor("198.51.100.7", {
+        QEET_ID_RELAY_KEY: "k".repeat(40),
+        LOGIN_TRUSTED_PROXY_HOPS: "1",
+      }),
     ).toEqual({ "X-Qeet-Relay-Key": "k".repeat(40), "X-Qeet-Client-IP": "198.51.100.7" });
   });
 
   it("sends nothing without a key or an address", () => {
     expect(relayHeadersFor("198.51.100.7", { LOGIN_TRUSTED_PROXY_HOPS: "1" })).toEqual({});
-    expect(relayHeadersFor(null, { QEET_ID_RELAY_KEY: "k".repeat(40), LOGIN_TRUSTED_PROXY_HOPS: "1" })).toEqual({});
+    expect(
+      relayHeadersFor(null, { QEET_ID_RELAY_KEY: "k".repeat(40), LOGIN_TRUSTED_PROXY_HOPS: "1" }),
+    ).toEqual({});
   });
 });

@@ -14,7 +14,9 @@ export default async function MagicLinkPage({
   searchParams: Promise<{ token?: string; return_to?: string }>;
 }) {
   const { token, return_to } = await searchParams;
-  const branding = normalizeBranding(await fetchBrandingForReturnTo(return_to ?? "", await relayHeaders()));
+  const branding = normalizeBranding(
+    await fetchBrandingForReturnTo(return_to ?? "", await relayHeaders()),
+  );
   return (
     <AuthShell branding={branding}>
       <MagicSignIn token={token ?? ""} branding={branding} />

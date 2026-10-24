@@ -55,7 +55,8 @@ export function ConsentScreen({ requestId }: { requestId: string }) {
         if (!live) return;
         setState({
           kind: "refused",
-          messageKey: consentErrorKey(err instanceof ApiError ? err.code : "") ?? "errors.requestInvalid",
+          messageKey:
+            consentErrorKey(err instanceof ApiError ? err.code : "") ?? "errors.requestInvalid",
         });
       }
     })();

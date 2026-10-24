@@ -39,7 +39,12 @@ export function AuthCard({ branding, title, subtitle, children, className }: Aut
               // dark-surface one under `.dark`.
               <>
                 <QeetLogo height={40} aria-label="Qeet" className="dark:hidden" />
-                <QeetLogo variant="dark" height={40} aria-label="Qeet" className="hidden dark:block" />
+                <QeetLogo
+                  variant="dark"
+                  height={40}
+                  aria-label="Qeet"
+                  className="hidden dark:block"
+                />
               </>
             )}
           </div>

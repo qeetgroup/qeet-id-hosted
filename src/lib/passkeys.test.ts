@@ -47,7 +47,12 @@ test("offers a passkey after sign-in only when the user has none and may add one
   respond(json(200, { items: [], enrollment_allowed: false }));
   assert.equal(await shouldOfferPasskey(), false, "organization has passkeys switched off");
 
-  respond(json(200, { items: [{ id: "pk1", created_at: "2026-10-01T00:00:00Z" }], enrollment_allowed: true }));
+  respond(
+    json(200, {
+      items: [{ id: "pk1", created_at: "2026-10-01T00:00:00Z" }],
+      enrollment_allowed: true,
+    }),
+  );
   assert.equal(await shouldOfferPasskey(), false, "user already has a passkey");
 });
 
@@ -97,7 +102,10 @@ test("adding a passkey sends the session cookie and the CSRF token on both steps
 
 test("a declined name is sent empty so the server names the passkey", async () => {
   browser({ create: () => ({ toJSON: () => ({ id: "cred-2" }) }) });
-  const calls = respond(json(200, { session_id: "ceremony-2", publicKey: {} }), () => new Response(null, { status: 204 }));
+  const calls = respond(
+    json(200, { session_id: "ceremony-2", publicKey: {} }),
+    () => new Response(null, { status: 204 }),
+  );
   await addPasskey("");
   assert.equal(JSON.parse(String(calls[1].init.body)).name, "");
 });
@@ -109,7 +117,13 @@ test("failures map to copy, never to the backend's message", () => {
   assert.equal(passkeyErrorKey(api(400, "auth.session_expired")), "errors.expired");
   assert.equal(passkeyErrorKey(api(403, "http_403")), "errors.refused");
   assert.equal(passkeyErrorKey(api(500, "internal")), "errors.generic");
-  assert.equal(passkeyErrorKey(new DOMException("dismissed", "NotAllowedError")), "errors.cancelled");
-  assert.equal(passkeyErrorKey(new DOMException("exists", "InvalidStateError")), "errors.alreadyRegistered");
+  assert.equal(
+    passkeyErrorKey(new DOMException("dismissed", "NotAllowedError")),
+    "errors.cancelled",
+  );
+  assert.equal(
+    passkeyErrorKey(new DOMException("exists", "InvalidStateError")),
+    "errors.alreadyRegistered",
+  );
   assert.equal(passkeyErrorKey(new Error("anything")), "errors.generic");
 });

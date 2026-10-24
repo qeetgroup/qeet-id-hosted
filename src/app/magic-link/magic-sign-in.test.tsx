@@ -11,7 +11,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const NETWORK = "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
+const NETWORK =
+  "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
 
 describe("MagicSignIn", () => {
   it("says a refused network plainly, without offering a new link or another way in", async () => {

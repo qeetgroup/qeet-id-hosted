@@ -35,7 +35,10 @@ export async function conditionalMediationAvailable(): Promise<boolean> {
  * onSignedIn runs once the picked passkey has signed in; onError for a picked
  * passkey the server refused.
  */
-export function startPasskeyAutofill(onSignedIn: () => void, onError: (err: unknown) => void): () => void {
+export function startPasskeyAutofill(
+  onSignedIn: () => void,
+  onError: (err: unknown) => void,
+): () => void {
   let stopped = false;
   let current: AbortController | null = null;
 
@@ -49,7 +52,10 @@ export function startPasskeyAutofill(onSignedIn: () => void, onError: (err: unkn
       let credential: (PublicKeyCredential & { toJSON?: () => unknown }) | null;
       let sessionId: string;
       try {
-        const begin = await apiPost<{ session_id: string; publicKey: unknown }>("/v1/passkeys/login/begin", {});
+        const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
+          "/v1/passkeys/login/begin",
+          {},
+        );
         sessionId = begin.session_id;
         const options = PK.parseRequestOptionsFromJSON
           ? PK.parseRequestOptionsFromJSON(begin.publicKey)

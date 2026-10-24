@@ -19,7 +19,12 @@ type MagicLinkRequestProps = {
  * The link brings the user back here and on to the application. The answer is
  * the same whether or not the address has an account.
  */
-export function MagicLinkRequest({ tenantId, returnTo, initialEmail, onBack }: MagicLinkRequestProps) {
+export function MagicLinkRequest({
+  tenantId,
+  returnTo,
+  initialEmail,
+  onBack,
+}: MagicLinkRequestProps) {
   const { t } = useTranslation("signIn");
   const [email, setEmail] = useState(initialEmail);
   const [sent, setSent] = useState(false);
@@ -77,7 +82,13 @@ export function MagicLinkRequest({ tenantId, returnTo, initialEmail, onBack }: M
         <p className="text-muted-foreground text-xs">{t("magic.hint")}</p>
       </div>
       <FormAlert>{error}</FormAlert>
-      <Button type="submit" size="lg" className="w-full" loading={loading} loadingLabel={t("magic.busy")}>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        loading={loading}
+        loadingLabel={t("magic.busy")}
+      >
         {t("magic.submit")}
       </Button>
       <Button type="button" variant="ghost" className="w-full" onClick={onBack}>

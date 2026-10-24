@@ -17,8 +17,17 @@ afterEach(() => {
 
 describe("Sign-out confirmation", () => {
   it("signs out only when the person confirms, carrying the API's ticket back", async () => {
-    mockApi({ "GET /v1/oauth/login-context": { status: 200, body: { client_name: "Acme Notes" } } });
-    render(<SignOutConfirm ticket="tkt" clientId="app-1" postLogoutRedirect="https://app.example/bye" state="s1" />);
+    mockApi({
+      "GET /v1/oauth/login-context": { status: 200, body: { client_name: "Acme Notes" } },
+    });
+    render(
+      <SignOutConfirm
+        ticket="tkt"
+        clientId="app-1"
+        postLogoutRedirect="https://app.example/bye"
+        state="s1"
+      />,
+    );
 
     expect(await screen.findByText("Acme Notes asked to sign you out of Qeet ID.")).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();

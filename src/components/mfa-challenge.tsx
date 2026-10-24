@@ -62,9 +62,12 @@ export function MfaChallenge({
   const [refused, setRefused] = useState<{ factor: LoginFactor; seconds: number } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const stopPush = useRef(false);
-  useEffect(() => () => {
-    stopPush.current = true;
-  }, []);
+  useEffect(
+    () => () => {
+      stopPush.current = true;
+    },
+    [],
+  );
 
   // Tick once a second while any factor is waiting, for the time shown.
   const sendWaiting = Object.values(sendAfter).some((at) => at > now);
@@ -153,18 +156,26 @@ export function MfaChallenge({
           })
         | undefined;
       if (!PK || !navigator.credentials) throw new Error(t("errors.passkeyUnsupported"));
-      const begin = await apiPost<{ session_id: string; publicKey: unknown }>("/v1/auth/mfa/passkey/begin", {
-        mfa_token: mfaToken,
-      });
+      const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
+        "/v1/auth/mfa/passkey/begin",
+        {
+          mfa_token: mfaToken,
+        },
+      );
       const options = PK.parseRequestOptionsFromJSON
         ? PK.parseRequestOptionsFromJSON(begin.publicKey)
         : (begin.publicKey as PublicKeyCredentialRequestOptions);
-      const assertion = (await navigator.credentials.get({ publicKey: options })) as PublicKeyCredential & {
+      const assertion = (await navigator.credentials.get({
+        publicKey: options,
+      })) as PublicKeyCredential & {
         toJSON?: () => unknown;
       };
       if (!assertion) throw new Error(t("errors.noPasskeySelected"));
       await complete({
-        passkey: { session_id: begin.session_id, credential: assertion.toJSON ? assertion.toJSON() : assertion },
+        passkey: {
+          session_id: begin.session_id,
+          credential: assertion.toJSON ? assertion.toJSON() : assertion,
+        },
       });
     });
   }
@@ -204,7 +215,11 @@ export function MfaChallenge({
       branding={branding}
       title={t("mfa.title")}
       subtitle={
-        recovery ? t("mfa.subtitleRecovery") : onlyAuthenticator ? t("mfa.subtitle") : t("mfa.subtitleAny")
+        recovery
+          ? t("mfa.subtitleRecovery")
+          : onlyAuthenticator
+            ? t("mfa.subtitle")
+            : t("mfa.subtitleAny")
       }
     >
       <form onSubmit={onSubmit} className="space-y-4">
@@ -242,7 +257,10 @@ export function MfaChallenge({
             <p className="text-muted-foreground text-xs">
               {/* The wait is announced once; the time shown counts down. */}
               <span role="status" className="sr-only">
-                {t("mfa.sendWait", { destination: refused.factor.destination, time: waitText(refused.seconds) })}
+                {t("mfa.sendWait", {
+                  destination: refused.factor.destination,
+                  time: waitText(refused.seconds),
+                })}
               </span>
               <span aria-hidden="true">
                 {t("mfa.sendWait", {
@@ -300,12 +318,24 @@ export function MfaChallenge({
             );
           })}
           {hasPasskey && (
-            <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={passkeyFactor}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={loading}
+              onClick={passkeyFactor}
+            >
               {t("mfa.usePasskey")}
             </Button>
           )}
           {hasPush && (
-            <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={approveOnPhone}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={loading}
+              onClick={approveOnPhone}
+            >
               {waitingPush ? t("mfa.pushWaiting") : t("mfa.pushBtn")}
             </Button>
           )}

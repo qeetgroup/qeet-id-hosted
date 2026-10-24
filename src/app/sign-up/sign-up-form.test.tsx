@@ -24,7 +24,9 @@ function fillPasswordForm(confirm = "correct horse battery") {
   fireEvent.click(screen.getByRole("button", { name: "Use a password instead" }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
-  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery" } });
+  fireEvent.change(screen.getByLabelText("Password"), {
+    target: { value: "correct horse battery" },
+  });
   fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: confirm } });
   fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 }

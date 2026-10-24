@@ -9,10 +9,10 @@ import { AuthCard } from "@/components/auth-card";
 import { FormAlert } from "@/components/form-alert";
 import { MfaEnrollment } from "@/components/mfa-enrollment";
 import { apiPost } from "@/lib/api";
+import type { Branding } from "@/lib/branding";
 import { apiErrorMessage } from "@/lib/errors";
 import { safeReturnTo } from "@/lib/login-context";
 import { goTo } from "@/lib/navigation";
-import type { Branding } from "@/lib/branding";
 
 type SignUpFormProps = {
   returnTo: string;
@@ -82,9 +82,7 @@ export function SignUpForm({
       });
       continueToApp();
     } catch (err) {
-      setError(
-        apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")),
-      );
+      setError(apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")));
       setPasskeyBusy(false);
     }
   }
@@ -102,10 +100,11 @@ export function SignUpForm({
       // tenant and the SSO cookie is set, so we continue straight to the app —
       // unless the organisation requires MFA, when the account sets up an
       // authenticator app first.
-      const res = await apiPost<{ mfa_required?: boolean; mfa_token?: string; enrollment_due_at?: string }>(
-        "/v1/auth/register",
-        { tenant_id: tenantId, email, password, display_name: name },
-      );
+      const res = await apiPost<{
+        mfa_required?: boolean;
+        mfa_token?: string;
+        enrollment_due_at?: string;
+      }>("/v1/auth/register", { tenant_id: tenantId, email, password, display_name: name });
       if (res.mfa_required && res.mfa_token) {
         setEnrollment({ token: res.mfa_token, dueAt: res.enrollment_due_at });
         setLoading(false);
@@ -120,7 +119,12 @@ export function SignUpForm({
 
   if (enrollment) {
     return (
-      <MfaEnrollment mfaToken={enrollment.token} dueAt={enrollment.dueAt} branding={branding} onDone={continueToApp} />
+      <MfaEnrollment
+        mfaToken={enrollment.token}
+        dueAt={enrollment.dueAt}
+        branding={branding}
+        onDone={continueToApp}
+      />
     );
   }
 

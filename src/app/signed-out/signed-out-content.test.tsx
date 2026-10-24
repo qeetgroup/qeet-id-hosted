@@ -43,7 +43,9 @@ describe("Signed-out page", () => {
   });
 
   it("continues to the application through the API's signed ticket once the pages have loaded", () => {
-    const { container } = render(<SignedOutContent frontchannel={[pages[0]]} continueTicket="tkt" />);
+    const { container } = render(
+      <SignedOutContent frontchannel={[pages[0]]} continueTicket="tkt" />,
+    );
     expect(goTo).not.toHaveBeenCalled();
     fireEvent.load(container.querySelector("iframe") as HTMLIFrameElement);
     expect(goTo).toHaveBeenCalledWith(`${TEST_API}/v1/oauth/logout/continue?ticket=tkt`);

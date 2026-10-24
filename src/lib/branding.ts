@@ -25,7 +25,8 @@ export function normalizeBranding(dto?: BrandingDTO): Branding | undefined {
   if (dto.logo_url) b.logoUrl = dto.logo_url;
   if (dto.primary_color) b.primaryColor = dto.primary_color;
   if (dto.secondary_color) b.secondaryColor = dto.secondary_color;
-  if (dto.background_color && hexToRgb(dto.background_color)) b.backgroundColor = dto.background_color;
+  if (dto.background_color && hexToRgb(dto.background_color))
+    b.backgroundColor = dto.background_color;
   return Object.keys(b).length ? b : undefined;
 }
 
@@ -38,7 +39,8 @@ export function normalizeBranding(dto?: BrandingDTO): Branding | undefined {
 export function brandingVars(b?: Branding): CSSProperties {
   if (!b) return {};
   const appearance: Record<string, string> = {};
-  if (b.backgroundColor && hexToRgb(b.backgroundColor)) appearance.backgroundColor = b.backgroundColor;
+  if (b.backgroundColor && hexToRgb(b.backgroundColor))
+    appearance.backgroundColor = b.backgroundColor;
   if (!b.primaryColor) return appearance as CSSProperties;
   const primary = b.primaryColor;
   const foreground = readableForeground(primary);

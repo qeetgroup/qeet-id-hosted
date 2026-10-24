@@ -13,7 +13,14 @@ export type SocialChallenge = {
   enrollment: { dueAt?: string } | null;
 };
 
-const FACTOR_TYPES = new Set<LoginFactor["type"]>(["totp", "recovery_code", "email", "sms", "passkey", "push"]);
+const FACTOR_TYPES = new Set<LoginFactor["type"]>([
+  "totp",
+  "recovery_code",
+  "email",
+  "sms",
+  "passkey",
+  "push",
+]);
 
 function isFactor(value: unknown): value is LoginFactor {
   if (!value || typeof value !== "object") return false;
@@ -35,7 +42,10 @@ function factorsOf(params: URLSearchParams): LoginFactor[] {
   // Without the factor list, offer what needs no factor id.
   return (params.get("methods") ?? "")
     .split(",")
-    .filter((m): m is LoginFactor["type"] => FACTOR_TYPES.has(m as LoginFactor["type"]) && m !== "email" && m !== "sms")
+    .filter(
+      (m): m is LoginFactor["type"] =>
+        FACTOR_TYPES.has(m as LoginFactor["type"]) && m !== "email" && m !== "sms",
+    )
     .map((type) => ({ type }));
 }
 

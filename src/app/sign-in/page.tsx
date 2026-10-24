@@ -5,7 +5,6 @@ import { relayHeaders } from "@/lib/relay-request";
 
 import { SignInForm } from "./sign-in-form";
 
-
 type LoginContext = {
   client_name?: string;
   tenant_id?: string;
