@@ -12,6 +12,7 @@ import {
   StatusPill,
 } from "@qeetrix/ui";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getScimConfig,
   revokeScimToken,
@@ -22,6 +23,7 @@ import { ApiError } from "@/platform/api/client";
 import { FormAlert } from "@/platform/components/form-alert";
 
 export function ScimPanel() {
+  const { t } = useTranslation("enterpriseSetup");
   const [config, setConfig] = useState<ScimConfig | null>(null);
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export function ScimPanel() {
   const reload = () => {
     getScimConfig()
       .then(setConfig)
-      .catch((e) => setErr(e instanceof ApiError ? e.message : "Failed to load."));
+      .catch((e) => setErr(e instanceof ApiError ? e.message : t("scim.loadFailed")));
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once on opening
@@ -46,14 +48,14 @@ export function ScimPanel() {
       setFreshToken(res.token);
       setConfig(res.config);
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Rotate failed.");
+      setErr(e instanceof ApiError ? e.message : t("scim.rotateFailed"));
     } finally {
       setBusy(false);
     }
   };
 
   const revoke = async () => {
-    if (!window.confirm("Disable SCIM provisioning? Your IdP will stop syncing.")) return;
+    if (!window.confirm(t("scim.confirmDisable"))) return;
     setBusy(true);
     setErr(null);
     try {
@@ -61,7 +63,7 @@ export function ScimPanel() {
       setFreshToken(null);
       reload();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Revoke failed.");
+      setErr(e instanceof ApiError ? e.message : t("scim.revokeFailed"));
     } finally {
       setBusy(false);
     }
@@ -71,10 +73,8 @@ export function ScimPanel() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">SCIM provisioning</CardTitle>
-          <CardDescription>
-            Point your IdP&rsquo;s SCIM connector at this endpoint and bearer token.
-          </CardDescription>
+          <CardTitle className="text-base">{t("scim.title")}</CardTitle>
+          <CardDescription>{t("scim.description")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {config === null ? (
@@ -92,15 +92,15 @@ export function ScimPanel() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {config.provisioned_count} user(s) provisioned via SCIM.
+                {t("scim.provisioned", { count: config.provisioned_count })}
               </p>
               <div className="flex gap-2">
                 <Button size="sm" disabled={busy} onClick={rotate}>
-                  {config.token_set ? "Roll token" : "Enable SCIM"}
+                  {config.token_set ? t("scim.roll") : t("scim.enable")}
                 </Button>
                 {config.token_set && (
                   <Button size="sm" variant="outline" disabled={busy} onClick={revoke}>
-                    Disable
+                    {t("scim.disable")}
                   </Button>
                 )}
               </div>
@@ -113,16 +113,14 @@ export function ScimPanel() {
       {freshToken && (
         <Card className="border-primary">
           <CardHeader>
-            <CardTitle className="text-base">Your new SCIM bearer token</CardTitle>
-            <CardDescription>
-              Copy it now — for security it is shown once and cannot be retrieved again.
-            </CardDescription>
+            <CardTitle className="text-base">{t("scim.newToken")}</CardTitle>
+            <CardDescription>{t("scim.newTokenBody")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Input value={freshToken} readOnly className="font-mono text-xs" />
             <div>
               <Button variant="outline" size="sm" onClick={() => setFreshToken(null)}>
-                I&apos;ve saved it
+                {t("scim.saved")}
               </Button>
             </div>
           </CardContent>

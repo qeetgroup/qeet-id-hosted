@@ -1,4 +1,4 @@
-# Qeet ID — Hosted Login
+# Qeet ID — Hosted
 
 The **hosted authentication UI** for [Qeet ID](https://github.com/qeetgroup/qeet-id-server) —
 the passkeys-first identity platform. This is the branded, centralized set of pages the Qeet ID
@@ -8,7 +8,8 @@ holds no database and no secrets.
 
 - **Stack:** Next.js 16 (App Router) · React 19 + React Compiler · TypeScript · `@qeetrix/ui` · i18next
 - **Runtime:** static/SSR on Vercel · talks only to the Qeet ID API (`NEXT_PUBLIC_API_URL`)
-- **Prod:** [`https://login.id.qeet.in`](https://login.id.qeet.in) → API `https://api.id.qeet.in`
+- **Prod:** [`https://accounts.id.qeet.in`](https://accounts.id.qeet.in) → API `https://api.id.qeet.in`
+  (moving from `login.id.qeet.in`, which redirects here once the move is done — QTID-957)
 
 ---
 
@@ -62,7 +63,7 @@ bun run dev -- -p 3003         # http://localhost:3003
 | `bun run start` | Serve the production build |
 | `bun run typecheck` | `tsc --noEmit` |
 | `bun run test` | Unit and component tests (`vitest run`) |
-| `bun run test:coverage` | The same, held to the coverage floor in `vitest.config.ts` (CI) |
+| `bun run test:coverage` | The same, held to the coverage floor in `vitest.config.mts` (CI) |
 | `bun run test:e2e` | Build, then every page in Chromium: its Content-Security-Policy and a WCAG 2.2 AA scan |
 | `bun run check` | Biome: formatting, lint and import order (what CI runs) |
 | `bun run lint` | Biome lint only |
@@ -118,13 +119,13 @@ The conventions and what enforces them: [AGENTS.md](AGENTS.md).
 This app is **presentation only** — the backend owns all auth logic:
 
 - **API** — every call goes to `NEXT_PUBLIC_API_URL`; the backend must allow this origin via CORS
-  (`ALLOWED_ORIGINS` includes `https://login.id.qeet.in` in prod).
+  (`ALLOWED_ORIGINS` includes `https://accounts.id.qeet.in` in prod).
 - **Passkeys / WebAuthn** — ceremonies are validated against the backend's Relying Party config.
-  Because passkeys are used on both `login.id.qeet.in` and `console.id.qeet.in`, the backend must set
+  Because passkeys are used on both `accounts.id.qeet.in` and `console.id.qeet.in`, the backend must set
   `WEBAUTHN_RP_ID=id.qeet.in` and list both origins in `WEBAUTHN_RP_ORIGINS` (the parent domain
-  covers both sub-domains).
+  covers both sub-domains, so passkeys made on `login.id.qeet.in` keep working).
 - **OIDC** — the OAuth authorize flow redirects here; the relying-party client's `redirect_uri`s must
-  include the prod login/console URLs.
+  include the prod hosted and console URLs.
 
 ---
 
@@ -145,8 +146,10 @@ Deployed as a standard **Next.js** project on Vercel (auto-detected — no frame
    NEXT_PUBLIC_API_URL=https://api.id.qeet.in
    ```
 3. Deploy.
-4. Add the custom domain **`login.id.qeet.in`** → create the CNAME Vercel provides in GoDaddy
-   (`login.id` → `cname.vercel-dns.com`).
+4. Add the custom domain **`accounts.id.qeet.in`** → create the CNAME Vercel provides in GoDaddy
+   (`accounts.id` → `cname.vercel-dns.com`).
+5. Keep **`login.id.qeet.in`** on the project as a redirect (308) to `accounts.id.qeet.in`, so links
+   already sent and bookmarks still land. The order of the whole move is in QTID-957.
 
 `@qeetrix/ui` resolves from the public npm registry, so a standalone install needs no monorepo.
 

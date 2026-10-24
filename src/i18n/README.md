@@ -1,4 +1,4 @@
-# i18n (apps/login)
+# i18n
 
 Internationalization scaffold built on
 [`i18next`](https://www.i18next.com/) + [`react-i18next`](https://react.i18next.com/),
@@ -26,6 +26,7 @@ src/i18n/
       recovery.json   /forgot-password, /reset-password — password recovery
       consent.json    /consent — OAuth authorize-access screen
       device.json     /device — device-flow entry, authorize, and terminal states
+      enterpriseSetup.json  /enterprise-setup — SAML and SCIM setup for an invited IT admin
       security.json   /security — the signed-in user's passkeys, and the "add a passkey" prompt after sign-in
 ```
 

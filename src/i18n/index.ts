@@ -5,6 +5,7 @@ import { initReactI18next } from "react-i18next";
 import common from "./locales/en/common.json";
 import consent from "./locales/en/consent.json";
 import device from "./locales/en/device.json";
+import enterpriseSetup from "./locales/en/enterpriseSetup.json";
 import recovery from "./locales/en/recovery.json";
 import security from "./locales/en/security.json";
 import signIn from "./locales/en/signIn.json";
@@ -36,6 +37,7 @@ const resources = {
     signOut,
     consent,
     device,
+    enterpriseSetup,
     recovery,
     security,
   },

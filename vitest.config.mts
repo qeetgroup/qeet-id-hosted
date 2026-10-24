@@ -18,7 +18,7 @@ export default defineConfig({
       exclude: ["src/**/__tests__/**", "src/testing/**"],
       // A floor at today's coverage, so a change never lowers it. Raise these as
       // tests are added; never lower them to make a change pass.
-      thresholds: { statements: 49, branches: 45, functions: 44, lines: 49 },
+      thresholds: { statements: 64, branches: 58, functions: 62, lines: 64 },
     },
   },
 });

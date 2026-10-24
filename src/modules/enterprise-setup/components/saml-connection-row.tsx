@@ -2,6 +2,7 @@
 
 import { Badge, Button, StatusPill } from "@qeetrix/ui";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   deleteSamlConnection,
   type SamlConnection,
@@ -18,6 +19,7 @@ export function SamlConnectionRow({
   connection: SamlConnection;
   onChange: () => void;
 }) {
+  const { t } = useTranslation("enterpriseSetup");
   const [testResult, setTestResult] = useState<SamlTestResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -28,20 +30,20 @@ export function SamlConnectionRow({
     try {
       setTestResult(await testSamlConnection(c.id));
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Test failed.");
+      setErr(e instanceof ApiError ? e.message : t("saml.testFailed"));
     } finally {
       setBusy(false);
     }
   };
 
   const remove = async () => {
-    if (!window.confirm(`Delete the "${c.name}" connection?`)) return;
+    if (!window.confirm(t("saml.confirmDelete", { name: c.name }))) return;
     setBusy(true);
     try {
       await deleteSamlConnection(c.id);
       onChange();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Delete failed.");
+      setErr(e instanceof ApiError ? e.message : t("saml.deleteFailed"));
       setBusy(false);
     }
   };
@@ -58,10 +60,10 @@ export function SamlConnectionRow({
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" disabled={busy} onClick={runTest}>
-            Test
+            {t("saml.test")}
           </Button>
           <Button variant="ghost" size="sm" disabled={busy} onClick={remove}>
-            Delete
+            {t("saml.delete")}
           </Button>
         </div>
       </div>
@@ -70,7 +72,7 @@ export function SamlConnectionRow({
           {testResult.checks.map((check) => (
             <li key={check.name} className="flex items-center gap-2 py-0.5">
               <Badge variant={check.ok ? "outline" : "destructive"} className="shrink-0">
-                {check.ok ? "OK" : "Fail"}
+                {check.ok ? t("saml.checkOk") : t("saml.checkFail")}
               </Badge>
               <span>{check.name}</span>
               {check.detail && <span className="text-muted-foreground">— {check.detail}</span>}

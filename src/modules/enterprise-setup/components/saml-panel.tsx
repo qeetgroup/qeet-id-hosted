@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Spinner } from "@qeetrix/ui";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   listSamlConnections,
   type SamlConnection,
@@ -13,13 +14,14 @@ import { CreateSamlCard } from "./create-saml-card";
 import { SamlConnectionRow } from "./saml-connection-row";
 
 export function SamlPanel() {
+  const { t } = useTranslation("enterpriseSetup");
   const [connections, setConnections] = useState<SamlConnection[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const reload = () => {
     listSamlConnections()
       .then((res) => setConnections(res.items))
-      .catch((err) => setLoadError(err instanceof ApiError ? err.message : "Failed to load."));
+      .catch((err) => setLoadError(err instanceof ApiError ? err.message : t("saml.loadFailed")));
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loads once on opening
@@ -31,8 +33,8 @@ export function SamlPanel() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Connections</CardTitle>
-          <CardDescription>Your organization&rsquo;s SAML identity provider(s).</CardDescription>
+          <CardTitle className="text-base">{t("saml.title")}</CardTitle>
+          <CardDescription>{t("saml.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {connections === null ? (
@@ -40,7 +42,7 @@ export function SamlPanel() {
               <Spinner />
             </div>
           ) : connections.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No connections yet — add one below.</p>
+            <p className="text-sm text-muted-foreground">{t("saml.empty")}</p>
           ) : (
             <ul className="divide-y">
               {connections.map((c) => (

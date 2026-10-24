@@ -67,7 +67,7 @@ jobs:
         run: bun run test:e2e
 
   # Release branches only: publish one immutable, commit-addressed image
-  # (ghcr.io/<owner>/<repository>:sha-<commit>) after Verify passes. No rc.N
+  # (ghcr.io/<owner>/qeet-id-login:sha-<commit>) after Verify passes. No rc.N
   # is computed here — qeet-id-kit assembles the product release candidate
   # (qeet-id-kit: docs/application-contract.md). Production keeps
   # deploying to Vercel from deploy.yml; this job does not touch it.
@@ -98,7 +98,9 @@ jobs:
           {
             echo "release=$release"
             echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "image=ghcr.io/$GITHUB_REPOSITORY"
+            # The repository's former name, which qeet-id-kit reads; switch to
+            # ghcr.io/$GITHUB_REPOSITORY once the kit reads qeet-id-hosted (QTID-955).
+            echo "image=ghcr.io/$GITHUB_REPOSITORY_OWNER/qeet-id-login"
           } >> "$GITHUB_OUTPUT"
 
       # The Dockerfile builds natively and installs sharp for each target

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "qeet-id-login",
+      "name": "qeet-id-hosted",
       "dependencies": {
         "@qeetrix/icons": "1.0.11",
         "@qeetrix/ui": "2.1.5",

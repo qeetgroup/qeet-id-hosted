@@ -5,7 +5,7 @@ architecture.
 
 ## Repository
 
-The **hosted authentication UI for Qeet ID** (`login.id.qeet.in`). Next.js 16 App Router, React 19, `@qeetrix/ui`, bun. **The only host where an interactive Qeet ID session is established** — every other product redirects here over OIDC. Stateless: no database, no secrets.
+The **hosted authentication UI for Qeet ID** (`accounts.id.qeet.in`). Next.js 16 App Router, React 19, `@qeetrix/ui`, bun. **The only host where an interactive Qeet ID session is established** — every other product redirects here over OIDC. Stateless: no database, no secrets.
 
 Context: **L0** `qeet-context` (organization) → **L1** `qeet-id-context` (product) → **L2** this
 repository → source.
@@ -18,7 +18,7 @@ repository → source.
 
 1. **Never store a token.** Login and enterprise-setup sessions are backend HttpOnly cookies — unreadable here, by design.
 2. **CSRF is not optional.** `credentials: "include"` everywhere; mutations echo `qe_csrf` as `X-CSRF-Token`. Names must match `qeet-id-server` and `qeet-id-react`.
-3. **Never redirect to an unvalidated URL** — always use `safeReturnTo`. An open redirect on the login host is a phishing primitive.
+3. **Never redirect to an unvalidated URL** — always use `safeReturnTo`. An open redirect on the sign-in host is a phishing primitive.
 4. **The enterprise-setup link token is one-time.** Read it only from the URL fragment, clear the fragment immediately, exchange it once for the backend's HttpOnly portal-session cookie, and never store or log it.
 5. **Keep the MFA challenge token in memory** — never the URL, never storage.
 6. **Stay stateless.** No server-side secret; only `NEXT_PUBLIC_*`, which is public by construction.

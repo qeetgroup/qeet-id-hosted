@@ -6,7 +6,7 @@ model read from source.
 
 ## Owns
 
-The interactive authentication UI at `login.id.qeet.in`: sign-in, sign-up, recovery, MFA entry, OAuth
+The interactive authentication UI at `accounts.id.qeet.in`: sign-in, sign-up, recovery, MFA entry, OAuth
 consent, device-grant user-code entry, and enterprise setup for an external IT administrator. Per-tenant branding
 application. Client-side redirect safety.
 

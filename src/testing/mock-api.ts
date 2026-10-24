@@ -8,7 +8,7 @@ export const TEST_API = "https://api.id.example";
 /** The API's own authorize URL for client app-1: the return_to a real flow carries. */
 export const AUTHORIZE = `${TEST_API}/oauth/authorize?client_id=app-1&response_type=code`;
 
-export type ApiCall = { method: string; path: string; body: unknown };
+export type ApiCall = { method: string; path: string; body: unknown; authorization?: string };
 type Reply = { status: number; body?: unknown } | Error;
 
 export function mockApi(routes: Record<string, Reply>): ApiCall[] {
@@ -23,7 +23,8 @@ export function mockApi(routes: Record<string, Reply>): ApiCall[] {
       if (method === "GET" && url.pathname === "/healthz")
         return new Response(null, { status: 204 });
       const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
-      calls.push({ method, path: url.pathname, body });
+      const authorization = new Headers(init?.headers).get("Authorization") ?? undefined;
+      calls.push({ method, path: url.pathname, body, ...(authorization ? { authorization } : {}) });
       const reply = routes[`${method} ${url.pathname}`];
       if (!reply) throw new Error(`Unexpected request ${method} ${url.pathname}`);
       if (reply instanceof Error) throw reply;

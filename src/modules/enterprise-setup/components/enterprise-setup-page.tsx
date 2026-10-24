@@ -2,6 +2,7 @@
 
 import { Spinner } from "@qeetrix/ui";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   exchangePortalSession,
   fetchPortalContext,
@@ -19,6 +20,7 @@ type PortalState =
   | { status: "error" };
 
 export function EnterpriseSetupPage() {
+  const { t } = useTranslation("enterpriseSetup");
   const started = useRef(false);
   const [state, setState] = useState<PortalState>({ status: "loading" });
 
@@ -48,20 +50,15 @@ export function EnterpriseSetupPage() {
   return (
     <AuthShell branding={branding} className="lg:grid-cols-[0.85fr_1.15fr]">
       {state.status === "loading" && (
-        <AuthCard title="Opening enterprise setup" subtitle="Verifying this secure link…">
+        <AuthCard title={t("page.opening")} subtitle={t("page.verifying")}>
           <div className="flex justify-center py-4">
             <Spinner />
           </div>
         </AuthCard>
       )}
       {state.status === "error" && (
-        <AuthCard
-          title="This link isn't available"
-          subtitle="It may have expired, been revoked, already been used, or the URL is incomplete."
-        >
-          <p className="text-sm text-muted-foreground">
-            Ask whoever sent you this link to generate a new one.
-          </p>
+        <AuthCard title={t("page.unavailable")} subtitle={t("page.unavailableBody")}>
+          <p className="text-sm text-muted-foreground">{t("page.askForNew")}</p>
         </AuthCard>
       )}
       {state.status === "ready" && <EnterpriseSetupView context={state.context} />}

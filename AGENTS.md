@@ -6,7 +6,7 @@ here and add nothing architectural.
 
 ## What this repository is
 
-The **hosted authentication UI for Qeet ID** — `login.id.qeet.in`. Next.js 16 App Router, React 19
+The **hosted authentication UI for Qeet ID** — `accounts.id.qeet.in` (formerly `login.id.qeet.in`). Next.js 16 App Router, React 19
 with the React Compiler, Tailwind v4, `@qeetrix/ui`, bun.
 
 > **This is the only host in Qeet where an interactive session is established.** Every other Qeet
@@ -84,7 +84,7 @@ One way to do each thing.
 | No import cycles | Biome `noImportCycles` |
 | A source file stays within 500 lines | `src/__tests__/source-files.test.ts` |
 | Every translation key the code names exists in English | `src/i18n/__tests__/translation-keys.test.ts` |
-| Coverage never drops below the floor | thresholds in `vitest.config.ts` (`bun run test:coverage`, CI) |
+| Coverage never drops below the floor | thresholds in `vitest.config.mts` (`bun run test:coverage`, CI) |
 | Every page runs under its CSP without a violation, and passes axe WCAG 2.2 AA | `tests/e2e` (`bun run test:e2e`, CI Browser tests) |
 | Server-only code (the relay key) never reaches the browser | `import "server-only"` in `src/platform/api/server.ts` fails the build |
 
@@ -121,8 +121,8 @@ Every request sets `credentials: "include"`. Mutations read the `qe_csrf` cookie
 
 ### 4. Never redirect to an unvalidated URL
 `safeReturnTo(returnTo)` guards every `window.location.href` (via `goTo`). It allows only the API's
-own `/oauth/authorize` URL, or a root-relative path to one of the hosted login's allowed pages
-(`/device`). An open redirect on the login host is a phishing primitive — **always** run a candidate
+own `/oauth/authorize` URL, or a root-relative path to one of this app's allowed pages
+(`/device`). An open redirect on the sign-in host is a phishing primitive — **always** run a candidate
 URL through it.
 
 ### 5. Enterprise setup uses one-time link exchange
@@ -186,7 +186,7 @@ Biome (`biome.json`) is the formatter and linter. A suppression carries a one-li
 |---|---|
 | `ci.yml` · `verify` | `bun run typecheck` + `bun run check` + `bun run test:coverage` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
 | `ci.yml` · `e2e` | **Browser tests**: `bun run test:e2e` — every page under its Content-Security-Policy without a violation, and an axe WCAG 2.2 AA scan (`tests/e2e`) |
-| `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/<owner>/<repository>:sha-<commit>` (amd64+arm64) for the Qeet ID Kit (`qeet-id-kit`) — never an RC number. The name follows the repository, so it is `qeet-id-hosted` since the rename; `qeet-id-kit` still lists `qeet-id-login` |
+| `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the Qeet ID Kit (`qeet-id-kit`) — never an RC number. It keeps the repository's former name, which the kit reads, until the kit moves to `qeet-id-hosted` (QTID-955) |
 | `deploy.yml` | Push to `main`: typecheck, format and lint, tests, Vercel production deploy, tag |
 
 The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel

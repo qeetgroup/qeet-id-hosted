@@ -5,7 +5,7 @@ inheritance:
   organization: {repository: qeetgroup/qeet-context, level: L0}
   product:      {repository: qeetgroup/qeet-id-context, level: L1}
 repository:
-  name: qeet-id-hosted   # was qeet-id-login; package.json, /healthz and qeet-id-kit still use that name
+  name: qeet-id-hosted   # formerly qeet-id-login; the release image keeps that name until QTID-955
   product: qeet-id
   type: frontend
   role: primary
@@ -13,7 +13,7 @@ repository:
   visibility: private
   default_branch: main
   working_branch: develop
-  host: login.id.qeet.in
+  host: accounts.id.qeet.in   # formerly login.id.qeet.in, which redirects here (QTID-957)
 runtime:
   language: TypeScript
   framework: Next.js 16.2.6      # App Router, React Compiler
@@ -52,7 +52,7 @@ ci:
   jobs: [verify, e2e, image, deploy]   # verify = typecheck + check + test:coverage + build; e2e = test:e2e
   runner: ubuntu-latest
   deploy: push main -> gate -> vercel build/deploy --prod -> tag vX.Y.Z + GitHub release (release/x.y.z merge -> exactly vx.y.z; job runs only on main)
-  release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/<owner>/<repository>:sha-<commit> (qeet-id-hosted since the rename; qeet-id-kit still lists qeet-id-login), linux/amd64+arm64 (consumed by the Qeet ID Kit, qeet-id-kit)"
+  release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/qeetgroup/qeet-id-login:sha-<commit> (the former name, which qeet-id-kit reads, until QTID-955), linux/amd64+arm64 (consumed by the Qeet ID Kit, qeet-id-kit)"
 container:
   dockerfile: Dockerfile          # Next standalone server; not used by Vercel production
   runtime_env: [PUBLIC_API_URL, PORT, HOSTNAME]

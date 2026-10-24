@@ -6,7 +6,7 @@ Port requirement cross-checked against `qeet-id-server`'s `.env.example`.
 
 ## Identity
 
-The **hosted authentication UI for Qeet ID**, served at `login.id.qeet.in`. Next.js 16.2.6 App
+The **hosted authentication UI for Qeet ID**, served at `accounts.id.qeet.in`. Next.js 16.2.6 App
 Router, React 19 with the React Compiler, Tailwind v4, `@qeetrix/ui 2.1.5` + `@qeetrix/icons 1.0.11`,
 bun 1.3.14.
 33 source files, ~2.9k LOC.
@@ -93,7 +93,7 @@ do not send in HTTP requests.
 ```text
 tenant admin generates a capability-scoped, time-limited link
   ↓
-login.id.qeet.in/enterprise-setup#token=...   (generated as /admin-portal#token=..., redirected)
+accounts.id.qeet.in/enterprise-setup#token=...   (generated as /admin-portal#token=..., redirected)
   ↓  clear fragment, then one-time bearer exchange
 POST /v1/admin-portal/session
   ↓  short-lived HttpOnly, SameSite=Strict portal session
@@ -114,7 +114,7 @@ immediately when its parent link is revoked.
 `safeReturnTo(returnTo)` guards every `window.location.href` assignment (made through `goTo` in
 `src/platform/navigation/go-to.ts`). It allows two things only: the API's own `/oauth/authorize` URL, and a
 root-relative path to an allowed hosted-login page (`LOCAL_RETURN_PATHS`, today `/device`), checked
-as given and once decoded for `//` and backslashes. **An open redirect on the login host is a
+as given and once decoded for `//` and backslashes. **An open redirect on the sign-in host is a
 phishing primitive** — it is the one page a user is trained to trust with credentials. Always route
 a candidate URL through it, and add a hostile case to `src/platform/navigation/__tests__/return-to.test.ts` with any change.
 
@@ -161,9 +161,8 @@ Chromium and fails on any Content-Security-Policy violation or axe WCAG 2.2 AA f
 
 ## Known constraints
 
-- **Test coverage is still thin** in places: the MFA steps and enterprise setup have no component
-  tests yet (the browser tests only render them). The coverage floor in `vitest.config.ts` stops it
-  dropping.
+- **Coverage is about 64%** of statements; the floor in `vitest.config.mts` stops it dropping. The
+  server-rendered page wrappers are covered only by the browser tests (`tests/e2e`).
 - **Port 3003 is load-bearing** and set only by a README instruction, not by configuration.
 - `@qeetrix/ui` and `@qeetrix/icons` are **pinned exactly** (`2.1.5`, `1.0.11`): their releases
   have removed exports in patch versions, so a caret range is not safe. Social-provider buttons

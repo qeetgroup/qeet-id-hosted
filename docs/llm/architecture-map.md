@@ -49,7 +49,7 @@ src/platform/     api/ (client · errors · login-context · relay · server) ·
                   (return-to · go-to) · branding/ · webauthn/ (passkeys) · components/ (auth-card ·
                   auth-shell · form-alert)
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
-                  recovery,security,signIn,signOut,signUp}.json      (English only)
+                  enterpriseSetup,recovery,security,signIn,signOut,signUp}.json   (English only)
 ```
 
 ## Config
