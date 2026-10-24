@@ -59,9 +59,6 @@ export function brandingVars(b?: Branding): CSSProperties {
     "--qx-component-button-primary-background-hover": `color-mix(in oklab, ${primary} 88%, ${away})`,
     "--qx-component-button-primary-background-active": `color-mix(in oklab, ${primary} 78%, ${away})`,
     "--qx-component-button-primary-foreground": foreground,
-    // Brand-panel gradient anchors (consumed by the auth shell).
-    "--qeet-brand": primary,
-    "--qeet-brand-2": b.secondaryColor ?? primary,
   };
   return vars as CSSProperties;
 }

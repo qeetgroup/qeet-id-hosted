@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
 import { mockApi } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import { EnterpriseSetupPage } from "../components/enterprise-setup-page";
 
 afterEach(() => {

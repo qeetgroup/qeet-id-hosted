@@ -46,7 +46,7 @@ src/modules/    one folder per product area (authentication · recovery · sign-
 src/platform/   what several modules share: api (client, login context, server-only relay),
                 config, navigation (the return-to guard), branding, webauthn, page-shell components
 src/i18n/       the i18next setup and every locale file
-src/testing/    the Vitest setup, the API mock and the source-file helper
+src/testing/    the Vitest setup, the provider-wrapped render, the API mock and the source-file helper
 src/proxy.ts    each page's Content-Security-Policy and nonce
 src/instrumentation.ts   the startup check on the server's settings
 tests/e2e/      Playwright: every page's CSP and an accessibility scan

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
@@ -7,6 +7,7 @@ vi.mock("@/platform/navigation/go-to", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/platform/navigation/go-to";
 import { AUTHORIZE, mockApi } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import { SignInForm } from "../components/sign-in/sign-in-form";
 
 function renderSignIn(returnTo = AUTHORIZE, clientName = "Acme", errorCode = "") {
@@ -27,7 +28,9 @@ function renderSignIn(returnTo = AUTHORIZE, clientName = "Acme", errorCode = "")
 }
 
 function signIn() {
-  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+  fireEvent.change(screen.getByLabelText("Email address"), {
+    target: { value: "ada@example.com" },
+  });
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse" } });
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 }
@@ -168,7 +171,8 @@ describe("SignInForm", () => {
     });
     // A device journey has no client to name.
     renderSignIn(device, "");
-    expect(screen.getByRole("heading", { name: "Sign in to approve a device" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Sign in" })).toBeTruthy();
+    expect(screen.getByText("Use your Qeet account to approve a device.")).toBeTruthy();
 
     signIn();
     fireEvent.click(await screen.findByRole("button", { name: "Use a recovery code" }));

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
@@ -7,6 +7,7 @@ vi.mock("@/platform/navigation/go-to", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/platform/navigation/go-to";
 import { mockApi, TEST_API } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import { SignOutConfirm } from "../components/sign-out-confirm";
 
 beforeEach(() => vi.mocked(goTo).mockReset());
@@ -29,7 +30,9 @@ describe("Sign-out confirmation", () => {
       />,
     );
 
-    expect(await screen.findByText("Acme Notes asked to sign you out of Qeet ID.")).toBeTruthy();
+    expect(
+      await screen.findByText("Acme Notes asked to sign you out of your Qeet account."),
+    ).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     const url = new URL(vi.mocked(goTo).mock.calls[0][0]);

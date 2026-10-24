@@ -26,16 +26,16 @@
     "nameLabel": "Name (optional)",
     "namePlaceholder": "e.g. Work laptop",
     "nameHint": "Leave it empty to name it after this browser. You can rename it later.",
-    "idle": "Add a passkey",
+    "idle": "Create a passkey",
     "busy": "Waiting for your device…",
-    "added": "Passkey added. You can use it the next time you sign in."
+    "added": "Passkey created. You can use it the next time you sign in."
   },
   "disabled": "Your organization has turned off passkeys, so you can't add one.",
   "unsupported": "This browser can't create passkeys.",
   "prompt": {
     "title": "Sign in faster next time",
-    "body": "Add a passkey to sign in with your fingerprint, face or screen lock instead of your password.",
-    "add": "Add a passkey",
+    "body": "Create a passkey to sign in with your fingerprint, face or screen lock instead of your password.",
+    "add": "Create a passkey",
     "busy": "Waiting for your device…",
     "skip": "Not now",
     "added": "Passkey added.",

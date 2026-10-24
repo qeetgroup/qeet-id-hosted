@@ -77,7 +77,6 @@ export function DeviceForm({ userCode }: { userCode: string }) {
   if (decision) {
     return (
       <AuthCard
-        className="max-w-md"
         title={decision === "authorized" ? t("terminal.approvedTitle") : t("terminal.deniedTitle")}
         subtitle={decision === "authorized" ? t("terminal.approvedBody") : t("terminal.deniedBody")}
       />
@@ -89,7 +88,6 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     const scopes = ctx.scopes ?? [];
     return (
       <AuthCard
-        className="max-w-md"
         title={t("authorize.title")}
         subtitle={
           <>
@@ -130,7 +128,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
 
   // Entry step: enter or confirm the user code from the device.
   return (
-    <AuthCard className="max-w-md" title={t("entry.title")} subtitle={t("entry.description")}>
+    <AuthCard title={t("entry.title")} subtitle={t("entry.description")}>
       <form onSubmit={loadContext} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="user_code" className="text-sm font-medium">
