@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
 import { AUTHORIZE, mockApi } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import { ForgotPasswordForm } from "../components/forgot-password-form";
 
 function requestLink() {
-  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+  fireEvent.change(screen.getByLabelText("Email address"), {
+    target: { value: "ada@example.com" },
+  });
   fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
 }
 

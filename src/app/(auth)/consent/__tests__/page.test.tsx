@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
@@ -7,6 +7,7 @@ vi.mock("@/platform/navigation/go-to", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/platform/navigation/go-to";
 import { mockApi } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import ConsentRoute from "../page";
 
 beforeEach(() => vi.mocked(goTo).mockReset());

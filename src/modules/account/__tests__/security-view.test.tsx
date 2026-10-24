@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
 import { mockApi } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import { SecurityView } from "../components/security-view";
 
 afterEach(() => {

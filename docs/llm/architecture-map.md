@@ -18,6 +18,8 @@
 | Runtime config written into every page | `src/app/layout.tsx` → `publicConfigScript` in `src/platform/config/public-config.ts` |
 | Former paths (`/login`, `/signup`, …) → current ones | `next.config.ts` `redirects()` |
 | Global styles | `src/app/globals.css` |
+| Page frame: brand panel, footer (language, theme, legal links) · the card (full-bleed on phones) · the logo | `src/platform/components/auth-shell.tsx` · `auth-card.tsx` · `brand-logo.tsx` |
+| Light / dark / system theme: provider, pre-paint script, storage key | `src/app/layout.tsx` · `src/platform/config/theme.ts` · `src/platform/components/theme-toggle.tsx` |
 
 ## Routes — every segment
 
@@ -47,7 +49,8 @@ The MFA steps live in `authentication/components/mfa/`; the session answer types
 ```text
 src/platform/     api/ (client · errors · login-context · relay · server) · config/ · navigation/
                   (return-to · go-to) · branding/ · webauthn/ (passkeys) · components/ (auth-card ·
-                  auth-shell · form-alert)
+                  auth-shell · brand-logo · theme-toggle · language-select · icon-input · form-alert ·
+                  error and not-found pages)
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
                   enterpriseSetup,recovery,security,signIn,signOut,signUp}.json   (English only)
 ```

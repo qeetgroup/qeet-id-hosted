@@ -51,14 +51,14 @@ export function SignOutConfirm({
   if (!ticket) {
     return (
       <AuthCard title={t("confirm.invalidTitle")}>
-        <p className="text-muted-foreground text-center text-sm">{t("confirm.invalidBody")}</p>
+        <p className="text-muted-foreground text-sm">{t("confirm.invalidBody")}</p>
       </AuthCard>
     );
   }
   if (declined) {
     return (
       <AuthCard title={t("confirm.stayedTitle")}>
-        <p className="text-muted-foreground text-center text-sm">{t("confirm.stayedBody")}</p>
+        <p className="text-muted-foreground text-sm">{t("confirm.stayedBody")}</p>
       </AuthCard>
     );
   }

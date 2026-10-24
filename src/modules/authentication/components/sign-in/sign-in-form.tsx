@@ -1,7 +1,7 @@
 "use client";
 
-import { FingerprintPatternIcon } from "@qeetrix/icons";
-import { Button, Input } from "@qeetrix/ui";
+import { ChevronRightIcon, FingerprintPatternIcon, MailIcon } from "@qeetrix/icons";
+import { Button } from "@qeetrix/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challenge";
@@ -15,11 +15,15 @@ import { clientIdFromReturnTo } from "@/platform/api/login-context";
 import type { Branding } from "@/platform/branding/branding";
 import { AuthCard } from "@/platform/components/auth-card";
 import { FormAlert } from "@/platform/components/form-alert";
+import { IconInput } from "@/platform/components/icon-input";
+import { IconPasswordInput } from "@/platform/components/icon-password-input";
 import { getApiBaseUrl } from "@/platform/config/public-config";
 import { goTo } from "@/platform/navigation/go-to";
 import { returnsToDevice, safeReturnTo } from "@/platform/navigation/return-to";
 import { shouldOfferPasskey } from "@/platform/webauthn/passkeys";
+import { ClientIdentity } from "./client-identity";
 import { MagicLinkRequest } from "./magic-link-request";
+import { OrDivider } from "./or-divider";
 import { PasskeyPrompt } from "./passkey-prompt";
 import { SocialProviders } from "./social-providers";
 
@@ -166,7 +170,8 @@ export function SignInForm({
     return (
       <AuthCard
         branding={branding}
-        title={clientName ? t("titleTo", { client: clientName }) : t("title")}
+        context={clientName ? <ClientIdentity name={clientName} /> : null}
+        title={t("title")}
         subtitle={t("magic.hint")}
       >
         <MagicLinkRequest
@@ -259,22 +264,51 @@ export function SignInForm({
 
   const busy = loading || passkeyBusy;
   const showSocial = providers.length > 0 && tenantId !== "" && returnTo !== "";
+  const showMagicLink = magicLinkEnabled && tenantId !== "";
+  const query = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : "";
   // A device journey carries no client to name yet, so say what the sign-in is for.
-  const title = clientName
-    ? t("titleTo", { client: clientName })
+  const subtitle = clientName
+    ? t("subtitleTo", { client: clientName })
     : returnsToDevice(returnTo)
-      ? t("titleDevice")
-      : t("title");
+      ? t("subtitleDevice")
+      : t("subtitle");
 
   return (
-    <AuthCard branding={branding} title={title} subtitle={t("subtitle")}>
+    <AuthCard
+      branding={branding}
+      context={clientName ? <ClientIdentity name={clientName} /> : null}
+      title={t("title")}
+      subtitle={subtitle}
+    >
+      {passkeyEnabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full justify-between px-4"
+          disabled={busy}
+          onClick={passkeySignIn}
+          loading={passkeyBusy}
+          loadingLabel={t("passkey.busy")}
+        >
+          <span className="flex items-center gap-3">
+            <FingerprintPatternIcon aria-hidden className="size-6" />
+            {t("passkey.idle")}
+          </span>
+          <ChevronRightIcon aria-hidden className="text-muted-foreground size-5" />
+        </Button>
+      )}
+
+      {passkeyEnabled && passwordEnabled && <OrDivider>{t("emailDivider")}</OrDivider>}
+
       {passwordEnabled && (
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-1.5">
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               {t("fields.email")}
             </label>
-            <Input
+            <IconInput
+              icon={MailIcon}
               id="email"
               type="email"
               autoComplete="email webauthn"
@@ -284,25 +318,25 @@ export function SignInForm({
               placeholder="you@example.com"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="password" className="text-sm font-medium">
                 {t("fields.password")}
               </label>
               <a
-                href={`/forgot-password${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
-                className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+                href={`/forgot-password${query}`}
+                className="text-link hover:text-link-hover text-sm font-medium underline-offset-4 hover:underline"
               >
                 {t("forgotPassword")}
               </a>
             </div>
-            <Input
+            <IconPasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={t("fields.passwordPlaceholder")}
             />
           </div>
 
@@ -317,30 +351,18 @@ export function SignInForm({
             loadingLabel={t("submit.busy")}
           >
             {t("submit.idle")}
+            <ChevronRightIcon aria-hidden data-icon="inline-end" />
           </Button>
         </form>
       )}
 
-      {passkeyEnabled && (
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full"
-          disabled={busy}
-          onClick={passkeySignIn}
-          loading={passkeyBusy}
-          loadingLabel={t("passkey.busy")}
-        >
-          <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
-        </Button>
-      )}
+      {/* Without the password form, a passkey or social refusal still needs a place to show. */}
+      {!passwordEnabled && <FormAlert>{error}</FormAlert>}
 
-      {magicLinkEnabled && tenantId !== "" && (
-        <Button
+      {showMagicLink && (
+        <button
           type="button"
-          variant="ghost"
-          className="w-full"
+          className="text-muted-foreground hover:text-foreground mx-auto block text-sm font-medium underline-offset-4 hover:underline"
           disabled={busy}
           onClick={() => {
             stopAutofill.current();
@@ -349,26 +371,23 @@ export function SignInForm({
           }}
         >
           {t("magic.link")}
-        </Button>
+        </button>
       )}
 
       {showSocial && (
         <SocialProviders providers={providers} disabled={busy} onSelect={socialStart} />
       )}
 
-      {!passwordEnabled &&
-        !passkeyEnabled &&
-        !showSocial &&
-        !(magicLinkEnabled && tenantId !== "") && (
-          <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
-        )}
+      {!passwordEnabled && !passkeyEnabled && !showSocial && !showMagicLink && (
+        <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
+      )}
 
       {selfRegistrationEnabled && (
         <p className="text-muted-foreground text-center text-sm">
           {t("noAccount")}{" "}
           <a
-            href={`/sign-up${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`}
-            className="text-foreground font-medium underline-offset-2 hover:underline"
+            href={`/sign-up${query}`}
+            className="text-link hover:text-link-hover font-medium underline-offset-4 hover:underline"
           >
             {t("signUp")}
           </a>

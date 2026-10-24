@@ -70,11 +70,11 @@ export function SignedOutContent({
       ))}
       {done && !continueTicket ? (
         <AuthCard title={t("title")}>
-          <p className="text-muted-foreground text-center text-sm">{t("body")}</p>
+          <p className="text-muted-foreground text-sm">{t("body")}</p>
         </AuthCard>
       ) : (
         <AuthCard title={t("signingOut")}>
-          <p role="status" className="text-muted-foreground text-center text-sm">
+          <p role="status" className="text-muted-foreground text-sm">
             {t("signingOutBody")}
           </p>
         </AuthCard>

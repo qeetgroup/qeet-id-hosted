@@ -142,11 +142,13 @@ the wrong host.
 
 `bun run test` runs the Vitest suite: unit tests for `src/platform` (including `safeReturnTo`, the
 Content-Security-Policy and the startup check) and component tests for the forms and pages. Component tests use
-jsdom, answer API calls with `mockApi` (`src/testing/mock-api.ts`), and mock `goTo`
+jsdom, render through `src/testing/render.tsx` (the app's theme provider), answer API calls with `mockApi`
+(`src/testing/mock-api.ts`), and mock `goTo`
 (`src/platform/navigation/go-to.ts`) to see where a flow sends the browser. `ci.yml` runs typecheck, Biome
 (`bun run check`), tests and the build on every PR; `deploy.yml` runs the same checks before the
 Vercel deploy. The **Browser tests** job (`bun run test:e2e`) opens every page of the production build in
-Chromium and fails on any Content-Security-Policy violation or axe WCAG 2.2 AA finding.
+Chromium and fails on any Content-Security-Policy violation or axe WCAG 2.2 AA finding, in the light and dark
+themes.
 
 ## Security-critical areas
 

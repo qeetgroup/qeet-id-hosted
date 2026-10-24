@@ -78,7 +78,7 @@ export function ConsentPage({ requestId }: { requestId: string }) {
   }
   return (
     <AuthShell>
-      <AuthCard className="max-w-md" title={t("title")}>
+      <AuthCard title={t("title")}>
         {state.kind === "loading" ? (
           <p className="text-muted-foreground text-sm" role="status">
             {t("loading")}

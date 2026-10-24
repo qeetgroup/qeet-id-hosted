@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
@@ -7,6 +7,7 @@ vi.mock("@/platform/navigation/go-to", () => ({ goTo: vi.fn() }));
 
 import { goTo } from "@/platform/navigation/go-to";
 import { TEST_API } from "@/testing/mock-api";
+import { render } from "@/testing/render";
 import { FRONTCHANNEL_TIMEOUT_MS, SignedOutContent } from "../components/signed-out-content";
 
 beforeEach(() => {

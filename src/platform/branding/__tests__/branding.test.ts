@@ -52,5 +52,5 @@ test("existing branding remains unchanged when no background is supplied", () =>
   });
   assert.equal(brand?.logoUrl, "https://example.test/logo.png");
   assert.equal(brandingVars(brand).backgroundColor, undefined);
-  assert.equal((brandingVars(brand) as Record<string, string>)["--qeet-brand-2"], "#654321");
+  assert.equal((brandingVars(brand) as Record<string, string>)["--primary"], "#123456");
 });
