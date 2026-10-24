@@ -28,5 +28,16 @@
     "microsoft": "Microsoft",
     "apple": "Apple",
     "gitlab": "GitLab"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This link may be incomplete or out of date.",
+    "action": "Go to sign in"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "body": "This page couldn't load. Try again, or come back in a moment.",
+    "retry": "Try again",
+    "reference": "Reference: {{reference}}"
   }
 }

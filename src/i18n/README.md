@@ -1,4 +1,4 @@
-# i18n (apps/login)
+# i18n
 
 Internationalization scaffold built on
 [`i18next`](https://www.i18next.com/) + [`react-i18next`](https://react.i18next.com/),
@@ -20,10 +20,13 @@ src/i18n/
   locales/
     en/
       common.json     cross-screen strings: generic error, scope labels, provider names, fallbacks
-      login.json      /login — sign-in form, passkey, social divider
+      signIn.json     /sign-in, /magic-link — sign-in form, passkey, social divider, MFA
+      signUp.json     /sign-up — account creation
+      signOut.json    /sign-out, /sign-out/done — sign-out confirmation and signed-out message
+      recovery.json   /forgot-password, /reset-password — password recovery
       consent.json    /consent — OAuth authorize-access screen
       device.json     /device — device-flow entry, authorize, and terminal states
-      loggedOut.json  /logged-out — post-logout message
+      enterpriseSetup.json  /enterprise-setup — SAML and SCIM setup for an invited IT admin
       security.json   /security — the signed-in user's passkeys, and the "add a passkey" prompt after sign-in
 ```
 
@@ -47,7 +50,7 @@ directly:
 import { useTranslation } from "react-i18next";
 
 function MyScreen() {
-  const { t } = useTranslation("login"); // pick the namespace
+  const { t } = useTranslation("signIn"); // pick the namespace
   return <h1>{t("title")}</h1>; // key is namespace-relative
 }
 ```

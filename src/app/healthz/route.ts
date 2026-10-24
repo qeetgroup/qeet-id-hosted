@@ -4,7 +4,7 @@
 export const dynamic = "force-dynamic";
 
 export function GET() {
-  const body: Record<string, string> = { status: "ok", service: "qeet-id-login" };
+  const body: Record<string, string> = { status: "ok", service: "qeet-id-hosted" };
   if (process.env.QEET_BUILD_VERSION) body.version = process.env.QEET_BUILD_VERSION;
   if (process.env.QEET_BUILD_REVISION) body.revision = process.env.QEET_BUILD_REVISION;
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });
