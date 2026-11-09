@@ -1,6 +1,13 @@
 "use client";
 
-import { Button, Dialog, DialogClose, DialogContent, DialogFooter } from "@qeetrix/react";
+import {
+  Button,
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+} from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -33,7 +40,11 @@ export function RemovePasskeyDialog({
   return (
     <Dialog open intent="danger" onOpenChange={(open) => !open && onClose()}>
       <DialogContent title={t("remove.title", { name })} description={t("remove.body")}>
-        <FormAlert title={error} />
+        {error && (
+          <DialogBody>
+            <FormAlert title={error} />
+          </DialogBody>
+        )}
         <DialogFooter>
           <DialogClose render={<Button variant="ghost" disabled={busy} />}>
             {t("remove.cancel")}

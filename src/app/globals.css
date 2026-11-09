@@ -45,6 +45,10 @@
 @import "@qeetrix/react/css/experimental/password-input.css" layer(components);
 @import "@qeetrix/react/css/experimental/provider-button.css" layer(components);
 @import "@qeetrix/react/css/experimental/qr-code.css" layer(components);
+@import "@qeetrix/react/css/experimental/check-list.css" layer(components);
+@import "@qeetrix/react/css/experimental/description-list.css" layer(components);
+@import "@qeetrix/react/css/experimental/instruction-list.css" layer(components);
+@import "@qeetrix/react/css/experimental/steps.css" layer(components);
 @import "@qeetrix/react/css/experimental/theme-switcher.css" layer(components);
 @import "tailwindcss";
 /*

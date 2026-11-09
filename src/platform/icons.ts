@@ -17,6 +17,7 @@ import {
   CircleAlertIcon as QCircleAlertIcon,
   CircleCheckIcon as QCircleCheckIcon,
   CircleDashedIcon as QCircleDashedIcon,
+  ClockIcon as QClockIcon,
   ExternalLinkIcon as QExternalLinkIcon,
   GlobeLockIcon as QGlobeLockIcon,
   InfoIcon as QInfoIcon,
@@ -67,6 +68,7 @@ export const ChevronRightIcon = forward(QChevronRightIcon);
 export const CircleAlertIcon = sharp(QCircleAlertIcon);
 export const CircleCheckIcon = sharp(QCircleCheckIcon);
 export const CircleDashedIcon = sharp(QCircleDashedIcon);
+export const ClockIcon = sharp(QClockIcon);
 export const ExternalLinkIcon = sharp(QExternalLinkIcon);
 export const GlobeLockIcon = sharp(QGlobeLockIcon);
 export const InfoIcon = sharp(QInfoIcon);

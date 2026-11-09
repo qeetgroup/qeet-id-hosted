@@ -7,22 +7,26 @@ import { useTranslation } from "react-i18next";
 import {
   exchangePortalSession,
   fetchPortalContext,
+  getSamlTestSignIn,
   type PortalContext,
+  type SamlTestSignIn,
 } from "@/modules/enterprise-setup/api/admin-portal";
 import { normalizeBranding } from "@/platform/branding/branding";
 import { HostedPage } from "@/platform/components/hosted-page";
 
-import { EnterpriseSetupView } from "./enterprise-setup-view";
+import { SsoSetup } from "./sso-setup";
 
 type PortalState =
   | { status: "loading" }
-  | { status: "ready"; context: PortalContext }
+  | { status: "ready"; context: PortalContext; test: SamlTestSignIn | null }
   | { status: "error" };
 
 /**
- * Enterprise setup from a one-time link: the token is read from the URL fragment only, the fragment
- * cleared at once, and the token exchanged exactly once for the server's HttpOnly portal-session
- * cookie. Without a token (a reload), the page resumes on that cookie.
+ * Enterprise setup from a one-time link. The link's token is read from the URL fragment only, the
+ * fragment cleared at once, and the token exchanged exactly once for the server's HttpOnly
+ * portal-session cookie; without one (a reload, or the identity provider sending the browser back
+ * from a test sign-in, #saml_test=…), the page resumes on that cookie. The link's token is never
+ * stored, logged or kept in state.
  */
 export function EnterpriseSetupPage() {
   const { t } = useTranslation("enterpriseSetup");
@@ -35,6 +39,8 @@ export function EnterpriseSetupPage() {
 
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const token = hash.get("token")?.trim();
+    const testId = hash.get("saml_test");
+    const connectionId = hash.get("saml_connection");
     if (window.location.hash) {
       window.history.replaceState(
         window.history.state,
@@ -43,34 +49,46 @@ export function EnterpriseSetupPage() {
       );
     }
 
-    void (
-      token ? exchangePortalSession(token).then((result) => result.context) : fetchPortalContext()
-    )
-      .then((context) => setState({ status: "ready", context }))
-      .catch(() => setState({ status: "error" }));
+    void (async () => {
+      try {
+        const context = token
+          ? (await exchangePortalSession(token)).context
+          : await fetchPortalContext();
+        const test =
+          testId && connectionId
+            ? await getSamlTestSignIn(connectionId, testId).catch(() => null)
+            : null;
+        setState({ status: "ready", context, test });
+      } catch {
+        setState({ status: "error" });
+      }
+    })();
   }, []);
 
   if (state.status === "ready") {
     return (
-      <EnterpriseSetupView
+      <SsoSetup
         context={state.context}
         branding={normalizeBranding(state.context.branding)}
+        initialTest={state.test}
       />
     );
   }
+  const bar = <span className="typography-body-sm text-text-subtle">{t("page.bar")}</span>;
   if (state.status === "error") {
     return (
       <HostedPage
-        single
+        kind="page"
         status="warning"
-        title={t("page.unavailable")}
-        description={t("page.unavailableBody")}
+        title={t("page.expiredTitle")}
+        description={t("page.expiredBody")}
+        barEnd={bar}
       />
     );
   }
   return (
-    <HostedPage single title={t("page.opening")} description={t("page.verifying")}>
-      <div role="status" className="flex items-center gap-3 py-2">
+    <HostedPage kind="page" title={t("page.opening")} barEnd={bar}>
+      <div role="status">
         <Spinner size="md" tone="brand" label={t("page.opening")} />
       </div>
     </HostedPage>
