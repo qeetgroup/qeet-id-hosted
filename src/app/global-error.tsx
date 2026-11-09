@@ -3,13 +3,11 @@
 import "./globals.css";
 import "@/i18n";
 
-import { ThemeProvider } from "@qeetrix/ui/providers/theme-provider";
-
 import { ErrorPage } from "@/platform/components/error-page";
-import { THEME_STORAGE_KEY } from "@/platform/config/theme";
+import { Providers } from "@/platform/components/providers";
 
-// Replaces the root layout when the layout itself fails, so it brings its own
-// document, styles, copy and theme (the page header carries the theme toggle).
+// Replaces the root layout when the layout itself fails, so it brings its own document, styles,
+// copy and theme.
 export default function GlobalError({
   error,
   retry,
@@ -18,11 +16,11 @@ export default function GlobalError({
   retry: () => void;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="bg-background text-foreground min-h-full font-sans">
-        <ThemeProvider defaultTheme="system" storageKey={THEME_STORAGE_KEY}>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <Providers>
           <ErrorPage reference={error.digest} onRetry={retry} />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

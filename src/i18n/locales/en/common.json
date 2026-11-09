@@ -3,28 +3,6 @@
     "generic": "Something went wrong. Please try again.",
     "addressNotAllowed": "Your organisation doesn't allow sign-in from this network. Contact your administrator."
   },
-  "brand": {
-    "eyebrow": "Secure access\nfor a brighter tomorrow",
-    "headline": "One identity.",
-    "headlineSecond": "Every",
-    "headlineAccent": "possibility.",
-    "subhead": "A seamless and secure way to access your applications. Built for modern teams and trusted by enterprises.",
-    "features": {
-      "passkeys": {
-        "title": "Passkeys-first authentication",
-        "body": "Fast, simple and phishing-resistant"
-      },
-      "adaptive": {
-        "title": "Adaptive security",
-        "body": "Keeps your account protected"
-      },
-      "apps": {
-        "title": "One identity for all your apps",
-        "body": "Access Qeet and third-party applications"
-      }
-    },
-    "footer": "Trusted identity platform\nby Qeet Group"
-  },
   "scopes": {
     "openid": "Verify your identity",
     "profile": "See your basic profile (name)",
@@ -44,25 +22,23 @@
   },
   "notFound": {
     "title": "Page not found",
-    "body": "This link may be incomplete or out of date.",
+    "body": "This link may be incomplete or out of date. Check it, or start from the sign-in page.",
     "action": "Go to sign in"
   },
   "errorPage": {
     "title": "Something went wrong",
     "body": "This page couldn't load. Try again, or come back in a moment.",
     "retry": "Try again",
-    "reference": "Reference: {{reference}}"
+    "reference": "Reference",
+    "referenceHelp": "If it keeps happening, send this to your administrator."
   },
   "language": "Language",
-  "theme": {
-    "toggle": "Theme",
-    "light": "Light",
-    "dark": "Dark",
-    "system": "System"
-  },
   "legal": {
+    "label": "Legal",
     "terms": "Terms",
     "privacy": "Privacy",
     "security": "Security"
-  }
+  },
+  "signInBy": "Sign-in by",
+  "newTab": "(opens in a new tab)"
 }

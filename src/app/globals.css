@@ -1,92 +1,173 @@
-@import "@qeetrix/ui/styles.css";
+/*
+ * Layer order first, so Qeetrix's component CSS (in `components`) sits above Tailwind's preflight
+ * (`base`); otherwise the reset strips padding, borders and type from every Qeetrix component.
+ */
+@layer theme, base, components, utilities;
 
-/* ---------------------------------------------------------------------------
- * Hosted design language, on Qeetrix tokens only (so light and dark both follow the theme).
- * The @qeetrix/ui import above provides Tailwind v4, the semantic tokens and the Qeet fonts;
- * below are the few rules utilities can't express: the brand panel's glow and grid, the
- * shared control size, and the entrance motion. A tenant's colour arrives as --primary.
- * ------------------------------------------------------------------------- */
-/* Auth headings use the display face (Cal Sans Display) for a confident,
- * branded feel; body/labels stay on the UI/text faces from the tokens. */
-.auth-title {
-  font-family: var(--font-display);
-  letter-spacing: -0.02em;
+/*
+ * Qeetrix: the tokens (Qeet Sans and Fira Code, each subset declared with its unicode-range), then
+ * the CSS for exactly the components these pages use. Each file is scoped to `qx-*` elements and
+ * `--qx-*` variables. src/__tests__/qeetrix-styles.test.ts fails when a component is imported in
+ * code without its file here. Never add colours or type scales: pages use the tokens.
+ */
+@import "@qeetrix/tokens";
+@import "@qeetrix/react/css/base.css" layer(components);
+@import "@qeetrix/react/css/avatar.css" layer(components);
+@import "@qeetrix/react/css/badge.css" layer(components);
+@import "@qeetrix/react/css/button.css" layer(components);
+@import "@qeetrix/react/css/checkbox.css" layer(components);
+@import "@qeetrix/react/css/dialog.css" layer(components);
+@import "@qeetrix/react/css/field.css" layer(components);
+@import "@qeetrix/react/css/heading.css" layer(components);
+@import "@qeetrix/react/css/input.css" layer(components);
+@import "@qeetrix/react/css/link.css" layer(components);
+@import "@qeetrix/react/css/menu.css" layer(components);
+@import "@qeetrix/react/css/radio.css" layer(components);
+@import "@qeetrix/react/css/separator.css" layer(components);
+@import "@qeetrix/react/css/skeleton.css" layer(components);
+@import "@qeetrix/react/css/skip-link.css" layer(components);
+@import "@qeetrix/react/css/spinner.css" layer(components);
+@import "@qeetrix/react/css/switch.css" layer(components);
+@import "@qeetrix/react/css/text.css" layer(components);
+@import "@qeetrix/react/css/text-field.css" layer(components);
+@import "@qeetrix/react/css/toggle.css" layer(components);
+@import "@qeetrix/react/css/tooltip.css" layer(components);
+@import "@qeetrix/react/css/visually-hidden.css" layer(components);
+@import "@qeetrix/react/css/experimental/alert.css" layer(components);
+@import "@qeetrix/react/css/experimental/copy-button.css" layer(components);
+@import "@qeetrix/react/css/experimental/copy-field.css" layer(components);
+@import "@qeetrix/react/css/experimental/file-upload.css" layer(components);
+@import "@qeetrix/react/css/experimental/otp-input.css" layer(components);
+@import "@qeetrix/react/css/experimental/password-input.css" layer(components);
+@import "@qeetrix/react/css/experimental/provider-button.css" layer(components);
+@import "@qeetrix/react/css/experimental/qr-code.css" layer(components);
+@import "@qeetrix/react/css/experimental/theme-switcher.css" layer(components);
+@import "tailwindcss";
+/*
+ * After Tailwind: utilities named after the tokens (bg-surface-raised, text-text-subtle,
+ * border-border-default, rounded-surface, typography-body-md …). Pages style with these, never
+ * with raw colours or sizes.
+ */
+@import "@qeetrix/react/tailwind.css";
+
+/*
+ * The pages' three layouts, as the mockups draw them: a phone under 600 px (the page is the form),
+ * a tablet from 600 px (a centred card), a laptop from 1024 px (the card in two columns). Only
+ * these two names exist, so no page reaches for another breakpoint.
+ */
+@theme {
+  --breakpoint-*: initial;
+  --breakpoint-tablet: 600px;
+  --breakpoint-laptop: 1024px;
 }
 
-/* Brand panel — the left column on ≥lg: the theme's subtle surface, a soft glow of the brand
- * colour, and a faint grid fading out from behind the headline. */
-.auth-brand-panel {
-  background-color: var(--qx-color-surface-subtle);
-  background-image:
-    radial-gradient(
-      55% 45% at 88% 10%,
-      color-mix(in oklab, var(--primary) 16%, transparent),
-      transparent 72%
-    ),
-    radial-gradient(
-      45% 35% at 8% 96%,
-      color-mix(in oklab, var(--primary) 9%, transparent),
-      transparent 72%
+/* Tailwind's dark: variant follows Qeetrix's colour scheme, one attribute on <html>. */
+@custom-variant dark (&:where([data-qx-color-scheme="dark"], [data-qx-color-scheme="dark"] *));
+
+@layer base {
+  html {
+    background: var(--qx-color-surface-canvas);
+    color: var(--qx-color-text-default);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--qx-font-family-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background: var(--qx-color-selection);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/*
+ * What utilities can't say. Each rule sits directly in `components`, after Qeetrix's own
+ * sublayers, so it wins over them without !important.
+ */
+@layer components {
+  /*
+   * An organisation's branding: its colour takes Qeet orange's place in the primary action, links,
+   * focus and checked controls. The colours come from src/platform/branding/branding.ts as inline
+   * variables: --brand and --brand-on for filled surfaces, --brand-away for hover and press, and a
+   * text colour per scheme that keeps 4.5:1 on that scheme's surfaces.
+   */
+  .hosted-branded {
+    --qx-color-bg-brand-bold: var(--brand);
+    --qx-color-bg-brand-bold-hover: color-mix(in oklab, var(--brand) 88%, var(--brand-away));
+    --qx-color-bg-brand-bold-pressed: color-mix(in oklab, var(--brand) 78%, var(--brand-away));
+    --qx-color-bg-brand-subtle: color-mix(
+      in oklab,
+      var(--brand) 10%,
+      var(--qx-color-surface-raised)
     );
-}
-
-.auth-brand-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image:
-    linear-gradient(to right, var(--qx-color-border-subtle) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--qx-color-border-subtle) 1px, transparent 1px);
-  background-size: 48px 48px;
-  -webkit-mask-image: radial-gradient(85% 65% at 70% 25%, #000 0%, transparent 75%);
-  mask-image: radial-gradient(85% 65% at 70% 25%, #000 0%, transparent 75%);
-  pointer-events: none;
-}
-
-/* One control height on every hosted screen: fields, selects and buttons are all 3rem, set
- * where the design system computes its sizes (:root). Large buttons carry a fixed height of
- * their own, so they follow it here. */
-:root {
-  --qx-density-control-height: 3rem;
-}
-
-[data-slot="button"][data-size="lg"] {
-  height: var(--qx-component-button-height);
-}
-
-/* Control text at 1rem, which also keeps iOS from zooming into a focused field. The language
- * picker in the card's corner stays compact. */
-[data-slot="button"]:is([data-size="default"], [data-size="lg"]),
-[data-slot="input"],
-[data-slot="textarea"],
-[data-slot="select-trigger"]:not(.auth-language) {
-  font-size: 1rem;
-}
-
-/* Room for the lock icon laid over the start of a password field (IconPasswordInput). */
-.icon-password-input > input {
-  padding-inline-start: 3rem;
-}
-
-/* Content entrance — a subtle rise+fade for the card/form. */
-.auth-rise {
-  animation: auth-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes auth-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+    --qx-color-bg-brand-subtle-hover: color-mix(
+      in oklab,
+      var(--brand) 16%,
+      var(--qx-color-surface-raised)
+    );
+    --qx-color-bg-brand-subtle-pressed: color-mix(
+      in oklab,
+      var(--brand) 22%,
+      var(--qx-color-surface-raised)
+    );
+    --qx-color-bg-selected: var(--qx-color-bg-brand-subtle);
+    --qx-color-text-on-brand: var(--brand-on);
+    --qx-color-icon-on-brand: var(--brand-on);
+    --qx-color-border-brand: var(--brand);
+    --qx-color-border-focus: var(--brand-text-light);
+    --qx-color-icon-brand: var(--brand-text-light);
+    --qx-color-text-brand: var(--brand-text-light);
+    --qx-color-text-link: var(--brand-text-light);
+    --qx-color-text-link-hover: color-mix(in oklab, var(--brand-text-light) 82%, black);
   }
-  to {
-    opacity: 1;
-    transform: none;
+  [data-qx-color-scheme="dark"] .hosted-branded {
+    --qx-color-border-focus: var(--brand-text-dark);
+    --qx-color-icon-brand: var(--brand-text-dark);
+    --qx-color-text-brand: var(--brand-text-dark);
+    --qx-color-text-link: var(--brand-text-dark);
+    --qx-color-text-link-hover: color-mix(in oklab, var(--brand-text-dark) 82%, white);
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-rise {
-    animation: none;
+  /*
+   * Phones: the social sign-ins show their logos only, as equal cells, since the names don't fit
+   * a third of a phone's row. Qeetrix's ProviderButton has no logo-only form yet, so the name is
+   * hidden, not removed: each button's aria-label ("Sign in with Google") still names it.
+   */
+  @media (width < 600px) {
+    .hosted-providers .qx-provider-button {
+      gap: 0;
+    }
+    .hosted-providers .qx-provider-button-label {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .hosted-providers .qx-provider-button-logo :is(svg, img) {
+      inline-size: 24px;
+      block-size: 24px;
+    }
+  }
+
+  /* A page's entrance: a short rise and fade, and none for people who ask for less motion. */
+  .hosted-enter {
+    animation: hosted-enter var(--qx-motion-duration-slow) var(--qx-motion-easing-enter) both;
+  }
+  @keyframes hosted-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hosted-enter {
+      animation: none;
+    }
   }
 }

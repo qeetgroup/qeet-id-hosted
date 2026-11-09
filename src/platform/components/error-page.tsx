@@ -1,29 +1,39 @@
 "use client";
 
-import { Button } from "@qeetrix/ui";
+import { Button } from "@qeetrix/react";
+import { CopyField } from "@qeetrix/react/experimental";
 import { useTranslation } from "react-i18next";
 
-import { AuthCard } from "./auth-card";
-import { AuthShell } from "./auth-shell";
+import { RotateCwIcon } from "@/platform/icons";
+
+import { HostedPage } from "./hosted-page";
 
 /**
- * Shown when a page fails to render. Never shows the error's own message, which
- * can carry server details; the reference matches the server's log entry.
+ * When a page can't load: say so without blame, offer Try again (the same page, so the person
+ * keeps where they were going), and give the reference support can look up. Never shows the
+ * error's own message, which can carry server details; the reference matches the server's log.
  */
 export function ErrorPage({ reference, onRetry }: { reference?: string; onRetry: () => void }) {
   const { t } = useTranslation("common");
   return (
-    <AuthShell>
-      <AuthCard title={t("errorPage.title")} subtitle={t("errorPage.body")}>
-        <Button size="lg" className="w-full" onClick={onRetry}>
+    <HostedPage
+      single
+      status="danger"
+      title={t("errorPage.title")}
+      description={t("errorPage.body")}
+    >
+      <div className="flex flex-col gap-5">
+        <Button size="lg" fullWidth icon={RotateCwIcon} onClick={onRetry}>
           {t("errorPage.retry")}
         </Button>
         {reference && (
-          <p className="text-muted-foreground text-center text-xs">
-            {t("errorPage.reference", { reference })}
-          </p>
+          <CopyField
+            label={t("errorPage.reference")}
+            value={reference}
+            description={t("errorPage.referenceHelp")}
+          />
         )}
-      </AuthCard>
-    </AuthShell>
+      </div>
+    </HostedPage>
   );
 }

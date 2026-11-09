@@ -51,6 +51,15 @@
               "fetch": "API traffic goes through src/platform/api (the client or fetchLoginContext), so CSRF, cookies and errors are handled once."
             }
           }
+        },
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+              "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+            }
+          }
         }
       }
     }
@@ -69,7 +78,11 @@
                     "group": ["@/platform/**", "@/i18n/**"],
                     "message": "A route reads the URL and renders one module page; loading data and building the screen happen in that module."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -89,7 +102,11 @@
                     "group": ["@/app/**", "@/modules/**", "@/platform/**", "@/testing/**"],
                     "message": "i18n/ is the lowest layer: it imports only external packages and its own locale files."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -109,7 +126,11 @@
                     "group": ["@/app/**", "@/modules/**"],
                     "message": "platform/ is shared by every module, so it can't depend on one: import only @/platform, @/i18n or packages."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -133,7 +154,11 @@
                     "group": ["@/modules/**", "!@/modules/account/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -157,7 +182,11 @@
                     "group": ["@/modules/**", "!@/modules/authentication/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -181,7 +210,11 @@
                     "group": ["@/modules/**", "!@/modules/enterprise-setup/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -205,7 +238,11 @@
                     "group": ["@/modules/**", "!@/modules/oauth/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -229,7 +266,11 @@
                     "group": ["@/modules/**", "!@/modules/recovery/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -253,7 +294,11 @@
                     "group": ["@/modules/**", "!@/modules/sign-out/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
                   }
-                ]
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                }
               }
             }
           }
@@ -266,6 +311,16 @@
         "rules": {
           "style": {
             "noRestrictedGlobals": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/platform/icons.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
           }
         }
       }
