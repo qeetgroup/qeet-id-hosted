@@ -182,14 +182,22 @@ Biome (`biome.json`) is the formatter and linter. A suppression carries a one-li
 
 ## What CI enforces
 
+Three branches: `develop` (finished work), `release` (the version testers check in TEST and STAGING) and `main`
+(production). Work goes into `develop` by pull request; once a sprint `develop` is promoted into `release`, and after
+sign-off `release` into `main`. A fix found in testing goes into `release` by pull request; an urgent production fix is
+a `hotfix/*` pull request into `main`. Tests run once for each change.
+
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · `verify` | `bun run typecheck` + `bun run check` + `bun run test:coverage` + `bun run build` — push to `develop`/`release/**`, PRs to `main`/`develop`/`release/**` |
-| `ci.yml` · `e2e` | **Browser tests**: `bun run test:e2e` — every page under its Content-Security-Policy without a violation, and an axe WCAG 2.2 AA scan (`tests/e2e`) |
-| `ci.yml` · `image` | Push to `release/**` only, after `verify`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64+arm64) for the Qeet ID Kit (`qeet-id-kit`) — never an RC number. It keeps the repository's former name, which the kit reads, until the kit moves to `qeet-id-hosted` (QTID-955) |
-| `deploy.yml` | Push to `main`: typecheck, format and lint, tests, Vercel production deploy, tag |
+| `ci.yml` · **Verify** | Pull requests into `develop`, `release` and `main`: `bun run typecheck` + `bun run check` + `bun run test:coverage` + `bun run build`, then the **browser tests** on that build (every page under its Content-Security-Policy without a violation, and an axe WCAG 2.2 AA scan, `tests/e2e`). A promotion (`develop` → `release`, `release` → `main`) skips them when every commit already passed Verify on its way in and the branch hasn't moved since; `main` takes only `release` or `hotfix/*`, `release` anything but `main` |
+| `candidate.yml` · Test image | Merge into `release` (a merged pull request whose Verify passed): `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64) for the Qeet ID Kit, which numbers the release candidate. The image keeps the repository's former name, which the kit reads. A fix merged into `release` is merged into `develop` too |
+| `deploy.yml` | Merge into `main` (a merged `release` or `hotfix/*` pull request whose Verify passed): Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag the next version, bring `release` and `develop` level with `main`. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
 
-The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
+The version comes from the pull request titles since the last tag (`scripts/next-version.sh`): `feat!:` (any type
+with `!`) is a major, `feat:` a minor, anything else a patch; `"version"` in `package.json` wins when it is higher.
+Merge into `develop` with a squash, and promotions with a merge commit; click **Update branch** first when a pull
+request is behind. Dependabot opens one grouped pull request a week into `develop`. Vercel's own Git deployments are
+off (`vercel.json`). The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
 production does not use it. Health: `GET /healthz`.
 
 ## Before you finish

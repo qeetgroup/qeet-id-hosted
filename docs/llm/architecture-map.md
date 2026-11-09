@@ -92,3 +92,13 @@ The contract is owned by **`qeet-id-server`**.
 | Headers on every response (Referrer-Policy, nosniff, X-Frame-Options, Permissions-Policy) | `src/platform/security/security-headers.ts`, applied in `next.config.ts` |
 | Startup check on the server's settings | `src/instrumentation.ts` → `src/platform/config/server-config.ts` |
 | Browser tests: CSP and accessibility | `tests/e2e/`, `playwright.config.ts` |
+
+## CI and releases
+
+| Need | Path |
+|---|---|
+| Verify on every pull request (checks + browser tests; promotions skip what's already tested) | `.github/workflows/ci.yml` |
+| The kit's test image, built when `release` changes | `.github/workflows/candidate.yml`, `Dockerfile` |
+| Production deploy, tag, `release` and `develop` brought level with `main` | `.github/workflows/deploy.yml` |
+| The next release's version (from pull request titles: `feat!` major, `feat` minor, else patch) | `scripts/next-version.sh` |
+| Dependency updates (weekly, grouped, into `develop`) | `.github/dependabot.yml` |
