@@ -7,7 +7,7 @@ here and add nothing architectural.
 ## What this repository is
 
 The **hosted authentication UI for Qeet ID** — `accounts.id.qeet.in` (formerly `login.id.qeet.in`). Next.js 16 App Router, React 19
-with the React Compiler, Tailwind v4, `@qeetrix/ui`, bun.
+with the React Compiler, Tailwind v4, `@qeetrix/react` + `@qeetrix/tokens` + `@qeetrix/icons`, bun.
 
 > **This is the only host in Qeet where an interactive session is established.** Every other Qeet
 > product redirects here over OIDC. That makes a small repository disproportionately important.

@@ -56,7 +56,10 @@ type Step = "email" | "password" | "link" | "mfa" | "offer";
 function authorizeHints(returnTo: string): { fresh: boolean; hint: string } {
   try {
     const q = new URL(returnTo).searchParams;
-    return { fresh: (q.get("prompt") ?? "").split(" ").includes("login"), hint: q.get("login_hint") ?? "" };
+    return {
+      fresh: (q.get("prompt") ?? "").split(" ").includes("login"),
+      hint: q.get("login_hint") ?? "",
+    };
   } catch {
     return { fresh: false, hint: "" };
   }
@@ -110,7 +113,11 @@ export function SignInForm(props: SignInFormProps) {
     if (!challenge) return;
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
     stopAutofill.current();
-    setMfa({ token: challenge.mfaToken, factors: challenge.factors, enrollment: challenge.enrollment });
+    setMfa({
+      token: challenge.mfaToken,
+      factors: challenge.factors,
+      enrollment: challenge.enrollment,
+    });
     setStep("mfa");
   }, []);
 

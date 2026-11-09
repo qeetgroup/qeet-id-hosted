@@ -7,8 +7,9 @@ Port requirement cross-checked against `qeet-id-server`'s `.env.example`.
 ## Identity
 
 The **hosted authentication UI for Qeet ID**, served at `accounts.id.qeet.in`. Next.js 16.2.6 App
-Router, React 19 with the React Compiler, Tailwind v4, `@qeetrix/ui 2.1.5` + `@qeetrix/icons 1.0.11`,
-bun 1.3.14.
+Router, React 19 with the React Compiler, Tailwind v4, `@qeetrix/react 0.5.1` + `@qeetrix/tokens 0.0.15` +
+`@qeetrix/icons 2.1.2`, bun 1.3.14. Every page follows its approved mockup in `qeet-mockups`
+(`products/qeet-id`, the hosted application).
 33 source files, ~2.9k LOC.
 
 **Deliberately thin.** Its README: *"a thin, stateless front-end: every action calls the Qeet ID
@@ -163,14 +164,16 @@ themes.
 
 ## Known constraints
 
-- **Coverage is about 64%** of statements; the floor in `vitest.config.mts` stops it dropping. The
+- **Coverage is about 72%** of statements; the floor in `vitest.config.mts` stops it dropping. The
   server-rendered page wrappers are covered only by the browser tests (`tests/e2e`).
 - **Port 3003 is load-bearing** and set only by a README instruction, not by configuration.
-- `@qeetrix/ui` and `@qeetrix/icons` are **pinned exactly** (`2.1.5`, `1.0.11`): their releases
-  have removed exports in patch versions, so a caret range is not safe. Social-provider buttons
-  keep `@thesvg/react` — `@qeetrix/icons` ships no third-party brand marks.
-- Server Components import `@qeetrix/ui` by subpath (`@qeetrix/ui/providers/theme-provider`),
-  never the package root: the root barrel there ships the whole library to every page.
+- `@qeetrix/react`, `@qeetrix/tokens` and `@qeetrix/icons` are **pinned exactly**, and skip bun's
+  three-day release cooldown (`bunfig.toml`) because they are first-party. Social-provider buttons
+  keep `@thesvg/react`: `@qeetrix/icons` ships no third-party brand marks.
+- `globals.css` imports the CSS of only the Qeetrix components the pages use;
+  `src/__tests__/qeetrix-styles.test.ts` fails when one is used without its file.
+- Three layouts from two breakpoints only (`tablet` 600 px, `laptop` 1024 px, set in `globals.css`):
+  a phone shows the page as the form, a tablet a card, a laptop the form beside its heading.
 - i18n is **English only** — `src/i18n/locales/en/` is the only locale.
 - `.env.example` is tracked despite `.gitignore` covering `.env*` — it was added before the rule.
 

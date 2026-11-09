@@ -1,18 +1,10 @@
 "use client";
 
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Spinner,
-  StatusPill,
-} from "@qeetrix/ui";
+import { Badge, Button, Card, Spinner, Text } from "@qeetrix/react";
+import { CopyField } from "@qeetrix/react/experimental";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import {
   getScimConfig,
   revokeScimToken,
@@ -22,6 +14,10 @@ import {
 import { ApiError } from "@/platform/api/client";
 import { FormAlert } from "@/platform/components/form-alert";
 
+/**
+ * SCIM provisioning: whether a token is set, how many people it has provisioned, a new token
+ * (shown once, never again), and turning it off.
+ */
 export function ScimPanel() {
   const { t } = useTranslation("enterpriseSetup");
   const [config, setConfig] = useState<ScimConfig | null>(null);
@@ -70,60 +66,65 @@ export function ScimPanel() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("scim.title")}</CardTitle>
-          <CardDescription>{t("scim.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {config === null ? (
+    <div className="flex flex-col gap-6">
+      <Card title={t("scim.title")} level={2} description={t("scim.description")}>
+        <div className="flex flex-col gap-4">
+          <FormAlert title={err} />
+          {config === null && !err ? (
             <div className="flex justify-center py-6">
-              <Spinner />
+              <Spinner size="md" tone="brand" label={t("scim.title")} />
             </div>
-          ) : (
+          ) : config ? (
             <>
-              <div className="flex items-center gap-2 text-sm">
-                <StatusPill status={config.token_set ? "active" : "disabled"} />
+              <div className="flex items-center gap-2">
+                <Badge tone={config.token_set ? "success" : "neutral"}>
+                  {config.token_set ? t("scim.on") : t("scim.off")}
+                </Badge>
                 {config.token_set && config.token_prefix && (
-                  <span className="font-mono text-xs text-muted-foreground">
+                  <Text size="sm" tone="subtle" mono>
                     {config.token_prefix}…
-                  </span>
+                  </Text>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <Text size="sm" tone="subtle" render={<p />}>
                 {t("scim.provisioned", { count: config.provisioned_count })}
-              </p>
+              </Text>
               <div className="flex gap-2">
-                <Button size="sm" disabled={busy} onClick={rotate}>
+                <Button type="button" size="sm" loading={busy} onClick={rotate}>
                   {config.token_set ? t("scim.roll") : t("scim.enable")}
                 </Button>
                 {config.token_set && (
-                  <Button size="sm" variant="outline" disabled={busy} onClick={revoke}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    tone="danger"
+                    disabled={busy}
+                    onClick={revoke}
+                  >
                     {t("scim.disable")}
                   </Button>
                 )}
               </div>
             </>
-          )}
-          <FormAlert>{err}</FormAlert>
-        </CardContent>
+          ) : null}
+        </div>
       </Card>
 
       {freshToken && (
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle className="text-base">{t("scim.newToken")}</CardTitle>
-            <CardDescription>{t("scim.newTokenBody")}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Input value={freshToken} readOnly className="font-mono text-xs" />
-            <div>
-              <Button variant="outline" size="sm" onClick={() => setFreshToken(null)}>
-                {t("scim.saved")}
-              </Button>
-            </div>
-          </CardContent>
+        <Card title={t("scim.newToken")} level={2} description={t("scim.newTokenBody")}>
+          <div className="flex flex-col gap-4">
+            <CopyField label={t("scim.tokenLabel")} value={freshToken} wrap="anywhere" />
+            <Button
+              type="button"
+              variant="soft"
+              size="sm"
+              className="self-start"
+              onClick={() => setFreshToken(null)}
+            >
+              {t("scim.saved")}
+            </Button>
+          </div>
         </Card>
       )}
     </div>

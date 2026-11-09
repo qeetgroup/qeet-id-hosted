@@ -1,48 +1,60 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@qeetrix/ui";
+import { Tab, Tabs, TabsList, TabsPanel, Text } from "@qeetrix/react";
 import { useTranslation } from "react-i18next";
+
 import type { PortalContext } from "@/modules/enterprise-setup/api/admin-portal";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
+import { HostedPage } from "@/platform/components/hosted-page";
 
 import { SamlPanel } from "./saml-panel";
 import { ScimPanel } from "./scim-panel";
 
-type Props = {
+/** The setup itself, as a page of its own: SAML and SCIM, each in a tab when the link allows it. */
+export function EnterpriseSetupView({
+  context,
+  branding,
+}: {
   context: PortalContext;
   branding?: Branding;
-};
-
-/** The setup screen, in the same card as every hosted page (the page widens it for the forms). */
-export function EnterpriseSetupView({ context, branding }: Props) {
-  const { t } = useTranslation("enterpriseSetup");
+}) {
+  const { t, i18n } = useTranslation("enterpriseSetup");
   const hasSaml = context.capabilities.includes("saml");
   const hasScim = context.capabilities.includes("scim");
-  const defaultTab = hasSaml ? "saml" : "scim";
+  const expires = new Intl.DateTimeFormat(i18n.language, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(context.expires_at));
 
   return (
-    <AuthCard
+    <HostedPage
+      kind="page"
+      width="lg"
       branding={branding}
       title={t("view.title", { tenant: context.tenant_name })}
-      subtitle={t("view.expires", { date: new Date(context.expires_at).toLocaleString() })}
+      description={t("view.expires", { date: expires })}
+      barEnd={
+        <Text size="sm" tone="subtle" className="text-end">
+          {t("view.bar")}
+        </Text>
+      }
     >
-      <Tabs defaultValue={defaultTab}>
+      <Tabs defaultValue={hasSaml ? "saml" : "scim"}>
         <TabsList>
-          {hasSaml && <TabsTrigger value="saml">SAML</TabsTrigger>}
-          {hasScim && <TabsTrigger value="scim">SCIM</TabsTrigger>}
+          {hasSaml && <Tab value="saml">SAML</Tab>}
+          {hasScim && <Tab value="scim">SCIM</Tab>}
         </TabsList>
         {hasSaml && (
-          <TabsContent value="saml">
+          <TabsPanel value="saml" className="pt-6">
             <SamlPanel />
-          </TabsContent>
+          </TabsPanel>
         )}
         {hasScim && (
-          <TabsContent value="scim">
+          <TabsPanel value="scim" className="pt-6">
             <ScimPanel />
-          </TabsContent>
+          </TabsPanel>
         )}
       </Tabs>
-    </AuthCard>
+    </HostedPage>
   );
 }

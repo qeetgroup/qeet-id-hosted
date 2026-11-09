@@ -68,9 +68,14 @@ export function PasskeyOffer({
   }
 
   const waiting = state === "waiting";
-  const facts = t("offer.facts", { returnObjects: true }) as string[];
+  const facts = [t("offer.fact1"), t("offer.fact2"), t("offer.fact3")];
   return (
-    <HostedPage branding={branding} title={t("offer.title")} description={t("offer.body")} lead={lead}>
+    <HostedPage
+      branding={branding}
+      title={t("offer.title")}
+      description={t("offer.body")}
+      lead={lead}
+    >
       <FormStack>
         {error === "errors.cancelled" ? (
           <FormAlert tone="warning" title={t("offer.cancelledTitle")}>
@@ -103,7 +108,14 @@ export function PasskeyOffer({
             {t("offer.waitingHelp")}
           </Text>
         )}
-        <Button type="button" variant="ghost" size="lg" fullWidth disabled={waiting} onClick={onContinue}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="lg"
+          fullWidth
+          disabled={waiting}
+          onClick={onContinue}
+        >
           {t("offer.skip")}
         </Button>
       </FormStack>

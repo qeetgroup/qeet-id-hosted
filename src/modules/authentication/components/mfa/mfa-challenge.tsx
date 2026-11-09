@@ -128,7 +128,7 @@ export function MfaChallenge({
     }
   }
 
-  async function usePasskey() {
+  async function verifyWithPasskey() {
     setError(null);
     setBusy(true);
     try {
@@ -212,7 +212,7 @@ export function MfaChallenge({
         title: busy ? t("mfa.passkeyBusy") : t("mfa.ways.passkey.title"),
         detail: t("mfa.ways.passkey.detail"),
         disabled: busy,
-        onClick: () => void usePasskey(),
+        onClick: () => void verifyWithPasskey(),
       });
     if (hasRecovery)
       items.push({
@@ -223,7 +223,12 @@ export function MfaChallenge({
         onClick: () => go({ kind: "recovery" }),
       });
     return (
-      <HostedPage branding={branding} title={t("mfa.waysTitle")} description={t("mfa.waysBody")} lead={lead}>
+      <HostedPage
+        branding={branding}
+        title={t("mfa.waysTitle")}
+        description={t("mfa.waysBody")}
+        lead={lead}
+      >
         <div className="flex flex-col gap-5">
           <FormAlert title={error} />
           <ChoiceList label={t("mfa.waysLabel")} items={items} />
@@ -270,7 +275,13 @@ export function MfaChallenge({
               {left > 0 ? t("mfa.resendIn", { time: waitText(left) }) : t("mfa.resend")}
             </Button>
           )}
-          <Button type="button" variant="ghost" size="lg" fullWidth onClick={() => go({ kind: "ways" })}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            fullWidth
+            onClick={() => go({ kind: "ways" })}
+          >
             {t("mfa.another")}
           </Button>
         </CodeStep>

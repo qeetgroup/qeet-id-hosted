@@ -149,7 +149,14 @@ export function MagicSignIn({ token, branding }: { token: string; branding?: Bra
       >
         <FormStack>
           <FormAlert title={resendError} />
-          <Button type="button" size="lg" fullWidth icon={MailIcon} loading={resending} onClick={resend}>
+          <Button
+            type="button"
+            size="lg"
+            fullWidth
+            icon={MailIcon}
+            loading={resending}
+            onClick={resend}
+          >
             {t("magic.newLink")}
           </Button>
           {other}

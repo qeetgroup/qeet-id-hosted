@@ -107,7 +107,13 @@ export function SignedOutContent({
             </ul>
           )}
           {done && continueHref && (
-            <Button type="button" size="lg" fullWidth icon={ArrowRightIcon} onClick={() => goTo(continueHref)}>
+            <Button
+              type="button"
+              size="lg"
+              fullWidth
+              icon={ArrowRightIcon}
+              onClick={() => goTo(continueHref)}
+            >
               {t("back")}
             </Button>
           )}

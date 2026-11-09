@@ -45,6 +45,7 @@ export function SecurityView() {
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [renamed, setRenamed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -52,7 +53,9 @@ export function SecurityView() {
       setState({ status: "ready", list: await listPasskeys() });
     } catch (err) {
       setState(
-        err instanceof ApiError && err.status === 401 ? { status: "signedOut" } : { status: "error" },
+        err instanceof ApiError && err.status === 401
+          ? { status: "signedOut" }
+          : { status: "error" },
       );
     }
   }
@@ -90,21 +93,28 @@ export function SecurityView() {
 
   async function onRename(passkey: Passkey, newName: string) {
     setError(null);
+    setRenamed(false);
     const saved = await renamePasskey(passkey.id, newName);
     setState((s) =>
       s.status === "ready"
         ? {
             ...s,
-            list: { ...s.list, items: s.list.items.map((p) => (p.id === passkey.id ? { ...p, ...saved } : p)) },
+            list: {
+              ...s.list,
+              items: s.list.items.map((p) => (p.id === passkey.id ? { ...p, ...saved } : p)),
+            },
           }
         : s,
     );
+    setRenamed(true);
   }
 
   // Signs this browser out of the hosted login, then out of each application on the signed-out page.
   async function signOut() {
     try {
-      const res = await apiDelete<{ frontchannel_logout_uris?: string[] } | undefined>("/v1/auth/session");
+      const res = await apiDelete<{ frontchannel_logout_uris?: string[] } | undefined>(
+        "/v1/auth/session",
+      );
       const q = new URLSearchParams();
       for (const uri of res?.frontchannel_logout_uris ?? []) q.append("frontchannel_logout", uri);
       goTo(`/sign-out/done${q.size ? `?${q.toString()}` : ""}`);
@@ -147,6 +157,7 @@ export function SecurityView() {
     <HostedPage kind="page" title={t("title")} description={t("body")} barEnd={bar}>
       <div className="flex flex-col gap-6">
         <FormAlert title={error} />
+        {renamed && <FormAlert tone="success" title={t("rename.saved")} />}
         {added && (
           <FormAlert tone="success" title={t("add.addedTitle")}>
             {t("add.addedBody")}

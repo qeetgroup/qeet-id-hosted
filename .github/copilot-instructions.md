@@ -5,7 +5,7 @@ architecture.
 
 ## Repository
 
-The **hosted authentication UI for Qeet ID** (`accounts.id.qeet.in`). Next.js 16 App Router, React 19, `@qeetrix/ui`, bun. **The only host where an interactive Qeet ID session is established** — every other product redirects here over OIDC. Stateless: no database, no secrets.
+The **hosted authentication UI for Qeet ID** (`accounts.id.qeet.in`). Next.js 16 App Router, React 19, `@qeetrix/react` + `@qeetrix/tokens` + `@qeetrix/icons`, bun. **The only host where an interactive Qeet ID session is established** — every other product redirects here over OIDC. Stateless: no database, no secrets.
 
 Context: **L0** `qeet-context` (organization) → **L1** `qeet-id-context` (product) → **L2** this
 repository → source.

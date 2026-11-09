@@ -126,10 +126,11 @@ export function SignUpForm({
     try {
       // The account is made in the application's organisation and signed in; unless the
       // organisation requires a second step, which it sets up first.
-      const res = await apiPost<{ mfa_required?: boolean; mfa_token?: string; enrollment_due_at?: string }>(
-        "/v1/auth/register",
-        { tenant_id: tenantId, email, password, display_name: name },
-      );
+      const res = await apiPost<{
+        mfa_required?: boolean;
+        mfa_token?: string;
+        enrollment_due_at?: string;
+      }>("/v1/auth/register", { tenant_id: tenantId, email, password, display_name: name });
       if (res.mfa_required && res.mfa_token) {
         setEnrollment({ token: res.mfa_token, dueAt: res.enrollment_due_at });
         setBusy(false);

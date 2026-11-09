@@ -26,7 +26,12 @@ describe("ForgotPasswordForm", () => {
 
     requestLink();
 
-    expect(await screen.findByText(/we've sent a password reset link/)).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Check your email" })).toBeTruthy();
+    expect(
+      screen.getByText(
+        "If ada@example.com has an account here, a link to reset your password is on its way.",
+      ),
+    ).toBeTruthy();
     expect(calls).toEqual([
       {
         method: "POST",

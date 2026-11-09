@@ -19,7 +19,15 @@ function httpsUrl(value?: string): string | undefined {
  * An application's logo on a white tile in light and dark alike, so its own colours stay true; its
  * initial when it has no logo, or the logo fails to load.
  */
-export function AppTile({ name, logoUri, size = 32 }: { name: string; logoUri?: string; size?: number }) {
+export function AppTile({
+  name,
+  logoUri,
+  size = 32,
+}: {
+  name: string;
+  logoUri?: string;
+  size?: number;
+}) {
   const [failed, setFailed] = useState(false);
   const logo = failed ? undefined : httpsUrl(logoUri);
   const initial = Array.from(name.trim())[0]?.toUpperCase() ?? "";

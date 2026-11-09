@@ -1,8 +1,9 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Spinner } from "@qeetrix/ui";
+import { Card, Spinner, Text } from "@qeetrix/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import {
   listSamlConnections,
   type SamlConnection,
@@ -13,6 +14,7 @@ import { FormAlert } from "@/platform/components/form-alert";
 import { CreateSamlCard } from "./create-saml-card";
 import { SamlConnectionRow } from "./saml-connection-row";
 
+/** The organisation's SAML connections, each testable and removable, and a form to add one. */
 export function SamlPanel() {
   const { t } = useTranslation("enterpriseSetup");
   const [connections, setConnections] = useState<SamlConnection[] | null>(null);
@@ -30,30 +32,25 @@ export function SamlPanel() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("saml.title")}</CardTitle>
-          <CardDescription>{t("saml.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {connections === null ? (
-            <div className="flex justify-center py-6">
-              <Spinner />
-            </div>
-          ) : connections.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("saml.empty")}</p>
-          ) : (
-            <ul className="divide-y">
-              {connections.map((c) => (
-                <SamlConnectionRow key={c.id} connection={c} onChange={reload} />
-              ))}
-            </ul>
-          )}
-          <FormAlert>{loadError}</FormAlert>
-        </CardContent>
+    <div className="flex flex-col gap-6">
+      <Card title={t("saml.title")} level={2} description={t("saml.description")}>
+        <FormAlert title={loadError} />
+        {connections === null && !loadError ? (
+          <div className="flex justify-center py-6">
+            <Spinner size="md" tone="brand" label={t("saml.title")} />
+          </div>
+        ) : connections && connections.length === 0 ? (
+          <Text size="md" tone="subtle" render={<p />}>
+            {t("saml.empty")}
+          </Text>
+        ) : (
+          <ul className="divide-y divide-border-subtle">
+            {(connections ?? []).map((c) => (
+              <SamlConnectionRow key={c.id} connection={c} onChange={reload} />
+            ))}
+          </ul>
+        )}
       </Card>
-
       <CreateSamlCard onCreated={reload} />
     </div>
   );

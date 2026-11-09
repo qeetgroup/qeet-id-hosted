@@ -53,9 +53,11 @@ export function MfaEnrollment({
   const [busy, setBusy] = useState(false);
   const codeLabel = useId();
   const due = dueAt
-    ? new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "short", year: "numeric" }).format(
-        new Date(dueAt),
-      )
+    ? new Intl.DateTimeFormat(i18n.language, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(dueAt))
     : null;
 
   async function attempt(fn: () => Promise<void>) {
@@ -97,7 +99,14 @@ export function MfaEnrollment({
     });
 
   if (codes) {
-    return <RecoveryCodes codes={codes} email={email} branding={branding} onContinue={() => void onDone()} />;
+    return (
+      <RecoveryCodes
+        codes={codes}
+        email={email}
+        branding={branding}
+        onContinue={() => void onDone()}
+      />
+    );
   }
 
   if (!app) {
@@ -114,16 +123,37 @@ export function MfaEnrollment({
           <Text size="md" render={<p />}>
             {t("mfa.enroll.need")}
           </Text>
-          <Button type="button" size="lg" fullWidth icon={QrCodeIcon} loading={busy} onClick={() => void start()}>
+          <Button
+            type="button"
+            size="lg"
+            fullWidth
+            icon={QrCodeIcon}
+            loading={busy}
+            onClick={() => void start()}
+          >
             {t("mfa.enroll.start")}
           </Button>
           {due && (
-            <Button type="button" variant="ghost" size="lg" fullWidth disabled={busy} onClick={() => void skip()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              fullWidth
+              disabled={busy}
+              onClick={() => void skip()}
+            >
               {t("mfa.enroll.skip", { date: due })}
             </Button>
           )}
           {!due && onBack && (
-            <Button type="button" variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon} onClick={onBack}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              fullWidth
+              icon={ArrowLeftIcon}
+              onClick={onBack}
+            >
               {t("mfa.back")}
             </Button>
           )}
@@ -193,7 +223,14 @@ export function MfaEnrollment({
               </Text>
             )}
           </div>
-          <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy} disabled={code.length < 6}>
+          <Button
+            type="submit"
+            size="lg"
+            fullWidth
+            icon={ArrowRightIcon}
+            loading={busy}
+            disabled={code.length < 6}
+          >
             {t("mfa.enroll.confirm")}
           </Button>
           <Button

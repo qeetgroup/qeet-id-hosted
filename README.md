@@ -7,7 +7,7 @@ recovery and device sign-in, at [accounts.id.qeet.in](https://accounts.id.qeet.i
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![Qeetrix](https://img.shields.io/badge/Qeetrix%20UI-2.1.5-D04800)](https://ui.qeet.in)
+[![Qeetrix](https://img.shields.io/badge/Qeetrix%20React-0.5.1-D04800)](https://ui.qeet.in)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Bun](https://img.shields.io/badge/Bun-1.3.14-000000?logo=bun&logoColor=white)](https://bun.sh)
 [![Vercel](https://img.shields.io/badge/hosted%20on-Vercel-000000?logo=vercel&logoColor=white)](https://accounts.id.qeet.in)
@@ -37,7 +37,7 @@ flowchart LR
 | 🏢 **Enterprise setup** | SAML and SCIM setup for an invited IT admin: `src/modules/enterprise-setup` |
 | 🗝️ **Account security** | A person's passkeys, to see, rename and add: `src/modules/account` |
 | 🛡️ **Security** | A nonce-based Content-Security-Policy on every page, validated redirects only, no token ever stored: `src/platform/security` |
-| 🎨 **Design and languages** | Qeetrix (`@qeetrix/ui`, `@qeetrix/icons`), light and dark; i18next: `src/i18n` |
+| 🎨 **Design and languages** | Qeetrix (`@qeetrix/react`, `@qeetrix/tokens`, `@qeetrix/icons`), light and dark, on the approved hosted mockups; i18next: `src/i18n` |
 | 🩺 **Health** | `GET /healthz` |
 
 ## 🚀 Run it locally

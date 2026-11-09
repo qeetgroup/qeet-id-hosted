@@ -30,13 +30,13 @@ describe("ScimPanel", () => {
     render(<ScimPanel />);
 
     expect(await screen.findByText("1 user provisioned via SCIM.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Enable SCIM" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn on SCIM" }));
 
-    expect(await screen.findByDisplayValue("scim-secret")).toBeTruthy();
-    expect(screen.getByText("Your new SCIM bearer token")).toBeTruthy();
+    expect(await screen.findByText("scim-secret")).toBeTruthy();
+    expect(screen.getByText("New SCIM token")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "I've saved it" }));
-    expect(screen.queryByDisplayValue("scim-secret")).toBeNull();
-    expect(screen.getByRole("button", { name: "Roll token" })).toBeTruthy();
+    expect(screen.queryByText("scim-secret")).toBeNull();
+    expect(screen.getByRole("button", { name: "New token" })).toBeTruthy();
   });
 
   it("disables provisioning only after the admin confirms", async () => {
@@ -51,7 +51,7 @@ describe("ScimPanel", () => {
     render(<ScimPanel />);
 
     expect(await screen.findByText("3 users provisioned via SCIM.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Disable" }));
+    fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
     expect(confirm).toHaveBeenCalledWith("Disable SCIM provisioning? Your IdP will stop syncing.");
     expect(calls.some((c) => c.method === "DELETE")).toBe(false);
     confirm.mockRestore();

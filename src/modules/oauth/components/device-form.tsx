@@ -55,7 +55,9 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     }
     setBusy("continue");
     try {
-      setCtx(await apiGet<DeviceContext>(`/v1/oauth/device?user_code=${encodeURIComponent(trimmed)}`));
+      setCtx(
+        await apiGet<DeviceContext>(`/v1/oauth/device?user_code=${encodeURIComponent(trimmed)}`),
+      );
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         goTo(signInRedirect(trimmed));
@@ -177,7 +179,13 @@ export function DeviceForm({ userCode }: { userCode: string }) {
             value={code}
             onChange={(e) => setCode(e.currentTarget.value.toUpperCase())}
           />
-          <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy === "continue"}>
+          <Button
+            type="submit"
+            size="lg"
+            fullWidth
+            icon={ArrowRightIcon}
+            loading={busy === "continue"}
+          >
             {t("continue")}
           </Button>
         </FormStack>

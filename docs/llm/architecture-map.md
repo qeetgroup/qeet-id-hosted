@@ -18,8 +18,12 @@
 | Runtime config written into every page | `src/app/layout.tsx` → `publicConfigScript` in `src/platform/config/public-config.ts` |
 | Former paths (`/login`, `/signup`, …) → current ones | `next.config.ts` `redirects()` |
 | Global styles | `src/app/globals.css` |
-| Page frame: brand panel, footer (language, theme, legal links) · the card (full-bleed on phones) · the logo | `src/platform/components/auth-shell.tsx` · `auth-card.tsx` · `brand-logo.tsx` |
-| Light / dark / system theme: provider, pre-paint script, storage key | `src/app/layout.tsx` · `src/platform/config/theme.ts` · `src/platform/components/theme-toggle.tsx` |
+| Page frame: the three layouts (phone, tablet card, laptop two columns), a page of its own with a top bar · the footer (language, theme, legal links) · the logo | `src/platform/components/hosted-page.tsx` · `page-footer.tsx` · `brand-logo.tsx` · `qeet-id-logo.tsx` |
+| Shared parts: the account, the application, or-divider, a ruled list of choices, a form message | `src/platform/components/{account-chip,app-line,form-parts,form-alert}.tsx` |
+| Icons (sharp, mirrored in right-to-left) | `src/platform/icons.ts` |
+| An organisation's colour on Qeetrix's brand tokens | `src/platform/branding/branding.ts` · `.hosted-branded` in `src/app/globals.css` |
+| Light / dark / system theme: Qeetrix provider, pre-paint script, storage key | `src/app/layout.tsx` · `src/platform/components/providers.tsx` · `src/platform/config/theme.ts` |
+| Favicon and Apple touch icon (Next.js file convention) | `src/app/icon.svg` · `src/app/apple-icon.png` |
 
 ## Routes — every segment
 
@@ -29,7 +33,7 @@ signed-in self-service pages, `(enterprise)` enterprise setup.
 
 | Route | Module page (`src/modules/…`) | Purpose |
 |---|---|---|
-| `/sign-in` | `authentication/components/sign-in/` (form, passkey prompt, magic-link request, social providers) | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
+| `/sign-in` | `authentication/components/sign-in/` (form, email step, password step, link step, provider row, passkey offer) | email first, then password or a sign-in link · passkey · social · the second step · "add a passkey" offer after a password sign-in |
 | `/sign-up` | `authentication/components/sign-up/` | account creation + passkey registration |
 | `/magic-link` | `authentication/components/magic-link/` | consume an emailed magic link (one requested from hosted sign-in) |
 | `/forgot-password` | `recovery/components/forgot-password-*` | request a reset |
@@ -48,9 +52,9 @@ The MFA steps live in `authentication/components/mfa/`; the session answer types
 
 ```text
 src/platform/     api/ (client · errors · login-context · relay · server) · config/ · navigation/
-                  (return-to · go-to) · branding/ · webauthn/ (passkeys) · components/ (auth-card ·
-                  auth-shell · brand-logo · theme-toggle · language-select · icon-input · form-alert ·
-                  error and not-found pages)
+                  (return-to · go-to) · branding/ · webauthn/ (passkeys) · icons.ts · components/
+                  (hosted-page · page-footer · providers · brand-logo · qeet-id-logo · account-chip ·
+                  app-line · form-parts · form-alert · error and not-found pages)
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
                   enterpriseSetup,recovery,security,signIn,signOut,signUp}.json   (English only)
 ```
@@ -59,7 +63,7 @@ src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
 
 | | |
 |---|---|
-| Next config — React Compiler, transpiles `@qeetrix/ui` | `next.config.ts` |
+| Next config — React Compiler, former-path redirects | `next.config.ts` |
 | Scripts | `package.json` |
 | Deploy | `vercel.json` |
 

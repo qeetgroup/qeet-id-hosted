@@ -94,7 +94,14 @@ export function LinkStep({
           >
             {t("link.again")}
           </Button>
-          <Button type="button" variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon} onClick={onBack}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            fullWidth
+            icon={ArrowLeftIcon}
+            onClick={onBack}
+          >
             {t("link.back")}
           </Button>
         </FormStack>
@@ -116,7 +123,14 @@ export function LinkStep({
           {busy ? t("link.sending") : t("link.send")}
         </Button>
         {onUsePassword && (
-          <Button type="button" variant="ghost" size="lg" fullWidth disabled={busy} onClick={onUsePassword}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            fullWidth
+            disabled={busy}
+            onClick={onUsePassword}
+          >
             {t("link.usePassword")}
           </Button>
         )}

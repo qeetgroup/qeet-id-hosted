@@ -26,9 +26,11 @@ export function PasskeyRow({
   const [saving, setSaving] = useState(false);
   const label = passkey.name?.trim() || t("list.unnamed");
   const date = (iso: string) =>
-    new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "short", year: "numeric" }).format(
-      new Date(iso),
-    );
+    new Intl.DateTimeFormat(i18n.language, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(iso));
 
   // The server trims and counts characters; offer Save only for a name it accepts.
   const trimmed = draft?.trim() ?? "";

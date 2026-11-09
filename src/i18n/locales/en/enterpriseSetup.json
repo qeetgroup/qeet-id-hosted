@@ -1,27 +1,32 @@
 {
   "page": {
-    "opening": "Opening enterprise setup",
-    "verifying": "Verifying this secure link…",
+    "opening": "Checking this link…",
+    "verifying": "One moment while we open enterprise setup.",
     "unavailable": "This link isn't available",
-    "unavailableBody": "It may have expired, been revoked, already been used, or the URL is incomplete.",
-    "askForNew": "Ask whoever sent you this link to generate a new one."
+    "unavailableBody": "It may have expired, been turned off, or the address is incomplete. Ask the person who sent it to make a new one."
   },
   "view": {
     "title": "Configure SSO for {{tenant}}",
-    "expires": "This link expires {{date}}. You can return to it until then."
+    "expires": "This link expires {{date}}. You can return to it until then.",
+    "bar": "Enterprise setup"
   },
   "saml": {
     "title": "Connections",
-    "description": "Your organisation's SAML identity provider(s).",
-    "empty": "No connections yet — add one below.",
+    "description": "Your SAML identity provider, such as Okta, Microsoft Entra ID or Google Workspace.",
+    "empty": "No connection yet. Add one below.",
     "loadFailed": "Failed to load.",
     "test": "Test",
-    "delete": "Delete",
-    "confirmDelete": "Delete the \"{{name}}\" connection?",
+    "delete": "Remove",
+    "confirmDelete": "Remove the \"{{name}}\" connection? People can't sign in with it any more.",
     "checkOk": "OK",
     "checkFail": "Fail",
     "testFailed": "Test failed.",
-    "deleteFailed": "Delete failed."
+    "deleteFailed": "Delete failed.",
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "disabled": "Off"
+    }
   },
   "create": {
     "title": "Add a connection",
@@ -32,8 +37,8 @@
     "certificate": "IdP signing certificate",
     "certificatePlaceholder": "-----BEGIN CERTIFICATE----- … or bare base64 from IdP metadata",
     "emailAttribute": "Email attribute",
-    "emailAttributePlaceholder": "email (blank = use NameID)",
-    "nameAttribute": "Display-name attribute",
+    "emailAttributePlaceholder": "email (empty: use the NameID)",
+    "nameAttribute": "Name attribute",
     "nameAttributePlaceholder": "displayName (optional)",
     "status": "Initial status",
     "draft": "Draft (not yet live)",
@@ -47,15 +52,18 @@
     "description": "Point your IdP's SCIM connector at this endpoint and bearer token.",
     "provisioned_one": "{{count}} user provisioned via SCIM.",
     "provisioned_other": "{{count}} users provisioned via SCIM.",
-    "roll": "Roll token",
-    "enable": "Enable SCIM",
-    "disable": "Disable",
+    "roll": "New token",
+    "enable": "Turn on SCIM",
+    "disable": "Turn off",
     "confirmDisable": "Disable SCIM provisioning? Your IdP will stop syncing.",
-    "newToken": "Your new SCIM bearer token",
-    "newTokenBody": "Copy it now — for security it is shown once and cannot be retrieved again.",
+    "newToken": "New SCIM token",
+    "newTokenBody": "Copy it now: it's shown once and can't be shown again.",
     "saved": "I've saved it",
     "loadFailed": "Failed to load.",
     "rotateFailed": "Rotate failed.",
-    "revokeFailed": "Revoke failed."
+    "revokeFailed": "Revoke failed.",
+    "on": "On",
+    "off": "Off",
+    "tokenLabel": "SCIM token"
   }
 }

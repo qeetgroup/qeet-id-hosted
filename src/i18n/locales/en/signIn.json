@@ -67,11 +67,6 @@
   "offer": {
     "title": "Sign in faster next time",
     "body": "Add a passkey, and sign in with your fingerprint, face or screen lock instead of a password.",
-    "facts": [
-      "Nothing to type or remember",
-      "It works only on Qeet ID's pages, so it can't be phished",
-      "Your password still works, and you can remove the passkey any time"
-    ],
     "add": "Add a passkey",
     "waiting": "Waiting for your device…",
     "waitingHelp": "Follow the window your browser opened.",
@@ -82,7 +77,10 @@
     "existsBody": "It's ready for your next sign-in.",
     "continue": "Continue",
     "cancelledTitle": "The passkey wasn't added",
-    "cancelledBody": "The window was closed before it finished. Try again, or skip it for now."
+    "cancelledBody": "The window was closed before it finished. Try again, or skip it for now.",
+    "fact1": "Nothing to type or remember",
+    "fact2": "It works only on Qeet ID's pages, so it can't be phished",
+    "fact3": "Your password still works, and you can remove the passkey any time"
   },
   "none": {
     "title": "There's no way to sign in here",

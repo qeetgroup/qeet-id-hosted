@@ -40,7 +40,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
                              (auth) sign-in journeys · (account) signed-in self-service · (enterprise)
 2  src/modules/<area>/components/<name>-page.tsx   (server component — getLoginContext for branding)
 3  a client form component beside it if it needs interactivity, its tests in the module's __tests__/
-4  compose from src/platform/components/{auth-card,auth-shell,form-alert}
+4  compose from src/platform/components/{hosted-page,form-parts,form-alert}, after the approved mockup
 5  register any new i18n namespace in src/i18n/
 6  bun run typecheck && bun run check && bun run test && bun run build
 ```

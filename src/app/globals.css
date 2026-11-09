@@ -24,11 +24,13 @@
 @import "@qeetrix/react/css/link.css" layer(components);
 @import "@qeetrix/react/css/menu.css" layer(components);
 @import "@qeetrix/react/css/radio.css" layer(components);
+@import "@qeetrix/react/css/select.css" layer(components);
 @import "@qeetrix/react/css/separator.css" layer(components);
 @import "@qeetrix/react/css/skeleton.css" layer(components);
 @import "@qeetrix/react/css/skip-link.css" layer(components);
 @import "@qeetrix/react/css/spinner.css" layer(components);
 @import "@qeetrix/react/css/switch.css" layer(components);
+@import "@qeetrix/react/css/tabs.css" layer(components);
 @import "@qeetrix/react/css/text.css" layer(components);
 @import "@qeetrix/react/css/text-field.css" layer(components);
 @import "@qeetrix/react/css/toggle.css" layer(components);

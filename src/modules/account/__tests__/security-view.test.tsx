@@ -26,7 +26,7 @@ describe("SecurityView", () => {
     });
     render(<SecurityView />);
 
-    expect(await screen.findByText("Sign in to manage your passkeys")).toBeTruthy();
+    expect(await screen.findByText("Sign in to see your passkeys")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/sign-in");
   });
 
@@ -38,7 +38,7 @@ describe("SecurityView", () => {
     render(<SecurityView />);
 
     expect(await screen.findByText("Work laptop")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rename Work laptop" }));
     fireEvent.change(screen.getByLabelText("Passkey name"), {
       target: { value: "  Home desktop " },
     });

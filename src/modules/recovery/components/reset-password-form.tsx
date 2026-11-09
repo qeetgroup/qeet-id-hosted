@@ -15,7 +15,11 @@ import { ArrowRightIcon, CheckIcon, MailIcon } from "@/platform/icons";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
 // The server's answers for a link that can't reset a password any more.
-const LINK_GONE = new Set(["recovery.reset_link_invalid", "recovery.link_used", "recovery.link_expired"]);
+const LINK_GONE = new Set([
+  "recovery.reset_link_invalid",
+  "recovery.link_used",
+  "recovery.link_expired",
+]);
 
 /**
  * Where the reset link lands: a new password the organisation's rules accept (the server names a

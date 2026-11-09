@@ -67,7 +67,10 @@ export function ConsentPage({ requestId }: { requestId: string }) {
         });
       } catch (err) {
         if (!live) return;
-        setState({ kind: "ended", ended: endedBy(err instanceof ApiError ? err.code : "") ?? "ended" });
+        setState({
+          kind: "ended",
+          ended: endedBy(err instanceof ApiError ? err.code : "") ?? "ended",
+        });
       }
     })();
     return () => {

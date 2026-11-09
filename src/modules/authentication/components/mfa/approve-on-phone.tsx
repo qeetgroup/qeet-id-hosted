@@ -71,7 +71,8 @@ export function ApproveOnPhone({
           if (err instanceof ApiError && err.code === "mfa.push_pending") continue;
           if (mine !== run.current) return;
           if (err instanceof ApiError && err.code === "mfa.code_invalid") setState("denied");
-          else if (err instanceof ApiError && err.code === "mfa.push_challenge_expired") setState("ended");
+          else if (err instanceof ApiError && err.code === "mfa.push_challenge_expired")
+            setState("ended");
           else {
             setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
             setState("failed");
@@ -154,7 +155,12 @@ export function ApproveOnPhone({
 
   const secondsLeft = expiresAt ? Math.round((expiresAt - now) / 1000) : null;
   return (
-    <HostedPage branding={branding} title={t("mfa.push.title")} description={t("mfa.push.body")} lead={lead}>
+    <HostedPage
+      branding={branding}
+      title={t("mfa.push.title")}
+      description={t("mfa.push.body")}
+      lead={lead}
+    >
       <FormStack>
         <FormAlert title={error} />
         {number !== null && (

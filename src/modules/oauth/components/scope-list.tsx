@@ -3,7 +3,13 @@
 import { Text } from "@qeetrix/react";
 import { useTranslation } from "react-i18next";
 
-import { type Icon, MailIcon, RefreshCwIcon, ShieldCheckIcon, UserRoundIcon } from "@/platform/icons";
+import {
+  type Icon,
+  MailIcon,
+  RefreshCwIcon,
+  ShieldCheckIcon,
+  UserRoundIcon,
+} from "@/platform/icons";
 
 const ICONS: Record<string, Icon> = {
   openid: ShieldCheckIcon,

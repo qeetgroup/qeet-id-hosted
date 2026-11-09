@@ -16,7 +16,13 @@ import { ArrowLeftIcon, MailIcon, RotateCwIcon } from "@/platform/icons";
  * account, so the page never tells who has one. The link opens this site's reset page and, after
  * the reset, goes back to the application the person was signing in to.
  */
-export function ForgotPasswordForm({ returnTo, branding }: { returnTo: string; branding?: Branding }) {
+export function ForgotPasswordForm({
+  returnTo,
+  branding,
+}: {
+  returnTo: string;
+  branding?: Branding;
+}) {
   const { t } = useTranslation("recovery");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);

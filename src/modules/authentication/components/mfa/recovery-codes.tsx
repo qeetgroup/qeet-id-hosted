@@ -76,7 +76,14 @@ export function RecoveryCodes({
           checked={saved}
           onCheckedChange={(checked) => setSaved(checked === true)}
         />
-        <Button type="button" size="lg" fullWidth icon={ArrowRightIcon} disabled={!saved} onClick={onContinue}>
+        <Button
+          type="button"
+          size="lg"
+          fullWidth
+          icon={ArrowRightIcon}
+          disabled={!saved}
+          onClick={onContinue}
+        >
           {t("mfa.codes.continue")}
         </Button>
       </FormStack>

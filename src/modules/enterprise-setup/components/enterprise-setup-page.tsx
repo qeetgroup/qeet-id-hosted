@@ -1,16 +1,16 @@
 "use client";
 
-import { Spinner } from "@qeetrix/ui";
+import { Spinner } from "@qeetrix/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import {
   exchangePortalSession,
   fetchPortalContext,
   type PortalContext,
 } from "@/modules/enterprise-setup/api/admin-portal";
 import { normalizeBranding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
-import { AuthShell } from "@/platform/components/auth-shell";
+import { HostedPage } from "@/platform/components/hosted-page";
 
 import { EnterpriseSetupView } from "./enterprise-setup-view";
 
@@ -19,6 +19,11 @@ type PortalState =
   | { status: "ready"; context: PortalContext }
   | { status: "error" };
 
+/**
+ * Enterprise setup from a one-time link: the token is read from the URL fragment only, the fragment
+ * cleared at once, and the token exchanged exactly once for the server's HttpOnly portal-session
+ * cookie. Without a token (a reload), the page resumes on that cookie.
+ */
 export function EnterpriseSetupPage() {
   const { t } = useTranslation("enterpriseSetup");
   const started = useRef(false);
@@ -45,25 +50,29 @@ export function EnterpriseSetupPage() {
       .catch(() => setState({ status: "error" }));
   }, []);
 
-  const branding = normalizeBranding(state.status === "ready" ? state.context.branding : undefined);
-
+  if (state.status === "ready") {
+    return (
+      <EnterpriseSetupView
+        context={state.context}
+        branding={normalizeBranding(state.context.branding)}
+      />
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <HostedPage
+        single
+        status="warning"
+        title={t("page.unavailable")}
+        description={t("page.unavailableBody")}
+      />
+    );
+  }
   return (
-    <AuthShell branding={branding} wide={state.status === "ready"}>
-      {state.status === "loading" && (
-        <AuthCard title={t("page.opening")} subtitle={t("page.verifying")}>
-          <div className="flex justify-center py-4">
-            <Spinner />
-          </div>
-        </AuthCard>
-      )}
-      {state.status === "error" && (
-        <AuthCard title={t("page.unavailable")} subtitle={t("page.unavailableBody")}>
-          <p className="text-sm text-muted-foreground">{t("page.askForNew")}</p>
-        </AuthCard>
-      )}
-      {state.status === "ready" && (
-        <EnterpriseSetupView context={state.context} branding={branding} />
-      )}
-    </AuthShell>
+    <HostedPage single title={t("page.opening")} description={t("page.verifying")}>
+      <div role="status" className="flex items-center gap-3 py-2">
+        <Spinner size="md" tone="brand" label={t("page.opening")} />
+      </div>
+    </HostedPage>
   );
 }
