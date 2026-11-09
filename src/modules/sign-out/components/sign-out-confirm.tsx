@@ -1,18 +1,23 @@
 "use client";
 
-import { Button } from "@qeetrix/ui";
+import { Button, Text } from "@qeetrix/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { type Account, fetchSignedInAccount } from "@/platform/api/account";
 import { fetchClientContext } from "@/platform/api/login-context";
-import { AuthCard } from "@/platform/components/auth-card";
+import { type Branding, normalizeBranding } from "@/platform/branding/branding";
+import { AccountChip } from "@/platform/components/account-chip";
+import { FormStack } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
 import { getApiBaseUrl } from "@/platform/config/public-config";
 import { goTo } from "@/platform/navigation/go-to";
 
 /**
- * Asks before signing out of Qeet ID, and signs out only when the person
- * confirms: the confirmed request carries the API's ticket back to
- * /v1/oauth/logout, which ends the session and tells the applications.
- * Declining leaves the person signed in.
+ * Asks before signing out of Qeet ID, for a sign-out that came without proof of who signed in, so
+ * a link or an image can't sign anyone out. Only Sign out carries the server's ticket back to
+ * /v1/oauth/logout, which ends the session and tells the applications; Stay signed in changes
+ * nothing.
  */
 export function SignOutConfirm({
   ticket,
@@ -27,14 +32,20 @@ export function SignOutConfirm({
 }) {
   const { t } = useTranslation("signOut");
   const [appName, setAppName] = useState("");
-  const [declined, setDeclined] = useState(false);
+  const [branding, setBranding] = useState<Branding | undefined>();
+  const [account, setAccount] = useState<Account | null>(null);
+  const [stayed, setStayed] = useState(false);
 
   useEffect(() => {
-    if (!clientId) return;
     let live = true;
-    fetchClientContext(clientId).then((ctx) => {
-      if (live) setAppName(ctx.clientName);
-    });
+    void fetchSignedInAccount().then((a) => live && setAccount(a));
+    if (clientId) {
+      void fetchClientContext(clientId).then((ctx) => {
+        if (!live) return;
+        setAppName(ctx.clientName);
+        setBranding(normalizeBranding(ctx.branding));
+      });
+    }
     return () => {
       live = false;
     };
@@ -48,34 +59,40 @@ export function SignOutConfirm({
     goTo(`${getApiBaseUrl()}/v1/oauth/logout?${q.toString()}`);
   }
 
-  if (!ticket) {
+  if (!ticket || stayed) {
+    const key = stayed ? "stayed" : "invalid";
     return (
-      <AuthCard title={t("confirm.invalidTitle")}>
-        <p className="text-muted-foreground text-sm">{t("confirm.invalidBody")}</p>
-      </AuthCard>
+      <HostedPage
+        single
+        status={stayed ? "success" : "warning"}
+        branding={branding}
+        title={t(`confirm.${key}Title`)}
+        description={t(`confirm.${key}Body`)}
+      />
     );
   }
-  if (declined) {
-    return (
-      <AuthCard title={t("confirm.stayedTitle")}>
-        <p className="text-muted-foreground text-sm">{t("confirm.stayedBody")}</p>
-      </AuthCard>
-    );
-  }
+
   return (
-    <AuthCard
+    <HostedPage
+      single
+      branding={branding}
       title={t("confirm.title")}
-      subtitle={appName ? t("confirm.askedBy", { app: appName }) : t("confirm.subtitle")}
+      description={appName ? t("confirm.asked", { app: appName }) : t("confirm.plain")}
+      lead={account ? <AccountChip email={account.email} name={account.name} /> : undefined}
     >
-      <p className="text-muted-foreground text-sm">{t("confirm.body")}</p>
-      <div className="flex gap-3">
-        <Button variant="outline" size="lg" className="flex-1" onClick={() => setDeclined(true)}>
-          {t("confirm.stay")}
-        </Button>
-        <Button size="lg" className="flex-1" onClick={signOut}>
-          {t("confirm.signOut")}
-        </Button>
-      </div>
-    </AuthCard>
+      <FormStack>
+        <Text size="md" render={<p />}>
+          {t("confirm.apps")}
+        </Text>
+        <div className="grid grid-cols-2 gap-3">
+          <Button type="button" variant="soft" size="lg" fullWidth onClick={() => setStayed(true)}>
+            {t("confirm.stay")}
+          </Button>
+          <Button type="button" size="lg" fullWidth onClick={signOut}>
+            {t("confirm.signOut")}
+          </Button>
+        </div>
+      </FormStack>
+    </HostedPage>
   );
 }

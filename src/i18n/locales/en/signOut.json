@@ -1,19 +1,26 @@
 {
-  "title": "You're signed out",
-  "body": "You can close this window.",
-  "signingOut": "Signing you out…",
-  "signingOutBody": "Signing you out of the applications you used.",
+  "busyTitle": "Signing you out…",
+  "busyBody": "Signing you out of the applications you used in this browser.",
+  "doneTitle": "You're signed out",
+  "doneBody": "You're signed out of these applications. You can close this window.",
+  "doneBodyNone": "You can close this window.",
+  "list": "Applications",
+  "rowBusy": "Signing out",
+  "rowDone": "Signed out",
+  "rowBusyLabel": "Signing out of {{app}}",
+  "back": "Back to the application",
+  "again": "Sign in again",
   "frontchannelFrame": "Signing out of an application",
   "confirm": {
-    "title": "Sign out?",
-    "subtitle": "You're about to sign out of your Qeet account.",
-    "askedBy": "{{app}} asked to sign you out of your Qeet account.",
-    "body": "You'll be signed out of the applications you signed in to here.",
-    "signOut": "Sign out",
+    "title": "Sign out of Qeet ID?",
+    "asked": "{{app}} asked to sign you out.",
+    "plain": "You're about to sign out of your Qeet ID account.",
+    "apps": "You'll be signed out of every application you signed in to in this browser.",
     "stay": "Stay signed in",
+    "signOut": "Sign out",
     "stayedTitle": "You're still signed in",
-    "stayedBody": "Nothing was changed. You can close this window.",
-    "invalidTitle": "This sign-out link isn't valid",
-    "invalidBody": "Nothing was changed. To sign out, use the application's sign-out button."
+    "stayedBody": "Nothing changed. You can close this window.",
+    "invalidTitle": "This sign-out link doesn't work",
+    "invalidBody": "Nothing changed. To sign out, use the application's own Sign out button."
   }
 }
