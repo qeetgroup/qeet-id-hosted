@@ -21,13 +21,14 @@ describe("HostedPage", () => {
     expect(screen.getByRole("main")).toBeTruthy();
   });
 
-  it("links the website's legal pages in a new tab, and says so", () => {
+  it("links the website's legal pages in a new tab, with the arrow and the words that say so", () => {
     render(<HostedPage title="Sign in" />);
 
     const legal = screen.getByRole("navigation", { name: "Legal" });
     const terms = legal.querySelector("a[href='https://id.qeet.in/legal/terms']");
     expect(terms?.getAttribute("target")).toBe("_blank");
     expect(terms?.textContent).toContain("(opens in a new tab)");
+    expect(terms?.querySelector("svg.qx-link-icon")).toBeTruthy();
   });
 
   it("puts an organisation's colour on the page, and its logo in place of Qeet ID's", () => {
@@ -48,10 +49,14 @@ describe("HostedPage", () => {
     expect(screen.getByText("Sign-in by")).toBeTruthy();
   });
 
-  it("offers the language and the theme in the footer", async () => {
+  it("offers the language and the theme in the footer, the current one ticked", async () => {
     render(<HostedPage title="Sign in" />);
 
-    expect(screen.getByRole("button", { name: /Language: English/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Language: English/ }));
+    const english = await screen.findByRole("menuitemradio", { name: "English" });
+    expect(english.getAttribute("aria-checked")).toBe("true");
+    expect(english.querySelector(".qx-menu-dot")).toBeNull();
+    fireEvent.keyDown(english, { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "Theme" }));
     fireEvent.click(await screen.findByRole("menuitemradio", { name: /Dark/ }));
     expect(document.documentElement.getAttribute("data-qx-color-scheme")).toBe("dark");

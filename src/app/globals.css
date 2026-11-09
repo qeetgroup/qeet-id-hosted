@@ -75,7 +75,8 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    font-family: var(--qx-font-family-sans);
+    font: var(--qx-typography-body-md);
+    font-variation-settings: "GEOM" var(--qx-typography-body-md-font-geometry);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -157,6 +158,15 @@
       inline-size: 24px;
       block-size: 24px;
     }
+  }
+
+  /*
+   * An external link's arrow sits on the text's line. Tailwind's preflight makes every svg a block,
+   * and Qeetrix's Link sets only the arrow's vertical alignment, so without this the arrow drops
+   * below the word it belongs to.
+   */
+  .qx-link .qx-link-icon {
+    display: inline-block;
   }
 
   /* A page's entrance: a short rise and fade, and none for people who ask for less motion. */

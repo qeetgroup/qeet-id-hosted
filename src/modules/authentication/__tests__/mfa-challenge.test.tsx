@@ -24,7 +24,6 @@ function renderChallenge(factors: LoginFactor[], onVerified = vi.fn(), remember 
       email="ada@example.com"
       rememberDeviceEnabled={remember}
       onVerified={onVerified}
-      onBack={vi.fn()}
     />,
   );
   return onVerified;

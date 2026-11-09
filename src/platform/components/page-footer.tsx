@@ -1,22 +1,13 @@
 "use client";
 
-import {
-  Button,
-  Link,
-  Menu,
-  MenuContent,
-  MenuRadioGroup,
-  MenuRadioItem,
-  MenuTrigger,
-  Text,
-  VisuallyHidden,
-} from "@qeetrix/react";
+import { Menu as BaseMenu } from "@base-ui/react/menu";
+import { Button, Link, Menu, MenuContent, MenuTrigger, Text, VisuallyHidden } from "@qeetrix/react";
 import { ThemeSwitcher } from "@qeetrix/react/experimental";
 import { useTranslation } from "react-i18next";
 
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/i18n";
 import { PRIVACY_URL, SECURITY_URL, TERMS_URL } from "@/platform/config/site-urls";
-import { ChevronDownIcon } from "@/platform/icons";
+import { CheckIcon, ChevronDownIcon } from "@/platform/icons";
 
 import { QeetIdLogo } from "./qeet-id-logo";
 
@@ -26,8 +17,9 @@ function isSupported(lng: string | undefined): lng is SupportedLanguage {
 
 /**
  * The footer every page shares: language and theme on the start side, the website's legal pages
- * on the end side. On a phone it closes the page, ruled off, with the two rows stacked; from a
- * tablet up it sits under the card in one row. A branded page says who runs the sign-in.
+ * on the end side, each opening in a new tab (Qeetrix's external arrow) so the sign-in stays. On a phone it closes the page, ruled off, with the two rows
+ * stacked; from a tablet up it sits under the card in one row. A branded page says who runs the
+ * sign-in.
  */
 export function PageFooter({ branded = false }: { branded?: boolean }) {
   const { t } = useTranslation("common");
@@ -42,7 +34,10 @@ export function PageFooter({ branded = false }: { branded?: boolean }) {
           </Text>
         )}
       </div>
-      <nav aria-label={t("legal.label")} className="flex flex-wrap gap-x-5 gap-y-1">
+      <nav
+        aria-label={t("legal.label")}
+        className="flex flex-wrap gap-x-5 gap-y-1 typography-body-sm"
+      >
         {(
           [
             [TERMS_URL, t("legal.terms")],
@@ -50,14 +45,7 @@ export function PageFooter({ branded = false }: { branded?: boolean }) {
             [SECURITY_URL, t("legal.security")],
           ] as const
         ).map(([href, label]) => (
-          <Link
-            key={href}
-            href={href}
-            tone="subtle"
-            external
-            className="typography-body-sm"
-            messages={{ external: t("newTab") }}
-          >
+          <Link key={href} href={href} tone="subtle" external messages={{ external: t("newTab") }}>
             {label}
           </Link>
         ))}
@@ -66,7 +54,12 @@ export function PageFooter({ branded = false }: { branded?: boolean }) {
   );
 }
 
-/** Every language the pages ship, as a menu; the choice is kept in this browser. */
+/**
+ * Every language the pages ship, as a menu; the choice is kept in this browser. Its options look
+ * like the theme switcher's beside it: the current one marked with a check in the brand colour.
+ * Qeetrix's MenuRadioItem marks it with a dot instead, so the options are composed here from the
+ * same parts the ThemeSwitcher uses.
+ */
 function LanguageMenu() {
   const { t, i18n } = useTranslation("common");
   const current = isSupported(i18n.resolvedLanguage) ? i18n.resolvedLanguage : "en";
@@ -77,19 +70,24 @@ function LanguageMenu() {
       >
         <VisuallyHidden>{t("language")}:</VisuallyHidden> {LANGUAGE_LABELS[current]}
       </MenuTrigger>
-      <MenuContent side="top" align="start">
-        <MenuRadioGroup
+      <MenuContent side="top" align="start" className="min-w-38">
+        <BaseMenu.RadioGroup
           value={current}
           onValueChange={(value: unknown) => {
             if (typeof value === "string" && isSupported(value)) void i18n.changeLanguage(value);
           }}
         >
           {SUPPORTED_LANGUAGES.map((lng) => (
-            <MenuRadioItem key={lng} value={lng}>
-              {LANGUAGE_LABELS[lng]}
-            </MenuRadioItem>
+            <BaseMenu.RadioItem key={lng} value={lng} closeOnClick className="qx-menu-item">
+              <span className="qx-menu-item-label">{LANGUAGE_LABELS[lng]}</span>
+              <span className="qx-menu-mark text-icon-brand">
+                <BaseMenu.RadioItemIndicator className="qx-menu-mark-indicator">
+                  <CheckIcon size={16} />
+                </BaseMenu.RadioItemIndicator>
+              </span>
+            </BaseMenu.RadioItem>
           ))}
-        </MenuRadioGroup>
+        </BaseMenu.RadioGroup>
       </MenuContent>
     </Menu>
   );

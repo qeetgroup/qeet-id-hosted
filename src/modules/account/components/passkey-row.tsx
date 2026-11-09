@@ -4,7 +4,8 @@ import { Button, IconButton, Text, TextField } from "@qeetrix/react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckIcon, KeyRoundIcon, PencilIcon } from "@/platform/icons";
+import { formatDay, formatWhen } from "@/platform/format";
+import { CheckIcon, KeyRoundIcon, PencilIcon, TrashIcon } from "@/platform/icons";
 import { PASSKEY_NAME_MAX_LENGTH, type Passkey } from "@/platform/webauthn/passkeys";
 
 /**
@@ -15,22 +16,19 @@ import { PASSKEY_NAME_MAX_LENGTH, type Passkey } from "@/platform/webauthn/passk
 export function PasskeyRow({
   passkey,
   onRename,
+  onRemove,
   onError,
 }: {
   passkey: Passkey;
   onRename: (passkey: Passkey, name: string) => Promise<void>;
+  onRemove: (passkey: Passkey) => void;
   onError: (err: unknown) => void;
 }) {
   const { t, i18n } = useTranslation("security");
   const [draft, setDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const label = passkey.name?.trim() || t("list.unnamed");
-  const date = (iso: string) =>
-    new Intl.DateTimeFormat(i18n.language, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date(iso));
+  const when = { today: t("common:when.today"), yesterday: t("common:when.yesterday") };
 
   // The server trims and counts characters; offer Save only for a name it accepts.
   const trimmed = draft?.trim() ?? "";
@@ -82,11 +80,11 @@ export function PasskeyRow({
           {label}
         </Text>
         <Text size="sm" tone="subtle" render={<p />}>
-          {t("list.added", { date: date(passkey.created_at) })}
+          {t("list.added", { date: formatDay(passkey.created_at, i18n.language) })}
           <br className="tablet:hidden" />
           <span className="hidden tablet:inline"> · </span>
           {passkey.last_used_at
-            ? t("list.lastUsed", { date: date(passkey.last_used_at) })
+            ? t("list.lastUsed", { date: formatWhen(passkey.last_used_at, i18n.language, when) })
             : t("list.neverUsed")}
         </Text>
       </div>
@@ -97,6 +95,14 @@ export function PasskeyRow({
         aria-label={t("rename.actionFor", { name: label })}
         tooltip={t("rename.action")}
         onClick={() => setDraft(passkey.name ?? "")}
+      />
+      <IconButton
+        variant="ghost"
+        tone="danger"
+        icon={TrashIcon}
+        aria-label={t("remove.actionFor", { name: label })}
+        tooltip={t("remove.action")}
+        onClick={() => onRemove(passkey)}
       />
     </li>
   );

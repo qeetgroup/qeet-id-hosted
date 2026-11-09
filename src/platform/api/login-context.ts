@@ -18,6 +18,20 @@ export type LoginContext = {
   // Which sign-in methods the organisation allows; absent = all of them.
   sign_in_methods?: { password?: boolean; passkey?: boolean; magic_link?: boolean };
   branding?: BrandingDTO;
+  // The organisation's name and the settings its pages say before anyone signs in; absent when
+  // the server can't read them.
+  organization_name?: string;
+  password_policy?: PasswordPolicy;
+  magic_link_ttl_minutes?: number;
+  remember_device_days?: number;
+};
+
+/** The rules the organisation's new passwords must meet; the server checks them again. */
+export type PasswordPolicy = {
+  min_length: number;
+  require_uppercase: boolean;
+  require_number: boolean;
+  require_symbol: boolean;
 };
 
 // A hosted page that has a return_to (the API's /oauth/authorize URL the

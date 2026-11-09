@@ -5,7 +5,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type Account, fetchSignedInAccount } from "@/platform/api/account";
-import { ApiError, apiGet, apiPost } from "@/platform/api/client";
+import { ApiError, apiDelete, apiGet, apiPost } from "@/platform/api/client";
 import { apiErrorMessage } from "@/platform/api/errors";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
@@ -69,6 +69,16 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     setBusy(null);
   }
 
+  // Another account: sign this browser out, then sign in again on the way back to this code.
+  async function changeAccount() {
+    try {
+      await apiDelete("/v1/auth/session");
+    } catch {
+      // Signed out or not, sign-in asks again.
+    }
+    goTo(signInRedirect(code.trim()));
+  }
+
   async function decide(approve: boolean) {
     setError(null);
     setBusy(approve ? "allow" : "deny");
@@ -106,7 +116,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
           <div className="flex items-center gap-3">
             <span
               aria-hidden
-              className="grid size-10 shrink-0 place-items-center rounded-control bg-[#ffffff] text-[#191818] ring-1 ring-border-default"
+              className="grid size-10 shrink-0 place-items-center rounded-control bg-[#ffffff] text-[#1f1f1f] ring-1 ring-border-default"
             >
               <TvMinimalIcon size={24} />
             </span>
@@ -159,7 +169,16 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     <HostedPage
       title={t("title")}
       description={t("body")}
-      lead={account ? <AccountChip email={account.email} name={account.name} /> : undefined}
+      lead={
+        account ? (
+          <AccountChip
+            email={account.email}
+            name={account.name}
+            action={t("change")}
+            onAction={() => void changeAccount()}
+          />
+        ) : undefined
+      }
     >
       <form onSubmit={lookUp}>
         <FormStack>
@@ -167,7 +186,6 @@ export function DeviceForm({ userCode }: { userCode: string }) {
           <TextField
             label={t("code")}
             name="user_code"
-            size="lg"
             autoFocus={!userCode}
             autoComplete="off"
             autoCapitalize="characters"

@@ -13,8 +13,10 @@ import {
 } from "@/modules/authentication/passkey-sign-in";
 import type { LoginFactor, SessionResponse } from "@/modules/authentication/session";
 import { readSocialChallenge } from "@/modules/authentication/social-challenge";
+import { fetchSignedInAccount } from "@/platform/api/account";
 import { apiPost } from "@/platform/api/client";
 import { clientIdFromReturnTo } from "@/platform/api/login-context";
+import type { Organisation } from "@/platform/api/organisation";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { AppLine } from "@/platform/components/app-line";
@@ -46,6 +48,8 @@ export type SignInFormProps = {
   magicLinkEnabled: boolean;
   /** A failed social sign-in sent back as ?error=; empty when there's nothing to say. */
   errorCode: string;
+  /** The organisation's name and settings, from the login context. */
+  organisation?: Organisation;
   branding?: Branding;
 };
 
@@ -73,6 +77,7 @@ function authorizeHints(returnTo: string): { fresh: boolean; hint: string } {
  */
 export function SignInForm(props: SignInFormProps) {
   const { returnTo, tenantId, branding } = props;
+  const org = props.organisation ?? {};
   const { t } = useTranslation("signIn");
   const hints = authorizeHints(returnTo);
   const again = hints.fresh && hints.hint !== "";
@@ -87,6 +92,8 @@ export function SignInForm(props: SignInFormProps) {
     factors: LoginFactor[];
     enrollment: { dueAt?: string } | null;
   } | null>(null);
+  // The person's name, for the account a fresh sign-in is asked of, when this browser knows it.
+  const [name, setName] = useState<string | undefined>();
   // Stops the background passkey ceremony behind the email field; called before any other way.
   const stopAutofill = useRef<() => void>(() => {});
 
@@ -105,6 +112,14 @@ export function SignInForm(props: SignInFormProps) {
     stopAutofill.current = startPasskeyAutofill(continueToApp, (err) => setProblem(problemOf(err)));
     return () => stopAutofill.current();
   }, []);
+
+  useEffect(() => {
+    if (!again) return;
+    void fetchSignedInAccount().then((account) => {
+      if (account?.name && account.email.toLowerCase() === hints.hint.toLowerCase())
+        setName(account.name);
+    });
+  }, [again, hints.hint]);
 
   // Back from a social sign-in that must meet a second step first: the challenge comes in the
   // URL fragment, which is cleared at once, and is then held in memory like any other.
@@ -203,18 +218,14 @@ export function SignInForm(props: SignInFormProps) {
   }
 
   if (step === "mfa" && mfa) {
-    const back = () => {
-      setMfa(null);
-      backToEmail();
-    };
     return mfa.enrollment ? (
       <MfaEnrollment
         mfaToken={mfa.token}
         dueAt={mfa.enrollment.dueAt}
         email={email || undefined}
+        orgName={org.name}
         branding={branding}
         onDone={afterPasswordSignIn}
-        onBack={back}
       />
     ) : (
       <MfaChallenge
@@ -222,9 +233,9 @@ export function SignInForm(props: SignInFormProps) {
         factors={mfa.factors}
         email={email || undefined}
         rememberDeviceEnabled={props.rememberDeviceEnabled}
+        rememberDays={org.rememberDays}
         branding={branding}
         onVerified={afterPasswordSignIn}
-        onBack={back}
       />
     );
   }
@@ -235,6 +246,7 @@ export function SignInForm(props: SignInFormProps) {
         email={email}
         tenantId={tenantId}
         returnTo={returnTo}
+        linkMinutes={org.linkMinutes}
         branding={branding}
         onChangeEmail={backToEmail}
         onUsePassword={props.passwordEnabled ? () => setStep("password") : undefined}
@@ -262,7 +274,7 @@ export function SignInForm(props: SignInFormProps) {
         }
         lead={
           again ? (
-            <AccountChip email={email} />
+            <AccountChip email={email} name={name} />
           ) : (
             <AccountChip email={email} action={t("password.change")} onAction={backToEmail} />
           )
@@ -270,7 +282,8 @@ export function SignInForm(props: SignInFormProps) {
       >
         <PasswordStep
           email={email}
-          forgotHref={forgotHref}
+          forgotHref={again ? undefined : forgotHref}
+          org={org.name}
           problem={problem}
           busy={busy}
           onSubmit={onPassword}
@@ -285,7 +298,11 @@ export function SignInForm(props: SignInFormProps) {
     return (
       <HostedPage single branding={branding} title={t("title")} lead={appLine}>
         <FormAlert tone="info" title={t("none.title")}>
-          {props.clientName ? t("none.body", { client: props.clientName }) : t("none.bodyNoClient")}
+          {props.clientName && org.name
+            ? t("none.bodyOrg", { client: props.clientName, org: org.name })
+            : props.clientName
+              ? t("none.body", { client: props.clientName })
+              : t("none.bodyNoClient")}
         </FormAlert>
       </HostedPage>
     );
@@ -305,6 +322,7 @@ export function SignInForm(props: SignInFormProps) {
         providers={providers}
         signUpHref={props.selfRegistrationEnabled ? `/sign-up${query}` : undefined}
         forgotHref={forgotHref}
+        org={org.name}
         problem={problem}
         passkeyBusy={passkeyBusy}
         onContinue={onContinue}

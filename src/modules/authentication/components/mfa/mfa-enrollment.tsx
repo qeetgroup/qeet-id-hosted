@@ -4,13 +4,13 @@ import { Button, LinkButton, Text } from "@qeetrix/react";
 import { CopyField, OTPInput, QRCode } from "@qeetrix/react/experimental";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
+import { formatDay } from "@/platform/format";
 import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, QrCodeIcon } from "@/platform/icons";
 
 import { RecoveryCodes } from "./recovery-codes";
@@ -33,32 +33,36 @@ export function MfaEnrollment({
   mfaToken,
   dueAt,
   email,
+  orgName,
   branding,
   onDone,
-  onBack,
 }: {
   mfaToken: string;
   dueAt?: string;
   email?: string;
+  /** The organisation that requires the second step, when known. */
+  orgName?: string;
   branding?: Branding;
   onDone: () => void | Promise<void>;
-  onBack?: () => void;
 }) {
   const { t, i18n } = useTranslation("signIn");
   const [app, setApp] = useState<Enrollment | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [wrong, setWrong] = useState(false);
+  const [empty, setEmpty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const codeLabel = useId();
-  const due = dueAt
-    ? new Intl.DateTimeFormat(i18n.language, {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(new Date(dueAt))
-    : null;
+  const due = dueAt ? formatDay(dueAt, i18n.language) : null;
+  const dueShort = dueAt ? formatDay(dueAt, i18n.language, false) : null;
+  const body = due
+    ? orgName
+      ? t("mfa.enroll.dueBodyOrg", { org: orgName, date: due })
+      : t("mfa.enroll.dueBody", { date: due })
+    : orgName
+      ? t("mfa.enroll.requiredBodyOrg", { org: orgName })
+      : t("mfa.enroll.requiredBody");
 
   async function attempt(fn: () => Promise<void>) {
     setError(null);
@@ -115,7 +119,7 @@ export function MfaEnrollment({
         single
         branding={branding}
         title={t("mfa.enroll.title")}
-        description={due ? t("mfa.enroll.dueBody", { date: due }) : t("mfa.enroll.requiredBody")}
+        description={body}
         lead={email ? <AccountChip email={email} /> : undefined}
       >
         <FormStack>
@@ -133,7 +137,7 @@ export function MfaEnrollment({
           >
             {t("mfa.enroll.start")}
           </Button>
-          {due && (
+          {dueShort && (
             <Button
               type="button"
               variant="ghost"
@@ -142,19 +146,7 @@ export function MfaEnrollment({
               disabled={busy}
               onClick={() => void skip()}
             >
-              {t("mfa.enroll.skip", { date: due })}
-            </Button>
-          )}
-          {!due && onBack && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="lg"
-              fullWidth
-              icon={ArrowLeftIcon}
-              onClick={onBack}
-            >
-              {t("mfa.back")}
+              {t("mfa.enroll.skip", { date: dueShort })}
             </Button>
           )}
         </FormStack>
@@ -176,6 +168,7 @@ export function MfaEnrollment({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          setEmpty(code.length < 6);
           if (code.length === 6) void confirm(code);
         }}
       >
@@ -214,23 +207,16 @@ export function MfaEnrollment({
               onValueChange={setCode}
               onValueComplete={(value) => void confirm(value)}
               aria-labelledby={codeLabel}
-              aria-invalid={wrong ? true : undefined}
+              aria-invalid={wrong || empty ? true : undefined}
               className="mt-1.5"
             />
-            {wrong && (
+            {(wrong || empty) && (
               <Text size="sm" className="mt-2 text-text-danger" render={<p role="alert" />}>
-                {t("mfa.enroll.wrong")}
+                {t(wrong ? "mfa.enroll.wrong" : "mfa.enroll.empty")}
               </Text>
             )}
           </div>
-          <Button
-            type="submit"
-            size="lg"
-            fullWidth
-            icon={ArrowRightIcon}
-            loading={busy}
-            disabled={code.length < 6}
-          >
+          <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy}>
             {t("mfa.enroll.confirm")}
           </Button>
           <Button

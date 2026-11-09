@@ -6,7 +6,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { FormStack, TextLink } from "@/platform/components/form-parts";
-import { ArrowRightIcon, KeyRoundIcon, MailIcon } from "@/platform/icons";
+import { ArrowRightIcon, MailIcon } from "@/platform/icons";
 
 import type { Problem } from "../../sign-in-problems";
 import { ProblemAlert } from "./problem-alert";
@@ -19,6 +19,7 @@ import { ProblemAlert } from "./problem-alert";
 export function PasswordStep({
   email,
   forgotHref,
+  org,
   problem,
   busy,
   onSubmit,
@@ -26,7 +27,9 @@ export function PasswordStep({
   onPasskey,
 }: {
   email: string;
-  forgotHref: string;
+  /** Where Forgot password goes; none on a fresh sign-in an application asked for. */
+  forgotHref?: string;
+  org?: string;
   problem: Problem | null;
   busy: boolean;
   onSubmit: (password: string) => void;
@@ -48,7 +51,7 @@ export function PasswordStep({
   return (
     <form onSubmit={submit}>
       <FormStack>
-        <ProblemAlert problem={problem} forgotHref={forgotHref} />
+        <ProblemAlert problem={problem} forgotHref={forgotHref} org={org} />
         <input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
         <Field
           label={t("password.label")}
@@ -59,7 +62,6 @@ export function PasswordStep({
             <PasswordInput
               {...control}
               name="password"
-              size="lg"
               required
               autoFocus
               autoComplete="current-password"
@@ -69,7 +71,7 @@ export function PasswordStep({
             />
           )}
         </Field>
-        <TextLink href={forgotHref}>{t("password.forgot")}</TextLink>
+        {forgotHref && <TextLink href={forgotHref}>{t("password.forgot")}</TextLink>}
         <Button
           type="submit"
           size="lg"
@@ -86,7 +88,6 @@ export function PasswordStep({
             variant="ghost"
             size="lg"
             fullWidth
-            icon={KeyRoundIcon}
             disabled={busy}
             onClick={onPasskey}
           >

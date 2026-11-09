@@ -7,10 +7,12 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError, apiPost } from "@/platform/api/client";
 import { isPasswordRefusal } from "@/platform/api/errors";
+import type { PasswordPolicy } from "@/platform/api/login-context";
 import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
+import { PasswordRules } from "@/platform/components/password-rules";
 import { ArrowRightIcon, CheckIcon, MailIcon } from "@/platform/icons";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
@@ -30,10 +32,13 @@ const LINK_GONE = new Set([
 export function ResetPasswordForm({
   token,
   returnTo,
+  passwordPolicy,
   branding,
 }: {
   token: string;
   returnTo: string;
+  /** The organisation's rules, when the reset started on the way into its application. */
+  passwordPolicy?: PasswordPolicy;
   branding?: Branding;
 }) {
   const { t } = useTranslation("recovery");
@@ -124,6 +129,7 @@ export function ResetPasswordForm({
               />
             )}
           </Field>
+          {passwordPolicy && <PasswordRules policy={passwordPolicy} password={password} />}
           <Field
             label={t("reset.confirm")}
             invalid={mismatch}

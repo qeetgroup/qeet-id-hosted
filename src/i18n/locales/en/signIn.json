@@ -47,7 +47,9 @@
     "again": "Send it again",
     "back": "Back to sign in",
     "resentTitle": "Sent again",
-    "resentBody": "Use the link in the newest email."
+    "resentBody": "Use the link in the newest email.",
+    "bodyMinutes": "We'll email you a link that signs you in once. It works for {{minutes}} minutes.",
+    "sentBodyMinutes": "If {{email}} has an account here, a sign-in link is on its way. It works once, for {{minutes}} minutes."
   },
   "magic": {
     "checkingTitle": "Signing you in…",
@@ -62,7 +64,10 @@
     "missingTitle": "This link is incomplete",
     "missingBody": "Part of the address is missing. Open the link from the email again, rather than copying it.",
     "networkTitle": "You can't sign in from this network",
-    "networkBody": "Your organisation allows sign-in only from its own networks. Connect to one, then open the link again."
+    "networkBody": "Your organisation allows sign-in only from its own networks. Connect to one, then open the link again.",
+    "failedBodyMinutes": "It may have been used already, or it's more than {{minutes}} minutes old. We can send a new one to the same address.",
+    "resentBodyMinutes": "If the address has an account here, check your email. The new link works for {{minutes}} minutes.",
+    "networkBodyOrg": "{{org}} allows sign-in only from its own networks. Connect to one, then open the link again."
   },
   "offer": {
     "title": "Sign in faster next time",
@@ -85,7 +90,8 @@
   "none": {
     "title": "There's no way to sign in here",
     "body": "{{client}} has no sign-in method turned on yet. Tell your organisation's administrator; they can turn one on in the console.",
-    "bodyNoClient": "This application has no sign-in method turned on yet. Tell your organisation's administrator; they can turn one on in the console."
+    "bodyNoClient": "This application has no sign-in method turned on yet. Tell your organisation's administrator; they can turn one on in the console.",
+    "bodyOrg": "{{client}} has no sign-in method turned on yet. Tell {{org}}'s administrator; they can turn one on in the console."
   },
   "problems": {
     "locked": {
@@ -95,11 +101,13 @@
     },
     "inactive": {
       "title": "This account is turned off",
-      "body": "An administrator at your organisation turned it off. Ask them to turn it back on."
+      "body": "An administrator at your organisation turned it off. Ask them to turn it back on.",
+      "bodyOrg": "An administrator at {{org}} turned it off. Ask them to turn it back on."
     },
     "network": {
       "title": "You can't sign in from this network",
-      "body": "Your organisation allows sign-in only from its own networks. Connect to one (at the office, or on the VPN), then try again."
+      "body": "Your organisation allows sign-in only from its own networks. Connect to one (at the office, or on the VPN), then try again.",
+      "bodyOrg": "{{org}} allows sign-in only from its own networks. Connect to one (at the office, or on the VPN), then try again."
     },
     "provider": {
       "title": "That sign-in didn't work",
@@ -166,7 +174,7 @@
         "detail": "If you can't use the others"
       }
     },
-    "sentBody": "We sent a 6-digit code to {{destination}}. It works for 10 minutes.",
+    "sentBody": "We emailed a 6-digit code to {{destination}}. It works for 10 minutes.",
     "resend": "Send another code",
     "resendIn": "Send another code in {{time}}",
     "sendWait": "A code was sent to {{destination}} recently. You can ask for another in {{time}}.",
@@ -215,7 +223,10 @@
       "code": "Code from the app",
       "wrong": "That code didn't match. Check the key was entered exactly, then enter the app's current code.",
       "confirm": "Confirm and continue",
-      "back": "Back"
+      "back": "Back",
+      "requiredBodyOrg": "{{org}} asks for a second step when you sign in. Set up an authenticator app to continue; it takes a minute.",
+      "dueBodyOrg": "{{org}} asks for a second step when you sign in, from {{date}}. Set it up now, or skip until then.",
+      "empty": "Enter the 6-digit code from the app."
     },
     "codes": {
       "title": "Save your recovery codes",
@@ -226,6 +237,10 @@
       "download": "Download",
       "saved": "I've saved these codes somewhere safe",
       "continue": "Continue"
-    }
+    },
+    "rememberDays": "Don't ask again on this device for {{days}} days",
+    "textedBody": "We texted a 6-digit code to {{destination}}. It works for 10 minutes.",
+    "empty": "Enter the 6-digit code.",
+    "emptyRecovery": "Enter one of your recovery codes."
   }
 }

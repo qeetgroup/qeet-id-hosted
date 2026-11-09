@@ -9,15 +9,12 @@ import { useId } from "react";
  */
 export function QeetIdLogo({ size = 26, className }: { size?: number; className?: string }) {
   return (
-    <span
-      className={`inline-flex items-center ${className ?? ""}`}
-      style={{ gap: Math.round(size * 0.385) }}
-    >
+    <span className={`inline-flex items-center ${className ?? ""}`} style={{ gap: size * 0.385 }}>
       <QeetIdMark size={size} />
       <span
         className="font-semibold whitespace-nowrap text-text-default"
         style={{
-          fontSize: Math.round(size * 0.73),
+          fontSize: size * 0.73,
           lineHeight: 1,
           fontVariationSettings: '"GEOM" var(--qx-font-geometry-display)',
         }}

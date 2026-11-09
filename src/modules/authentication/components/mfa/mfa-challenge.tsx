@@ -3,7 +3,6 @@
 import { Button } from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import type { LoginFactor } from "@/modules/authentication/session";
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
@@ -11,6 +10,7 @@ import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
 import { type Choice, ChoiceList } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
+import { formatClock } from "@/platform/format";
 import {
   KeyRoundIcon,
   LockKeyholeIcon,
@@ -42,18 +42,19 @@ export function MfaChallenge({
   factors,
   email,
   rememberDeviceEnabled,
+  rememberDays,
   branding,
   onVerified,
-  onBack,
 }: {
   mfaToken: string;
   factors: LoginFactor[];
   /** The account, when the first step named it. */
   email?: string;
   rememberDeviceEnabled: boolean;
+  /** How long the organisation remembers a device, when known. */
+  rememberDays?: number;
   branding?: Branding;
   onVerified: () => void | Promise<void>;
-  onBack: () => void;
 }) {
   const { t } = useTranslation("signIn");
   // An older server lists no factors: an authenticator app and recovery codes, then.
@@ -232,9 +233,6 @@ export function MfaChallenge({
         <div className="flex flex-col gap-5">
           <FormAlert title={error} />
           <ChoiceList label={t("mfa.waysLabel")} items={items} />
-          <Button type="button" variant="ghost" size="lg" fullWidth onClick={onBack}>
-            {t("mfa.back")}
-          </Button>
         </div>
       </HostedPage>
     );
@@ -244,7 +242,9 @@ export function MfaChallenge({
     mode.kind === "recovery"
       ? t("mfa.recoveryBody")
       : mode.kind === "sent"
-        ? t("mfa.sentBody", { destination: mode.factor.destination })
+        ? t(mode.factor.type === "sms" ? "mfa.textedBody" : "mfa.sentBody", {
+            destination: mode.factor.destination,
+          })
         : t("mfa.appBody");
   const sentFactor = mode.kind === "sent" ? mode.factor : null;
   const left = sentFactor ? secondsLeft(sentFactor) : 0;
@@ -259,6 +259,7 @@ export function MfaChallenge({
           wrong={wrong}
           busy={busy}
           rememberEnabled={rememberDeviceEnabled}
+          rememberDays={rememberDays}
           remember={remember}
           onRemember={setRemember}
           onVerify={(code) => void verify(code)}
@@ -272,7 +273,7 @@ export function MfaChallenge({
               disabled={busy || left > 0}
               onClick={() => void sendCode(sentFactor)}
             >
-              {left > 0 ? t("mfa.resendIn", { time: waitText(left) }) : t("mfa.resend")}
+              {left > 0 ? t("mfa.resendIn", { time: formatClock(left) }) : t("mfa.resend")}
             </Button>
           )}
           <Button

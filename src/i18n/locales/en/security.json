@@ -62,5 +62,18 @@
     "invalidName": "Use a name of 1 to 64 characters.",
     "refused": "The request was refused. Reload the page and try again.",
     "load": "We couldn't load your passkeys. Please try again."
+  },
+  "remove": {
+    "action": "Remove",
+    "actionFor": "Remove {{name}}",
+    "title": "Remove “{{name}}”?",
+    "body": "You won't be able to sign in with it any more. Delete it from the device's password manager too.",
+    "cancel": "Cancel",
+    "confirm": "Remove passkey",
+    "busy": "Removing…",
+    "removed": "Passkey removed.",
+    "stepUpTitle": "Sign in again to remove a passkey",
+    "stepUpBody": "For your security, removing one needs a recent sign-in.",
+    "stepUpAction": "Sign in"
   }
 }

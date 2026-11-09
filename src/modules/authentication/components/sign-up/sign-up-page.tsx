@@ -1,3 +1,4 @@
+import { organisationOf } from "@/platform/api/organisation";
 import { getLoginContext } from "@/platform/api/server";
 import { normalizeBranding } from "@/platform/branding/branding";
 
@@ -15,6 +16,7 @@ export async function SignUpPage({ returnTo }: { returnTo: string }) {
       clientLogoUri={ctx.logo_uri}
       tenantId={ctx.tenant_id ?? ""}
       selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
+      organisation={organisationOf(ctx)}
       branding={normalizeBranding(ctx.branding)}
     />
   );

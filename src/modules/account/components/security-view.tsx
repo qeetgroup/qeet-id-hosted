@@ -19,10 +19,12 @@ import {
   type PasskeyList,
   passkeyErrorKey,
   passkeysSupported,
+  removePasskey,
   renamePasskey,
 } from "@/platform/webauthn/passkeys";
 
 import { PasskeyRow } from "./passkey-row";
+import { RemovePasskeyDialog } from "./remove-passkey-dialog";
 
 type State =
   | { status: "loading" }
@@ -46,6 +48,9 @@ export function SecurityView() {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [renamed, setRenamed] = useState(false);
+  const [removing, setRemoving] = useState<Passkey | null>(null);
+  const [removed, setRemoved] = useState(false);
+  const [stepUp, setStepUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -109,6 +114,34 @@ export function SecurityView() {
     setRenamed(true);
   }
 
+  // Removes a passkey once confirmed. A sign-in too old for the organisation's step-up window is
+  // asked to sign in again; any other refusal stays in the dialog with its reason.
+  async function onRemove(passkey: Passkey): Promise<string | null> {
+    try {
+      await removePasskey(passkey.id);
+      setRemoving(null);
+      setRemoved(true);
+      setState((s) =>
+        s.status === "ready"
+          ? { ...s, list: { ...s.list, items: s.list.items.filter((p) => p.id !== passkey.id) } }
+          : s,
+      );
+      return null;
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "step_up_required") {
+        setRemoving(null);
+        setStepUp(true);
+        return null;
+      }
+      if (err instanceof ApiError && err.status === 401) {
+        setRemoving(null);
+        setState({ status: "signedOut" });
+        return null;
+      }
+      return err instanceof ApiError ? err.message : t("errors.generic");
+    }
+  }
+
   // Signs this browser out of the hosted login, then out of each application on the signed-out page.
   async function signOut() {
     try {
@@ -158,6 +191,20 @@ export function SecurityView() {
       <div className="flex flex-col gap-6">
         <FormAlert title={error} />
         {renamed && <FormAlert tone="success" title={t("rename.saved")} />}
+        {removed && <FormAlert tone="success" title={t("remove.removed")} />}
+        {stepUp && (
+          <FormAlert
+            tone="warning"
+            title={t("remove.stepUpTitle")}
+            actions={
+              <LinkButton size="sm" variant="soft" href="/sign-in">
+                {t("remove.stepUpAction")}
+              </LinkButton>
+            }
+          >
+            {t("remove.stepUpBody")}
+          </FormAlert>
+        )}
         {added && (
           <FormAlert tone="success" title={t("add.addedTitle")}>
             {t("add.addedBody")}
@@ -197,7 +244,17 @@ export function SecurityView() {
             className="divide-y divide-border-subtle rounded-surface border border-border-default bg-surface-raised"
           >
             {state.list.items.map((p) => (
-              <PasskeyRow key={p.id} passkey={p} onRename={onRename} onError={fail} />
+              <PasskeyRow
+                key={p.id}
+                passkey={p}
+                onRename={onRename}
+                onRemove={(passkey) => {
+                  setRemoved(false);
+                  setStepUp(false);
+                  setRemoving(passkey);
+                }}
+                onError={fail}
+              />
             ))}
           </ul>
         )}
@@ -239,6 +296,13 @@ export function SecurityView() {
             </Card>
           ))}
       </div>
+      {removing && (
+        <RemovePasskeyDialog
+          name={removing.name?.trim() || t("list.unnamed")}
+          onRemove={() => onRemove(removing)}
+          onClose={() => setRemoving(null)}
+        />
+      )}
     </HostedPage>
   );
 }

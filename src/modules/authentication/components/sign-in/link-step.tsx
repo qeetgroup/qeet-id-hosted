@@ -24,6 +24,7 @@ export function LinkStep({
   email,
   tenantId,
   returnTo,
+  linkMinutes,
   branding,
   onChangeEmail,
   onUsePassword,
@@ -32,6 +33,8 @@ export function LinkStep({
   email: string;
   tenantId: string;
   returnTo: string;
+  /** How long the organisation's links work, when known. */
+  linkMinutes?: number;
   branding?: Branding;
   onChangeEmail: () => void;
   /** Back to the password, when the organisation allows passwords. */
@@ -68,7 +71,11 @@ export function LinkStep({
         status="success"
         branding={branding}
         title={t("link.sentTitle")}
-        description={t("link.sentBody", { email })}
+        description={
+          linkMinutes
+            ? t("link.sentBodyMinutes", { email, minutes: linkMinutes })
+            : t("link.sentBody", { email })
+        }
       >
         <FormStack>
           <ProblemAlert problem={problem} />
@@ -114,7 +121,7 @@ export function LinkStep({
       single
       branding={branding}
       title={t("link.title")}
-      description={t("link.body")}
+      description={linkMinutes ? t("link.bodyMinutes", { minutes: linkMinutes }) : t("link.body")}
       lead={<AccountChip email={email} action={t("password.change")} onAction={onChangeEmail} />}
     >
       <FormStack>

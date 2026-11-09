@@ -14,9 +14,12 @@ import type { Problem } from "../../sign-in-problems";
 export function ProblemAlert({
   problem,
   forgotHref,
+  org,
   className,
 }: {
   problem: Problem | null;
+  /** The organisation's name, for the refusals that say whose rule it is. */
+  org?: string;
   /** Where Reset password goes, for a paused account. */
   forgotHref?: string;
   className?: string;
@@ -40,7 +43,9 @@ export function ProblemAlert({
         ) : undefined
       }
     >
-      {t(`problems.${problem.kind}.body`)}
+      {org && (problem.kind === "inactive" || problem.kind === "network")
+        ? t(`problems.${problem.kind}.bodyOrg`, { org })
+        : t(`problems.${problem.kind}.body`)}
     </FormAlert>
   );
 }

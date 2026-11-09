@@ -18,6 +18,7 @@ export function CodeStep({
   wrong,
   busy,
   rememberEnabled,
+  rememberDays,
   remember,
   onRemember,
   onVerify,
@@ -28,6 +29,8 @@ export function CodeStep({
   wrong: string | null;
   busy: boolean;
   rememberEnabled: boolean;
+  /** How long the organisation remembers a device, when known. */
+  rememberDays?: number;
   remember: boolean;
   onRemember: (remember: boolean) => void;
   onVerify: (code: string) => void;
@@ -36,10 +39,13 @@ export function CodeStep({
 }) {
   const { t } = useTranslation("signIn");
   const [code, setCode] = useState("");
+  const [empty, setEmpty] = useState(false);
   const labelId = useId();
+  const message = empty ? t(kind === "recovery" ? "mfa.emptyRecovery" : "mfa.empty") : wrong;
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setEmpty(!code.trim());
     if (code.trim()) onVerify(code.trim());
   }
 
@@ -49,15 +55,14 @@ export function CodeStep({
         {kind === "recovery" ? (
           <TextField
             label={t("mfa.recoveryLabel")}
-            size="lg"
             required
             autoFocus
             autoComplete="off"
             spellCheck={false}
             placeholder={t("mfa.recoveryHint")}
             description={t("mfa.recoveryHelp")}
-            invalid={Boolean(wrong)}
-            error={wrong ?? undefined}
+            invalid={Boolean(message)}
+            error={message ?? undefined}
             value={code}
             onChange={(e) => setCode(e.currentTarget.value)}
           />
@@ -77,31 +82,24 @@ export function CodeStep({
               onValueChange={setCode}
               onValueComplete={(value) => onVerify(value)}
               aria-labelledby={labelId}
-              aria-invalid={wrong ? true : undefined}
+              aria-invalid={message ? true : undefined}
               className="mt-1.5"
             />
-            {wrong && (
+            {message && (
               <Text size="sm" className="mt-2 text-text-danger" render={<p role="alert" />}>
-                {wrong}
+                {message}
               </Text>
             )}
           </div>
         )}
         {rememberEnabled && (
           <Checkbox
-            label={t("mfa.remember")}
+            label={rememberDays ? t("mfa.rememberDays", { days: rememberDays }) : t("mfa.remember")}
             checked={remember}
             onCheckedChange={(checked) => onRemember(checked === true)}
           />
         )}
-        <Button
-          type="submit"
-          size="lg"
-          fullWidth
-          icon={ArrowRightIcon}
-          loading={busy}
-          disabled={code.trim().length === 0}
-        >
+        <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy}>
           {busy ? t("mfa.verifying") : t("mfa.verify")}
         </Button>
         {children}

@@ -8,11 +8,13 @@ import { useTranslation } from "react-i18next";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
 import { ApiError, apiPost } from "@/platform/api/client";
 import { isAddressRefusal, isPasswordRefusal } from "@/platform/api/errors";
+import type { Organisation } from "@/platform/api/organisation";
 import type { Branding } from "@/platform/branding/branding";
 import { AppLine } from "@/platform/components/app-line";
 import { FormAlert } from "@/platform/components/form-alert";
 import { AsideLine, FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
+import { PasswordRules } from "@/platform/components/password-rules";
 import { ArrowRightIcon, KeyRoundIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
@@ -23,6 +25,7 @@ type SignUpFormProps = {
   clientLogoUri?: string;
   tenantId: string;
   selfRegistrationEnabled: boolean;
+  organisation?: Organisation;
   branding?: Branding;
 };
 
@@ -38,6 +41,7 @@ export function SignUpForm({
   clientLogoUri,
   tenantId,
   selfRegistrationEnabled,
+  organisation,
   branding,
 }: SignUpFormProps) {
   const { t } = useTranslation("signUp");
@@ -150,6 +154,7 @@ export function SignUpForm({
         mfaToken={enrollment.token}
         dueAt={enrollment.dueAt}
         email={email}
+        orgName={organisation?.name}
         branding={branding}
         onDone={continueToApp}
       />
@@ -161,7 +166,11 @@ export function SignUpForm({
       <HostedPage single branding={branding} title={t("title")} lead={lead}>
         <FormStack>
           <FormAlert tone="info" title={t("closedTitle")}>
-            {clientName ? t("closedBody", { client: clientName }) : t("closedBodyNoClient")}
+            {clientName && organisation?.name
+              ? t("closedBodyOrg", { client: clientName, org: organisation.name })
+              : clientName
+                ? t("closedBody", { client: clientName })
+                : t("closedBodyNoClient")}
           </FormAlert>
           {signIn}
         </FormStack>
@@ -212,6 +221,9 @@ export function SignUpForm({
                   />
                 )}
               </Field>
+              {organisation?.passwordPolicy && (
+                <PasswordRules policy={organisation.passwordPolicy} password={password} />
+              )}
               <Field
                 label={t("fields.confirm")}
                 invalid={mismatch}

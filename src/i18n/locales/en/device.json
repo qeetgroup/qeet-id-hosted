@@ -17,5 +17,6 @@
   "allowedTitle": "Device connected",
   "allowedBody": "Go back to {{device}}: it's signing in now. You can close this window.",
   "deniedTitle": "Device not connected",
-  "deniedBody": "Nothing was shared with it. You can close this window."
+  "deniedBody": "Nothing was shared with it. You can close this window.",
+  "change": "Change"
 }

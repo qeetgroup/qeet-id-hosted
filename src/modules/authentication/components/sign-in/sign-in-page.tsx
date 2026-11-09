@@ -1,3 +1,4 @@
+import { organisationOf } from "@/platform/api/organisation";
 import { getLoginContext } from "@/platform/api/server";
 import { normalizeBranding } from "@/platform/branding/branding";
 
@@ -20,6 +21,7 @@ export async function SignInPage({ returnTo, errorCode }: { returnTo: string; er
       passkeyEnabled={ctx.sign_in_methods?.passkey ?? true}
       magicLinkEnabled={ctx.sign_in_methods?.magic_link ?? false}
       errorCode={errorCode}
+      organisation={organisationOf(ctx)}
       branding={normalizeBranding(ctx.branding)}
     />
   );

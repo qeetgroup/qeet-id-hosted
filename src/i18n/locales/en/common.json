@@ -41,8 +41,22 @@
     "security": "Security"
   },
   "signInBy": "Sign-in by",
-  "newTab": "(opens in a new tab)",
   "app": {
     "continueTo": "to continue to"
-  }
+  },
+  "newTab": "(opens in a new tab)",
+  "passwordRules": {
+    "label": "Password rules",
+    "length": "At least {{count}} characters",
+    "uppercase": "An uppercase letter",
+    "number": "A number",
+    "symbol": "A symbol",
+    "met": " (met)",
+    "notMet": " (not met yet)"
+  },
+  "when": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "yourOrganisation": "your organisation"
 }

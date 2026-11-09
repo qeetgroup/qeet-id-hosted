@@ -25,5 +25,6 @@
   "failedBody": "The window was closed, or this browser can't make one. Try again, or use a password.",
   "closedTitle": "Sign-up is by invitation",
   "closedBody": "Your organisation adds people to {{client}} itself. Ask your administrator for an invitation; it comes by email.",
-  "closedBodyNoClient": "Your organisation adds people itself. Ask your administrator for an invitation; it comes by email."
+  "closedBodyNoClient": "Your organisation adds people itself. Ask your administrator for an invitation; it comes by email.",
+  "closedBodyOrg": "{{org}} adds people to {{client}} itself. Ask your administrator for an invitation; it comes by email."
 }

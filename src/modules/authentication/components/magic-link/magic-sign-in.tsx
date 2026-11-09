@@ -43,7 +43,17 @@ type State = "checking" | "failed" | "resent" | "missing" | "network";
  * on (there is no success page), or says why it can't. A used or expired link gets one answer, as
  * the server doesn't say which, and a new one can be sent to the same address from here.
  */
-export function MagicSignIn({ token, branding }: { token: string; branding?: Branding }) {
+export function MagicSignIn({
+  token,
+  linkMinutes,
+  orgName,
+  branding,
+}: {
+  token: string;
+  linkMinutes?: number;
+  orgName?: string;
+  branding?: Branding;
+}) {
   const { t } = useTranslation("signIn");
   const [state, setState] = useState<State>(token ? "checking" : "missing");
   const [resending, setResending] = useState(false);
@@ -105,11 +115,6 @@ export function MagicSignIn({ token, branding }: { token: string; branding?: Bra
         rememberDeviceEnabled={false}
         branding={branding}
         onVerified={continueJourney}
-        onBack={() =>
-          goTo(
-            `/sign-in${challenge.returnTo ? `?return_to=${encodeURIComponent(challenge.returnTo)}` : ""}`,
-          )
-        }
       />
     );
   }
@@ -145,7 +150,11 @@ export function MagicSignIn({ token, branding }: { token: string; branding?: Bra
         status="danger"
         branding={branding}
         title={t("magic.failedTitle")}
-        description={t("magic.failedBody")}
+        description={
+          linkMinutes
+            ? t("magic.failedBodyMinutes", { minutes: linkMinutes })
+            : t("magic.failedBody")
+        }
       >
         <FormStack>
           <FormAlert title={resendError} />
@@ -172,7 +181,11 @@ export function MagicSignIn({ token, branding }: { token: string; branding?: Bra
         status="success"
         branding={branding}
         title={t("magic.resentTitle")}
-        description={t("magic.resentBody")}
+        description={
+          linkMinutes
+            ? t("magic.resentBodyMinutes", { minutes: linkMinutes })
+            : t("magic.resentBody")
+        }
       >
         {other}
       </HostedPage>
@@ -185,7 +198,13 @@ export function MagicSignIn({ token, branding }: { token: string; branding?: Bra
       status="warning"
       branding={branding}
       title={t(state === "network" ? "magic.networkTitle" : "magic.missingTitle")}
-      description={t(state === "network" ? "magic.networkBody" : "magic.missingBody")}
+      description={
+        state === "network"
+          ? orgName
+            ? t("magic.networkBodyOrg", { org: orgName })
+            : t("magic.networkBody")
+          : t("magic.missingBody")
+      }
     >
       {other}
     </HostedPage>

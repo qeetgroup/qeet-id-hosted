@@ -19,6 +19,7 @@ export type EmailStepProps = {
   providers: string[];
   signUpHref?: string;
   forgotHref: string;
+  org?: string;
   problem: Problem | null;
   passkeyBusy: boolean;
   onContinue: (email: string) => void;
@@ -42,14 +43,18 @@ export function EmailStep(props: EmailStepProps) {
 
   return (
     <div>
-      <ProblemAlert problem={props.problem} forgotHref={props.forgotHref} className="mb-6" />
+      <ProblemAlert
+        problem={props.problem}
+        forgotHref={props.forgotHref}
+        org={props.org}
+        className="mb-6"
+      />
       {props.emailEnabled && (
         <form onSubmit={onSubmit}>
           <TextField
             label={t("email.label")}
             name="username"
             type="email"
-            size="lg"
             required
             autoFocus
             placeholder={t("email.placeholder")}

@@ -98,7 +98,6 @@ export function ForgotPasswordForm({
             label={t("forgot.label")}
             name="email"
             type="email"
-            size="lg"
             required
             autoFocus
             autoComplete="email"
