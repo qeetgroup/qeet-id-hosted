@@ -1,152 +1,141 @@
 "use client";
 
-import { ChevronRightIcon, FingerprintPatternIcon, MailIcon } from "@qeetrix/icons";
-import { Button } from "@qeetrix/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challenge";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
 import { startPasskeyAutofill } from "@/modules/authentication/passkey-autofill";
+import {
+  NoPasskeySelectedError,
+  PasskeyUnsupportedError,
+  signInWithPasskey,
+} from "@/modules/authentication/passkey-sign-in";
 import type { LoginFactor, SessionResponse } from "@/modules/authentication/session";
 import { readSocialChallenge } from "@/modules/authentication/social-challenge";
 import { apiPost } from "@/platform/api/client";
-import { ADDRESS_NOT_ALLOWED_REDIRECT, apiErrorMessage } from "@/platform/api/errors";
 import { clientIdFromReturnTo } from "@/platform/api/login-context";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
+import { AccountChip } from "@/platform/components/account-chip";
+import { AppLine } from "@/platform/components/app-line";
 import { FormAlert } from "@/platform/components/form-alert";
-import { IconInput } from "@/platform/components/icon-input";
-import { IconPasswordInput } from "@/platform/components/icon-password-input";
+import { HostedPage } from "@/platform/components/hosted-page";
 import { getApiBaseUrl } from "@/platform/config/public-config";
 import { goTo } from "@/platform/navigation/go-to";
 import { returnsToDevice, safeReturnTo } from "@/platform/navigation/return-to";
 import { shouldOfferPasskey } from "@/platform/webauthn/passkeys";
-import { ClientIdentity } from "./client-identity";
-import { MagicLinkRequest } from "./magic-link-request";
-import { OrDivider } from "./or-divider";
-import { PasskeyPrompt } from "./passkey-prompt";
-import { SocialProviders } from "./social-providers";
 
-type SignInFormProps = {
+import { type Problem, problemOf, problemOfRedirect } from "../../sign-in-problems";
+import { EmailStep } from "./email-step";
+import { LinkStep } from "./link-step";
+import { PasskeyOffer } from "./passkey-offer";
+import { PasswordStep } from "./password-step";
+
+export type SignInFormProps = {
   returnTo: string;
   clientName: string;
-  // The application's logo and home page, when its registration has them.
   clientLogoUri?: string;
-  clientUri?: string;
   tenantId: string;
   providers: string[];
   selfRegistrationEnabled: boolean;
-  // rememberDeviceEnabled gates the "remember this device" option on the MFA
-  // step (adaptive MFA); true only when the tenant has opted in.
+  /** Offers "remember this device" on the second step; only when the organisation opted in. */
   rememberDeviceEnabled: boolean;
-  // passwordEnabled / passkeyEnabled: whether the organisation allows each
-  // method; a method it has switched off is not offered (and is refused by the
-  // server anyway).
+  /** The ways the organisation allows; one it turned off is not offered (and the server refuses it). */
   passwordEnabled: boolean;
   passkeyEnabled: boolean;
-  // magicLinkEnabled offers "email me a sign-in link"; true only when the
-  // organisation allows magic links.
   magicLinkEnabled: boolean;
-  // errorCode seeds the error banner from a redirect (e.g. a failed social
-  // ceremony bounced back as ?error=social); empty when there's nothing to show.
+  /** A failed social sign-in sent back as ?error=; empty when there's nothing to say. */
   errorCode: string;
   branding?: Branding;
 };
 
-export function SignInForm({
-  returnTo,
-  clientName,
-  clientLogoUri,
-  clientUri,
-  tenantId,
-  providers,
-  selfRegistrationEnabled,
-  rememberDeviceEnabled,
-  passwordEnabled,
-  passkeyEnabled,
-  magicLinkEnabled,
-  errorCode,
-  branding,
-}: SignInFormProps) {
+type Step = "email" | "password" | "link" | "mfa" | "offer";
+
+// What the application asked for in its authorize request: a fresh sign-in (prompt=login), and
+// the account to sign in (login_hint).
+function authorizeHints(returnTo: string): { fresh: boolean; hint: string } {
+  try {
+    const q = new URL(returnTo).searchParams;
+    return { fresh: (q.get("prompt") ?? "").split(" ").includes("login"), hint: q.get("login_hint") ?? "" };
+  } catch {
+    return { fresh: false, hint: "" };
+  }
+}
+
+/**
+ * Sign in, as the mockups draw it: the email first, then the way the organisation allows (a
+ * password, a sign-in link), or a passkey or social account straight away; then the second step
+ * when the account has one, and once, after a password, the offer of a passkey. Every way on goes
+ * through safeReturnTo; without an application to return to, to the passkeys page.
+ */
+export function SignInForm(props: SignInFormProps) {
+  const { returnTo, tenantId, branding } = props;
   const { t } = useTranslation("signIn");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(() => {
-    if (!errorCode) return null;
-    // A social sign-in the organisation's address rules refused: the shared
-    // network message, not a provider failure with advice to try another way.
-    if (errorCode === ADDRESS_NOT_ALLOWED_REDIRECT) return t("common:errors.addressNotAllowed");
-    return t(`errors.${errorCode}`, { defaultValue: t("common:errors.generic") });
-  });
-  const [loading, setLoading] = useState(false);
+  const hints = authorizeHints(returnTo);
+  const again = hints.fresh && hints.hint !== "";
+  const [step, setStep] = useState<Step>(again ? "password" : "email");
+  const [email, setEmail] = useState(hints.hint);
+  const [problem, setProblem] = useState<Problem | null>(() => problemOfRedirect(props.errorCode));
+  const [busy, setBusy] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
-  // The pending MFA challenge token is held only in memory (never the URL) and,
-  // when set, swaps the credential form for the second-factor step.
-  const [mfaToken, setMfaToken] = useState<string | null>(null);
-  const [mfaFactors, setMfaFactors] = useState<LoginFactor[]>([]);
-  // Set for an enrolment challenge: the setup step replaces the factor step.
-  const [enrollment, setEnrollment] = useState<{ dueAt?: string } | null>(null);
-  // Set after a password sign-in to offer adding a passkey before continuing.
-  const [offerPasskey, setOfferPasskey] = useState(false);
-  // Asking for a one-time sign-in link instead of using a password.
-  const [magicLink, setMagicLink] = useState(false);
-  // Stops the background passkey ceremony behind the email field's
-  // suggestions; called before signing in any other way.
+  // The pending second-step challenge: held in memory only, never in the URL or storage.
+  const [mfa, setMfa] = useState<{
+    token: string;
+    factors: LoginFactor[];
+    enrollment: { dueAt?: string } | null;
+  } | null>(null);
+  // Stops the background passkey ceremony behind the email field; called before any other way.
   const stopAutofill = useRef<() => void>(() => {});
 
-  // Offer the user's passkeys in the browser's own prompt as the form loads.
-  // Signing in that way skips the "add a passkey" offer — they have one.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: started once per form load
+  const emailEnabled = props.passwordEnabled || (props.magicLinkEnabled && tenantId !== "");
+  const providers = tenantId !== "" && returnTo !== "" ? props.providers : [];
+  const query = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : "";
+  const forgotHref = `/forgot-password${query}`;
+
+  function continueToApp() {
+    goTo(safeReturnTo(returnTo) ?? "/security");
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: started once per page load
   useEffect(() => {
-    if (!passkeyEnabled) return;
-    stopAutofill.current = startPasskeyAutofill(
-      () => {
-        goTo(safeReturnTo(returnTo) ?? "/security");
-      },
-      (err) => setError(apiErrorMessage(err, t, t("errors.passkeyFailed"))),
-    );
+    if (!props.passkeyEnabled) return;
+    stopAutofill.current = startPasskeyAutofill(continueToApp, (err) => setProblem(problemOf(err)));
     return () => stopAutofill.current();
   }, []);
 
-  // Back from a social sign-in that must meet a second factor first: take the
-  // challenge from the URL fragment into memory, clear the fragment, and go
-  // straight to the second-factor step (or the setup of one). After the
-  // autofill effect, so the passkey prompt it started is stopped.
+  // Back from a social sign-in that must meet a second step first: the challenge comes in the
+  // URL fragment, which is cleared at once, and is then held in memory like any other.
   useEffect(() => {
     const challenge = readSocialChallenge(window.location.hash);
     if (!challenge) return;
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
     stopAutofill.current();
-    setMfaFactors(challenge.factors);
-    setEnrollment(challenge.enrollment);
-    setMfaToken(challenge.mfaToken);
+    setMfa({ token: challenge.mfaToken, factors: challenge.factors, enrollment: challenge.enrollment });
+    setStep("mfa");
   }, []);
 
-  // Back to the application; with none to return to, on to the signed-in
-  // security page (where the user can add a passkey).
-  function continueToApp() {
-    goTo(safeReturnTo(returnTo) ?? "/security");
-  }
-
-  // After a password sign-in (with or without a second factor), offer a passkey
-  // when the user could add one and has none; otherwise continue as before.
-  // Without an application to return to, the security page offers it instead.
+  // After a password or a second step: offer a passkey once, when the person could add one and
+  // has none; otherwise on to the application.
   async function afterPasswordSignIn() {
     if (safeReturnTo(returnTo) && (await shouldOfferPasskey())) {
-      setOfferPasskey(true);
+      setStep("offer");
       return;
     }
     continueToApp();
   }
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  function onContinue(address: string) {
     stopAutofill.current();
-    setError(null);
-    setLoading(true);
+    setProblem(null);
+    setEmail(address);
+    setStep(props.passwordEnabled ? "password" : "link");
+  }
+
+  async function onPassword(password: string) {
+    setProblem(null);
+    setBusy(true);
     try {
-      // Name the app being signed in to, so the sign-in lockout of the
-      // organisation that owns it applies (the platform default without one).
+      // Naming the application applies its organisation's lockout (the platform's without one).
       const clientId = clientIdFromReturnTo(returnTo);
       const res = await apiPost<SessionResponse>("/v1/auth/session", {
         email,
@@ -154,258 +143,167 @@ export function SignInForm({
         ...(clientId ? { client_id: clientId } : {}),
       });
       if (res.mfa_required && res.mfa_token) {
-        setMfaFactors(res.factors ?? []);
-        setEnrollment(res.enrollment_required ? { dueAt: res.enrollment_due_at } : null);
-        setMfaToken(res.mfa_token);
-        setLoading(false);
+        setMfa({
+          token: res.mfa_token,
+          factors: res.factors ?? [],
+          enrollment: res.enrollment_required ? { dueAt: res.enrollment_due_at } : null,
+        });
+        setStep("mfa");
+        setBusy(false);
         return;
       }
       await afterPasswordSignIn();
     } catch (err) {
-      setError(apiErrorMessage(err, t, t("common:errors.generic")));
-      setLoading(false);
+      setProblem(problemOf(err));
+      setBusy(false);
     }
   }
 
-  if (offerPasskey) {
-    return <PasskeyPrompt branding={branding} onContinue={continueToApp} />;
+  async function onPasskey() {
+    stopAutofill.current();
+    setProblem(null);
+    setPasskeyBusy(true);
+    try {
+      await signInWithPasskey();
+      continueToApp();
+    } catch (err) {
+      setProblem(
+        err instanceof PasskeyUnsupportedError
+          ? { kind: "passkeyUnsupported" }
+          : err instanceof NoPasskeySelectedError || err instanceof DOMException
+            ? { kind: "passkey" }
+            : problemOf(err),
+      );
+      setPasskeyBusy(false);
+    }
   }
 
-  if (magicLink) {
-    return (
-      <AuthCard
-        branding={branding}
-        context={
-          clientName ? (
-            <ClientIdentity name={clientName} logoUri={clientLogoUri} uri={clientUri} />
-          ) : null
-        }
-        title={t("title")}
-        subtitle={t("magic.hint")}
-      >
-        <MagicLinkRequest
-          tenantId={tenantId}
-          returnTo={returnTo}
-          initialEmail={email}
-          onBack={() => setMagicLink(false)}
-        />
-      </AuthCard>
-    );
-  }
-
-  if (mfaToken && enrollment) {
-    return (
-      <MfaEnrollment
-        mfaToken={mfaToken}
-        dueAt={enrollment.dueAt}
-        branding={branding}
-        onDone={afterPasswordSignIn}
-        onBack={() => {
-          setMfaToken(null);
-          setEnrollment(null);
-          setError(null);
-        }}
-      />
-    );
-  }
-
-  if (mfaToken) {
-    return (
-      <MfaChallenge
-        mfaToken={mfaToken}
-        factors={mfaFactors}
-        rememberDeviceEnabled={rememberDeviceEnabled}
-        branding={branding}
-        onVerified={afterPasswordSignIn}
-        onBack={() => {
-          setMfaToken(null);
-          setError(null);
-        }}
-      />
-    );
-  }
-
-  // Social: a full-page redirect into the hosted social flow, which sets the SSO
-  // cookie on the provider callback and returns to the authorize URL.
-  function socialStart(provider: string) {
+  // Social: a full-page visit to the server's social flow, which sets the session on the
+  // provider's callback and returns to the authorize URL.
+  function onProvider(provider: string) {
     stopAutofill.current();
     const q = new URLSearchParams({ tenant_id: tenantId, return_to: returnTo });
     window.location.assign(`${getApiBaseUrl()}/v1/social/${provider}/start?${q.toString()}`);
   }
 
-  async function passkeySignIn() {
-    stopAutofill.current();
-    setError(null);
-    setPasskeyBusy(true);
-    try {
-      const PK = window.PublicKeyCredential as
-        | (typeof window.PublicKeyCredential & {
-            parseRequestOptionsFromJSON?: (o: unknown) => PublicKeyCredentialRequestOptions;
-          })
-        | undefined;
-      if (!PK || !navigator.credentials) {
-        throw new Error(t("errors.passkeyUnsupported"));
-      }
-      const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
-        "/v1/passkeys/login/begin",
-        {},
-      );
-      const options = PK.parseRequestOptionsFromJSON
-        ? PK.parseRequestOptionsFromJSON(begin.publicKey)
-        : (begin.publicKey as PublicKeyCredentialRequestOptions);
-      const assertion = (await navigator.credentials.get({
-        publicKey: options,
-      })) as PublicKeyCredential & {
-        toJSON?: () => unknown;
-      };
-      if (!assertion) throw new Error(t("errors.noPasskeySelected"));
-      const credential = assertion.toJSON ? assertion.toJSON() : assertion;
-      await apiPost("/v1/passkeys/login/finish", {
-        session_id: begin.session_id,
-        credential,
-      });
-      continueToApp();
-    } catch (err) {
-      setError(apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")));
-      setPasskeyBusy(false);
-    }
+  function backToEmail() {
+    setProblem(null);
+    setStep("email");
   }
 
-  const busy = loading || passkeyBusy;
-  const showSocial = providers.length > 0 && tenantId !== "" && returnTo !== "";
-  const showMagicLink = magicLinkEnabled && tenantId !== "";
-  const query = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : "";
-  // A device journey carries no client to name yet, so say what the sign-in is for.
-  const subtitle = clientName
-    ? t("subtitleTo", { client: clientName })
-    : returnsToDevice(returnTo)
-      ? t("subtitleDevice")
-      : t("subtitle");
+  if (step === "offer") {
+    return <PasskeyOffer email={email} branding={branding} onContinue={continueToApp} />;
+  }
+
+  if (step === "mfa" && mfa) {
+    const back = () => {
+      setMfa(null);
+      backToEmail();
+    };
+    return mfa.enrollment ? (
+      <MfaEnrollment
+        mfaToken={mfa.token}
+        dueAt={mfa.enrollment.dueAt}
+        email={email || undefined}
+        branding={branding}
+        onDone={afterPasswordSignIn}
+        onBack={back}
+      />
+    ) : (
+      <MfaChallenge
+        mfaToken={mfa.token}
+        factors={mfa.factors}
+        email={email || undefined}
+        rememberDeviceEnabled={props.rememberDeviceEnabled}
+        branding={branding}
+        onVerified={afterPasswordSignIn}
+        onBack={back}
+      />
+    );
+  }
+
+  if (step === "link") {
+    return (
+      <LinkStep
+        email={email}
+        tenantId={tenantId}
+        returnTo={returnTo}
+        branding={branding}
+        onChangeEmail={backToEmail}
+        onUsePassword={props.passwordEnabled ? () => setStep("password") : undefined}
+        onBack={backToEmail}
+      />
+    );
+  }
+
+  const appLine = props.clientName ? (
+    <AppLine name={props.clientName} logoUri={props.clientLogoUri} />
+  ) : undefined;
+
+  if (step === "password") {
+    const linkAllowed = props.magicLinkEnabled && tenantId !== "";
+    return (
+      <HostedPage
+        branding={branding}
+        title={again ? t("again.title") : t("password.title")}
+        description={
+          again
+            ? props.clientName
+              ? t("again.body", { client: props.clientName })
+              : t("again.bodyNoClient")
+            : undefined
+        }
+        lead={
+          again ? (
+            <AccountChip email={email} />
+          ) : (
+            <AccountChip email={email} action={t("password.change")} onAction={backToEmail} />
+          )
+        }
+      >
+        <PasswordStep
+          email={email}
+          forgotHref={forgotHref}
+          problem={problem}
+          busy={busy}
+          onSubmit={onPassword}
+          onLink={!again && linkAllowed ? () => setStep("link") : undefined}
+          onPasskey={again && props.passkeyEnabled ? onPasskey : undefined}
+        />
+      </HostedPage>
+    );
+  }
+
+  if (!emailEnabled && !props.passkeyEnabled && providers.length === 0) {
+    return (
+      <HostedPage single branding={branding} title={t("title")} lead={appLine}>
+        <FormAlert tone="info" title={t("none.title")}>
+          {props.clientName ? t("none.body", { client: props.clientName }) : t("none.bodyNoClient")}
+        </FormAlert>
+      </HostedPage>
+    );
+  }
 
   return (
-    <AuthCard
+    <HostedPage
       branding={branding}
-      context={
-        clientName ? (
-          <ClientIdentity name={clientName} logoUri={clientLogoUri} uri={clientUri} />
-        ) : null
-      }
       title={t("title")}
-      subtitle={subtitle}
+      description={!appLine && returnsToDevice(returnTo) ? t("device") : undefined}
+      lead={appLine}
     >
-      {passkeyEnabled && (
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full justify-between px-4"
-          disabled={busy}
-          onClick={passkeySignIn}
-          loading={passkeyBusy}
-          loadingLabel={t("passkey.busy")}
-        >
-          <span className="flex items-center gap-3">
-            <FingerprintPatternIcon aria-hidden className="size-6" />
-            {t("passkey.idle")}
-          </span>
-          <ChevronRightIcon aria-hidden className="text-muted-foreground size-5" />
-        </Button>
-      )}
-
-      {passkeyEnabled && passwordEnabled && <OrDivider>{t("emailDivider")}</OrDivider>}
-
-      {passwordEnabled && (
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              {t("fields.email")}
-            </label>
-            <IconInput
-              icon={MailIcon}
-              id="email"
-              type="email"
-              autoComplete="email webauthn"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="password" className="text-sm font-medium">
-                {t("fields.password")}
-              </label>
-              <a
-                href={`/forgot-password${query}`}
-                className="text-link hover:text-link-hover text-sm font-medium underline-offset-4 hover:underline"
-              >
-                {t("forgotPassword")}
-              </a>
-            </div>
-            <IconPasswordInput
-              id="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t("fields.passwordPlaceholder")}
-            />
-          </div>
-
-          <FormAlert>{error}</FormAlert>
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={busy}
-            loading={loading}
-            loadingLabel={t("submit.busy")}
-          >
-            {t("submit.idle")}
-            <ChevronRightIcon aria-hidden data-icon="inline-end" />
-          </Button>
-        </form>
-      )}
-
-      {/* Without the password form, a passkey or social refusal still needs a place to show. */}
-      {!passwordEnabled && <FormAlert>{error}</FormAlert>}
-
-      {showMagicLink && (
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground mx-auto block text-sm font-medium underline-offset-4 hover:underline"
-          disabled={busy}
-          onClick={() => {
-            stopAutofill.current();
-            setError(null);
-            setMagicLink(true);
-          }}
-        >
-          {t("magic.link")}
-        </button>
-      )}
-
-      {showSocial && (
-        <SocialProviders providers={providers} disabled={busy} onSelect={socialStart} />
-      )}
-
-      {!passwordEnabled && !passkeyEnabled && !showSocial && !showMagicLink && (
-        <p className="text-muted-foreground text-center text-sm">{t("noMethods")}</p>
-      )}
-
-      {selfRegistrationEnabled && (
-        <p className="text-muted-foreground text-center text-sm">
-          {t("noAccount")}{" "}
-          <a
-            href={`/sign-up${query}`}
-            className="text-link hover:text-link-hover font-medium underline-offset-4 hover:underline"
-          >
-            {t("signUp")}
-          </a>
-        </p>
-      )}
-    </AuthCard>
+      <EmailStep
+        email={email}
+        emailEnabled={emailEnabled}
+        passkeyEnabled={props.passkeyEnabled}
+        providers={providers}
+        signUpHref={props.selfRegistrationEnabled ? `/sign-up${query}` : undefined}
+        forgotHref={forgotHref}
+        problem={problem}
+        passkeyBusy={passkeyBusy}
+        onContinue={onContinue}
+        onPasskey={onPasskey}
+        onProvider={onProvider}
+      />
+    </HostedPage>
   );
 }

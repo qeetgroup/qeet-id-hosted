@@ -40,5 +40,8 @@
     "security": "Security"
   },
   "signInBy": "Sign-in by",
-  "newTab": "(opens in a new tab)"
+  "newTab": "(opens in a new tab)",
+  "app": {
+    "continueTo": "to continue to"
+  }
 }
