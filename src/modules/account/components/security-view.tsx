@@ -1,12 +1,16 @@
 "use client";
 
-import { FingerprintPatternIcon } from "@qeetrix/icons";
-import { Alert, AlertDescription, Button, Input, Spinner } from "@qeetrix/ui";
+import { Avatar, Button, Card, LinkButton, Spinner, Text, TextField } from "@qeetrix/react";
+import { EmptyState } from "@qeetrix/react/experimental";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError } from "@/platform/api/client";
-import { AuthCard } from "@/platform/components/auth-card";
+
+import { type Account, fetchSignedInAccount } from "@/platform/api/account";
+import { ApiError, apiDelete } from "@/platform/api/client";
 import { FormAlert } from "@/platform/components/form-alert";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { KeyRoundIcon, LogInIcon, PlusIcon, RotateCwIcon } from "@/platform/icons";
+import { goTo } from "@/platform/navigation/go-to";
 import {
   addPasskey,
   listPasskeys,
@@ -27,28 +31,28 @@ type State =
   | { status: "ready"; list: PasskeyList };
 
 /**
- * Lists the signed-in user's passkeys (rename inline) and adds new ones, as
- * long as their organization allows passkeys. Signed-in means the hosted-login
- * session cookie: a 401 from the list shows the sign-in link instead. Sign-in
- * with no application to return to comes back to this page.
+ * The account's passkeys, on a page of its own: the top bar carries the account and Sign out. Each
+ * passkey with when it was added and last used, renamed in place; and Add a passkey for this
+ * device, unless the organisation turned passkeys off or the browser can't make one. Signed in
+ * means the hosted login session cookie; without it, the page says to sign in first, and sign-in
+ * with no application to return to comes back here.
  */
 export function SecurityView() {
   const { t } = useTranslation("security");
   const [state, setState] = useState<State>({ status: "loading" });
+  const [account, setAccount] = useState<Account | null>(null);
   const [supported, setSupported] = useState(true);
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
     try {
       setState({ status: "ready", list: await listPasskeys() });
     } catch (err) {
       setState(
-        err instanceof ApiError && err.status === 401
-          ? { status: "signedOut" }
-          : { status: "error" },
+        err instanceof ApiError && err.status === 401 ? { status: "signedOut" } : { status: "error" },
       );
     }
   }
@@ -57,9 +61,10 @@ export function SecurityView() {
   useEffect(() => {
     setSupported(passkeysSupported());
     void load();
+    void fetchSignedInAccount().then(setAccount);
   }, []);
 
-  // A call that finds the session gone swaps the page for the sign-in link.
+  // A call that finds the session gone swaps the page for the sign-in one.
   function fail(err: unknown) {
     const key = passkeyErrorKey(err);
     if (key === "errors.signedOut") setState({ status: "signedOut" });
@@ -69,12 +74,12 @@ export function SecurityView() {
   async function onAdd(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setNotice(null);
+    setAdded(false);
     setAdding(true);
     try {
       await addPasskey(name);
       setName("");
-      setNotice(t("add.added"));
+      setAdded(true);
       await load();
     } catch (err) {
       fail(err);
@@ -85,114 +90,144 @@ export function SecurityView() {
 
   async function onRename(passkey: Passkey, newName: string) {
     setError(null);
-    setNotice(null);
-    await renamePasskey(passkey.id, newName);
-    setNotice(t("rename.saved"));
-    await load();
+    const saved = await renamePasskey(passkey.id, newName);
+    setState((s) =>
+      s.status === "ready"
+        ? {
+            ...s,
+            list: { ...s.list, items: s.list.items.map((p) => (p.id === passkey.id ? { ...p, ...saved } : p)) },
+          }
+        : s,
+    );
   }
 
-  if (state.status === "loading") {
-    return (
-      <AuthCard title={t("title")}>
-        <p
-          role="status"
-          className="text-muted-foreground flex items-center justify-center gap-2 text-sm"
-        >
-          <Spinner size="sm" /> {t("loading")}
-        </p>
-      </AuthCard>
-    );
+  // Signs this browser out of the hosted login, then out of each application on the signed-out page.
+  async function signOut() {
+    try {
+      const res = await apiDelete<{ frontchannel_logout_uris?: string[] } | undefined>("/v1/auth/session");
+      const q = new URLSearchParams();
+      for (const uri of res?.frontchannel_logout_uris ?? []) q.append("frontchannel_logout", uri);
+      goTo(`/sign-out/done${q.size ? `?${q.toString()}` : ""}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
+    }
   }
 
   if (state.status === "signedOut") {
     return (
-      <AuthCard title={t("signedOut.title")} subtitle={t("signedOut.body")}>
-        <FormAlert>{error}</FormAlert>
-        <Button render={<a href="/sign-in" />} size="lg" className="w-full">
-          {t("signedOut.action")}
-        </Button>
-      </AuthCard>
+      <HostedPage kind="page" title={t("title")} description={t("body")}>
+        <EmptyState
+          icon={KeyRoundIcon}
+          title={t("signedOut.title")}
+          description={t("signedOut.body")}
+          level={2}
+          actions={
+            <LinkButton href="/sign-in" icon={LogInIcon}>
+              {t("signedOut.action")}
+            </LinkButton>
+          }
+        />
+      </HostedPage>
     );
   }
 
-  if (state.status === "error") {
-    return (
-      <AuthCard title={t("title")}>
-        <FormAlert>{t("errors.load")}</FormAlert>
-        <Button
-          variant="outline"
-          size="lg"
-          className="w-full"
-          onClick={() => {
-            setState({ status: "loading" });
-            void load();
-          }}
-        >
-          {t("retry")}
-        </Button>
-      </AuthCard>
-    );
-  }
+  const bar = account ? (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar name={account.name || account.email} size="sm" decorative />
+      <Text size="md" truncate className="hidden tablet:block">
+        {account.name || account.email}
+      </Text>
+      <Button type="button" variant="ghost" size="sm" onClick={() => void signOut()}>
+        {t("signOut")}
+      </Button>
+    </div>
+  ) : undefined;
 
-  const { items, enrollment_allowed: enrollmentAllowed } = state.list;
   return (
-    <AuthCard title={t("title")} subtitle={t("subtitle")}>
-      {items.length === 0 ? (
-        <p className="text-muted-foreground text-center text-sm">{t("list.empty")}</p>
-      ) : (
-        <ul className="divide-border/60 divide-y rounded-md border">
-          {items.map((p) => (
-            <PasskeyRow key={p.id} passkey={p} onRename={onRename} onError={fail} />
-          ))}
-        </ul>
-      )}
-
-      {notice ? (
-        <Alert variant="success" role="status">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      ) : null}
-      <FormAlert>{error}</FormAlert>
-
-      {!enrollmentAllowed ? (
-        <p role="status" className="text-muted-foreground text-center text-sm">
-          {t("disabled")}
-        </p>
-      ) : !supported ? (
-        <p role="status" className="text-muted-foreground text-center text-sm">
-          {t("unsupported")}
-        </p>
-      ) : (
-        <form onSubmit={onAdd} className="space-y-3">
-          <div className="space-y-1.5">
-            <label htmlFor="passkey-name" className="text-sm font-medium">
-              {t("add.nameLabel")}
-            </label>
-            <Input
-              id="passkey-name"
-              type="text"
-              autoComplete="off"
-              maxLength={PASSKEY_NAME_MAX_LENGTH}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("add.namePlaceholder")}
-              aria-describedby="passkey-name-hint"
-            />
-            <p id="passkey-name-hint" className="text-muted-foreground text-xs">
-              {t("add.nameHint")}
-            </p>
+    <HostedPage kind="page" title={t("title")} description={t("body")} barEnd={bar}>
+      <div className="flex flex-col gap-6">
+        <FormAlert title={error} />
+        {added && (
+          <FormAlert tone="success" title={t("add.addedTitle")}>
+            {t("add.addedBody")}
+          </FormAlert>
+        )}
+        {state.status === "loading" ? (
+          <div role="status" className="flex items-center gap-3 py-2">
+            <Spinner size="md" tone="brand" decorative />
+            <Text size="md" tone="subtle">
+              {t("loading")}
+            </Text>
           </div>
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            loading={adding}
-            loadingLabel={t("add.busy")}
+        ) : state.status === "error" ? (
+          <FormAlert
+            title={t("loadError.title")}
+            actions={
+              <Button size="sm" variant="soft" icon={RotateCwIcon} onClick={() => void load()}>
+                {t("loadError.retry")}
+              </Button>
+            }
           >
-            <FingerprintPatternIcon className="mr-2 size-4" /> {t("add.idle")}
-          </Button>
-        </form>
-      )}
-    </AuthCard>
+            {t("loadError.body")}
+          </FormAlert>
+        ) : state.list.items.length === 0 ? (
+          <Card>
+            <EmptyState
+              size="section"
+              icon={KeyRoundIcon}
+              level={2}
+              title={t("empty.title")}
+              description={t("empty.body")}
+            />
+          </Card>
+        ) : (
+          <ul
+            aria-label={t("list.label")}
+            className="divide-y divide-border-subtle rounded-surface border border-border-default bg-surface-raised"
+          >
+            {state.list.items.map((p) => (
+              <PasskeyRow key={p.id} passkey={p} onRename={onRename} onError={fail} />
+            ))}
+          </ul>
+        )}
+
+        {state.status === "ready" &&
+          (!state.list.enrollment_allowed ? (
+            <FormAlert tone="info" title={t("off.title")}>
+              {t("off.body")}
+            </FormAlert>
+          ) : (
+            <Card title={t("add.title")} level={2} description={t("add.body")}>
+              {!supported ? (
+                <FormAlert tone="warning" title={t("unsupported.title")}>
+                  {t("unsupported.body")}
+                </FormAlert>
+              ) : (
+                <form onSubmit={onAdd} className="flex flex-col gap-4">
+                  <TextField
+                    label={t("add.nameLabel")}
+                    optional
+                    placeholder={t("add.namePlaceholder")}
+                    description={t("add.nameHint")}
+                    maxLength={PASSKEY_NAME_MAX_LENGTH}
+                    disabled={adding}
+                    value={name}
+                    onChange={(e) => setName(e.currentTarget.value)}
+                  />
+                  <Button
+                    type="submit"
+                    icon={PlusIcon}
+                    size="lg"
+                    loading={adding}
+                    className="w-full tablet:w-auto tablet:self-start"
+                  >
+                    {adding ? t("add.busy") : t("add.idle")}
+                  </Button>
+                </form>
+              )}
+            </Card>
+          ))}
+      </div>
+    </HostedPage>
   );
 }
