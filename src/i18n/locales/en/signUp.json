@@ -1,30 +1,29 @@
 {
   "title": "Create your account",
-  "titleTo": "Create your account for {{client}}",
-  "subtitle": "Sign up to continue.",
   "fields": {
-    "name": "Name",
-    "email": "Email address",
+    "name": "Full name",
+    "namePlaceholder": "e.g. Meera Iyer",
+    "email": "Work email",
+    "emailPlaceholder": "name@company.com",
     "password": "Password",
     "confirm": "Confirm password"
   },
-  "hint": "Use at least 8 characters.",
-  "submit": {
-    "idle": "Create account",
-    "busy": "Creating account…"
-  },
   "passkey": {
     "idle": "Create account with a passkey",
-    "busy": "Waiting for passkey…"
+    "busy": "Waiting for your device…"
   },
   "usePassword": "Use a password instead",
   "usePasskey": "Use a passkey instead",
-  "mismatch": "Those passwords don't match.",
+  "submit": {
+    "idle": "Create account",
+    "busy": "Creating your account…"
+  },
+  "mismatch": "The two passwords don't match. Type the same password in both.",
   "haveAccount": "Already have an account?",
   "signIn": "Sign in",
-  "disabled": "Sign-ups aren't open for this application. Ask an administrator for an invite.",
-  "errors": {
-    "passkeyUnsupported": "Passkeys aren't supported in this browser.",
-    "passkeyFailed": "We couldn't create your account with a passkey."
-  }
+  "failedTitle": "The passkey wasn't created",
+  "failedBody": "The window was closed, or this browser can't make one. Try again, or use a password.",
+  "closedTitle": "Sign-up is by invitation",
+  "closedBody": "Your organisation adds people to {{client}} itself. Ask your administrator for an invitation; it comes by email.",
+  "closedBodyNoClient": "Your organisation adds people itself. Ask your administrator for an invitation; it comes by email."
 }

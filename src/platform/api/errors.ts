@@ -24,3 +24,14 @@ export function apiErrorMessage(err: unknown, t: Translate, fallback: string): s
   if (err instanceof ApiError) return err.message;
   return fallback;
 }
+
+// isPasswordRefusal reports a new password the organisation's rules (or the breach check) refused.
+// The server's message names the rule that failed, so a page shows it at the password field.
+export function isPasswordRefusal(err: unknown): err is ApiError {
+  return (
+    err instanceof ApiError &&
+    (err.code.startsWith("authpolicy.password_") ||
+      err.code === "auth.password_weak" ||
+      err.code === "auth.password_breached")
+  );
+}

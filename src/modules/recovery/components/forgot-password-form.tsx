@@ -1,96 +1,111 @@
 "use client";
 
-import { MailIcon } from "@qeetrix/icons";
-import { Button } from "@qeetrix/ui";
+import { Button, LinkButton, Text, TextField } from "@qeetrix/react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
 import { FormAlert } from "@/platform/components/form-alert";
-import { IconInput } from "@/platform/components/icon-input";
+import { FormStack } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { ArrowLeftIcon, MailIcon, RotateCwIcon } from "@/platform/icons";
 
-type ForgotPasswordFormProps = {
-  returnTo: string;
-  branding?: Branding;
-};
-
-export function ForgotPasswordForm({ returnTo, branding }: ForgotPasswordFormProps) {
+/**
+ * Ask for a link to choose a new password. The answer is the same whether or not the address has an
+ * account, so the page never tells who has one. The link opens this site's reset page and, after
+ * the reset, goes back to the application the person was signing in to.
+ */
+export function ForgotPasswordForm({ returnTo, branding }: { returnTo: string; branding?: Branding }) {
   const { t } = useTranslation("recovery");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
-
   const signInHref = `/sign-in${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function send() {
     setError(null);
-    setLoading(true);
+    setBusy(true);
     try {
-      // app: the emailed link opens this hosted login's reset page (not the
-      // console). return_to: where to continue after the reset — the API keeps
-      // it only if it is its own /oauth/authorize URL. The response is
-      // enumeration-safe either way.
+      // app: the link opens this site's reset page, not the console's. return_to: kept by the
+      // server only when it is its own /oauth/authorize address.
       const body: Record<string, string> = { email, app: "hosted_login" };
       if (returnTo) body.return_to = returnTo;
       await apiPost("/v1/auth/forgot-password", body);
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
-  return (
-    <AuthCard branding={branding} title={t("forgot.title")} subtitle={t("forgot.subtitle")}>
-      {sent ? (
-        <p role="status" className="text-muted-foreground text-center text-sm">
-          {t("forgot.sent")}
-        </p>
-      ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              {t("forgot.label")}
-            </label>
-            <IconInput
-              icon={MailIcon}
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    void send();
+  }
 
-          <FormAlert>{error}</FormAlert>
+  const back = (
+    <LinkButton href={signInHref} variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon}>
+      {t("forgot.back")}
+    </LinkButton>
+  );
 
+  if (sent) {
+    return (
+      <HostedPage
+        single
+        status="success"
+        branding={branding}
+        title={t("forgot.sentTitle")}
+        description={t("forgot.sentBody", { email })}
+      >
+        <FormStack>
+          <FormAlert title={error} />
+          <Text size="md" tone="subtle" render={<p />}>
+            {t("forgot.tip")}
+          </Text>
           <Button
-            type="submit"
+            type="button"
+            variant="soft"
             size="lg"
-            className="w-full"
-            loading={loading}
-            loadingLabel={t("forgot.submit.busy")}
+            fullWidth
+            icon={RotateCwIcon}
+            loading={busy}
+            onClick={() => void send()}
           >
-            {t("forgot.submit.idle")}
+            {t("forgot.again")}
           </Button>
-        </form>
-      )}
+          {back}
+        </FormStack>
+      </HostedPage>
+    );
+  }
 
-      <div className="text-center">
-        <a
-          href={signInHref}
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-        >
-          {t("forgot.backToSignIn")}
-        </a>
-      </div>
-    </AuthCard>
+  return (
+    <HostedPage branding={branding} title={t("forgot.title")} description={t("forgot.body")}>
+      <form onSubmit={onSubmit}>
+        <FormStack>
+          <FormAlert title={error} />
+          <TextField
+            label={t("forgot.label")}
+            name="email"
+            type="email"
+            size="lg"
+            required
+            autoFocus
+            autoComplete="email"
+            placeholder={t("forgot.placeholder")}
+            value={email}
+            onChange={(e) => setEmail(e.currentTarget.value)}
+          />
+          <Button type="submit" size="lg" fullWidth icon={MailIcon} loading={busy}>
+            {busy ? t("forgot.sending") : t("forgot.send")}
+          </Button>
+          {back}
+        </FormStack>
+      </form>
+    </HostedPage>
   );
 }

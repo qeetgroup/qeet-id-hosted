@@ -1,69 +1,91 @@
 "use client";
 
-import { FingerprintPatternIcon, MailIcon, UserIcon } from "@qeetrix/icons";
-import { Button, PasswordStrengthMeter } from "@qeetrix/ui";
+import { Button, Field, Link, TextField } from "@qeetrix/react";
+import { PasswordInput } from "@qeetrix/react/experimental";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
-import { apiPost } from "@/platform/api/client";
-import { apiErrorMessage } from "@/platform/api/errors";
+import { ApiError, apiPost } from "@/platform/api/client";
+import { isAddressRefusal, isPasswordRefusal } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
+import { AppLine } from "@/platform/components/app-line";
 import { FormAlert } from "@/platform/components/form-alert";
-import { IconInput } from "@/platform/components/icon-input";
-import { IconPasswordInput } from "@/platform/components/icon-password-input";
+import { AsideLine, FormStack } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { ArrowRightIcon, KeyRoundIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
 type SignUpFormProps = {
   returnTo: string;
   clientName: string;
+  clientLogoUri?: string;
   tenantId: string;
   selfRegistrationEnabled: boolean;
   branding?: Branding;
 };
 
+/**
+ * A new account in the application's organisation: passkey first, with no password at all, or a
+ * password the organisation's rules accept. Only when the organisation lets people sign themselves
+ * up; otherwise the page says how to get an invitation. The server re-checks both. If the
+ * organisation requires a second step, its setup follows; then the application.
+ */
 export function SignUpForm({
   returnTo,
   clientName,
+  clientLogoUri,
   tenantId,
   selfRegistrationEnabled,
   branding,
 }: SignUpFormProps) {
   const { t } = useTranslation("signUp");
+  const { t: ts } = useTranslation("signIn");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [passkeyBusy, setPasskeyBusy] = useState(false);
-  // Passkeys-first: the primary path is a passkey with no password field at
-  // all; "Use a password instead" reveals the fallback form below.
-  const [usePassword, setUsePassword] = useState(false);
-  // Set when the organisation requires MFA: the new account sets up an
-  // authenticator app before its session (the challenge token stays in memory).
+  const [withPassword, setWithPassword] = useState(false);
+  const [error, setError] = useState<{ title: string; body?: string } | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [mismatch, setMismatch] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // Set when the organisation requires a second step: the new account sets one up first. The
+  // challenge token stays in memory.
   const [enrollment, setEnrollment] = useState<{ token: string; dueAt?: string } | null>(null);
 
   const signInHref = `/sign-in${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
-  const busy = loading || passkeyBusy;
+  const lead = clientName ? <AppLine name={clientName} logoUri={clientLogoUri} /> : undefined;
+  const signIn = (
+    <AsideLine>
+      {t("haveAccount")}
+      <Link href={signInHref}>{t("signIn")}</Link>
+    </AsideLine>
+  );
 
   function continueToApp() {
     goTo(safeReturnTo(returnTo) ?? "/sign-in");
   }
 
-  async function passkeySignUp() {
+  function refusal(err: unknown): { title: string; body?: string } {
+    if (isAddressRefusal(err)) {
+      return { title: ts("problems.network.title"), body: ts("problems.network.body") };
+    }
+    return { title: err instanceof ApiError ? err.message : ts("problems.generic.title") };
+  }
+
+  async function withPasskey(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setError(null);
-    setPasskeyBusy(true);
+    setBusy(true);
     try {
       const PK = window.PublicKeyCredential as
         | (typeof window.PublicKeyCredential & {
             parseCreationOptionsFromJSON?: (o: unknown) => PublicKeyCredentialCreationOptions;
           })
         | undefined;
-      if (!PK || !navigator.credentials) {
-        throw new Error(t("errors.passkeyUnsupported"));
-      }
+      if (!PK || !navigator.credentials) throw new DOMException("unsupported", "NotSupportedError");
       const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
         "/v1/register/passkey/begin",
         { tenant_id: tenantId, email, display_name: name },
@@ -71,50 +93,53 @@ export function SignUpForm({
       const options = PK.parseCreationOptionsFromJSON
         ? PK.parseCreationOptionsFromJSON(begin.publicKey)
         : (begin.publicKey as PublicKeyCredentialCreationOptions);
-      const created = (await navigator.credentials.create({
-        publicKey: options,
-      })) as PublicKeyCredential & { toJSON?: () => unknown };
-      if (!created) throw new Error(t("errors.passkeyFailed"));
-      const credential = created.toJSON ? created.toJSON() : created;
+      const created = (await navigator.credentials.create({ publicKey: options })) as
+        | (PublicKeyCredential & { toJSON?: () => unknown })
+        | null;
+      if (!created) throw new DOMException("cancelled", "NotAllowedError");
       await apiPost("/v1/register/passkey/finish", {
         session_id: begin.session_id,
-        credential,
+        credential: created.toJSON ? created.toJSON() : created,
         name: "",
       });
       continueToApp();
     } catch (err) {
-      setError(apiErrorMessage(err, t, (err as Error).message || t("errors.passkeyFailed")));
-      setPasskeyBusy(false);
+      setError(
+        err instanceof DOMException
+          ? { title: t("failedTitle"), body: t("failedBody") }
+          : refusal(err),
+      );
+      setBusy(false);
     }
   }
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function withPasswordSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setPasswordError(null);
     if (password !== confirm) {
-      setError(t("mismatch"));
+      setMismatch(true);
       return;
     }
-    setLoading(true);
+    setMismatch(false);
+    setBusy(true);
     try {
-      // Registration is tenant-scoped: the user is created in the client's
-      // tenant and the SSO cookie is set, so we continue straight to the app —
-      // unless the organisation requires MFA, when the account sets up an
-      // authenticator app first.
-      const res = await apiPost<{
-        mfa_required?: boolean;
-        mfa_token?: string;
-        enrollment_due_at?: string;
-      }>("/v1/auth/register", { tenant_id: tenantId, email, password, display_name: name });
+      // The account is made in the application's organisation and signed in; unless the
+      // organisation requires a second step, which it sets up first.
+      const res = await apiPost<{ mfa_required?: boolean; mfa_token?: string; enrollment_due_at?: string }>(
+        "/v1/auth/register",
+        { tenant_id: tenantId, email, password, display_name: name },
+      );
       if (res.mfa_required && res.mfa_token) {
         setEnrollment({ token: res.mfa_token, dueAt: res.enrollment_due_at });
-        setLoading(false);
+        setBusy(false);
         return;
       }
       continueToApp();
     } catch (err) {
-      setError(apiErrorMessage(err, t, t("common:errors.generic")));
-      setLoading(false);
+      if (isPasswordRefusal(err)) setPasswordError(err.message);
+      else setError(refusal(err));
+      setBusy(false);
     }
   }
 
@@ -123,143 +148,119 @@ export function SignUpForm({
       <MfaEnrollment
         mfaToken={enrollment.token}
         dueAt={enrollment.dueAt}
+        email={email}
         branding={branding}
         onDone={continueToApp}
       />
     );
   }
 
+  if (!selfRegistrationEnabled || !tenantId) {
+    return (
+      <HostedPage single branding={branding} title={t("title")} lead={lead}>
+        <FormStack>
+          <FormAlert tone="info" title={t("closedTitle")}>
+            {clientName ? t("closedBody", { client: clientName }) : t("closedBodyNoClient")}
+          </FormAlert>
+          {signIn}
+        </FormStack>
+      </HostedPage>
+    );
+  }
+
   return (
-    <AuthCard
-      branding={branding}
-      title={clientName ? t("titleTo", { client: clientName }) : t("title")}
-      subtitle={t("subtitle")}
-    >
-      {!selfRegistrationEnabled || !tenantId ? (
-        <p role="status" className="text-muted-foreground text-center text-sm">
-          {t("disabled")}
-        </p>
-      ) : (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="name" className="text-sm font-medium">
-              {t("fields.name")}
-            </label>
-            <IconInput
-              icon={UserIcon}
-              id="name"
-              type="text"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              {t("fields.email")}
-            </label>
-            <IconInput
-              icon={MailIcon}
-              id="email"
-              type="email"
-              autoComplete="email webauthn"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
-
-          {usePassword && (
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="password" className="text-sm font-medium">
-                  {t("fields.password")}
-                </label>
-                <IconPasswordInput
-                  id="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                {password ? (
-                  <PasswordStrengthMeter value={password} className="pt-1" />
-                ) : (
-                  <p className="text-muted-foreground text-xs">{t("hint")}</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="confirm" className="text-sm font-medium">
-                  {t("fields.confirm")}
-                </label>
-                <IconPasswordInput
-                  id="confirm"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  aria-invalid={confirm.length > 0 && confirm !== password}
-                />
-              </div>
-
-              <FormAlert>{error}</FormAlert>
-
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={busy}
-                loading={loading}
-                loadingLabel={t("submit.busy")}
-              >
-                {t("submit.idle")}
-              </Button>
-            </form>
-          )}
-
-          {!usePassword && (
+    <HostedPage branding={branding} title={t("title")} lead={lead}>
+      <form onSubmit={withPassword ? withPasswordSubmit : withPasskey}>
+        <FormStack>
+          {error && <FormAlert title={error.title}>{error.body}</FormAlert>}
+          <TextField
+            label={t("fields.name")}
+            name="name"
+            required
+            autoFocus
+            autoComplete="name"
+            placeholder={t("fields.namePlaceholder")}
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+          />
+          <TextField
+            label={t("fields.email")}
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder={t("fields.emailPlaceholder")}
+            value={email}
+            onChange={(e) => setEmail(e.currentTarget.value)}
+          />
+          {withPassword ? (
             <>
+              <Field
+                label={t("fields.password")}
+                invalid={Boolean(passwordError)}
+                error={passwordError ?? undefined}
+              >
+                {(control) => (
+                  <PasswordInput
+                    {...control}
+                    name="new-password"
+                    required
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.currentTarget.value)}
+                  />
+                )}
+              </Field>
+              <Field
+                label={t("fields.confirm")}
+                invalid={mismatch}
+                error={mismatch ? t("mismatch") : undefined}
+              >
+                {(control) => (
+                  <PasswordInput
+                    {...control}
+                    name="confirm-password"
+                    required
+                    autoComplete="new-password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.currentTarget.value)}
+                  />
+                )}
+              </Field>
+              <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy}>
+                {busy ? t("submit.busy") : t("submit.idle")}
+              </Button>
               <Button
                 type="button"
+                variant="ghost"
                 size="lg"
-                className="w-full"
-                disabled={busy || !email}
-                onClick={passkeySignUp}
-                loading={passkeyBusy}
-                loadingLabel={t("passkey.busy")}
+                fullWidth
+                disabled={busy}
+                onClick={() => setWithPassword(false)}
               >
-                <FingerprintPatternIcon className="mr-2 size-4" /> {t("passkey.idle")}
+                {t("usePasskey")}
               </Button>
-              <FormAlert>{error}</FormAlert>
+            </>
+          ) : (
+            <>
+              <Button type="submit" size="lg" fullWidth icon={KeyRoundIcon} loading={busy}>
+                {busy ? t("passkey.busy") : t("passkey.idle")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                fullWidth
+                disabled={busy}
+                onClick={() => setWithPassword(true)}
+              >
+                {t("usePassword")}
+              </Button>
             </>
           )}
-
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground w-full text-center text-sm underline-offset-2 hover:underline"
-            disabled={busy}
-            onClick={() => {
-              setUsePassword((v) => !v);
-              setError(null);
-            }}
-          >
-            {usePassword ? t("usePasskey") : t("usePassword")}
-          </button>
-        </div>
-      )}
-
-      <p className="text-muted-foreground text-center text-sm">
-        {t("haveAccount")}{" "}
-        <a
-          href={signInHref}
-          className="text-link hover:text-link-hover font-medium underline-offset-4 hover:underline"
-        >
-          {t("signIn")}
-        </a>
-      </p>
-    </AuthCard>
+          <div className="mt-2">{signIn}</div>
+        </FormStack>
+      </form>
+    </HostedPage>
   );
 }

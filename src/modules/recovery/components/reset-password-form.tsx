@@ -1,123 +1,146 @@
 "use client";
 
-import { Button, PasswordStrengthMeter } from "@qeetrix/ui";
+import { Button, Field, LinkButton } from "@qeetrix/react";
+import { PasswordInput } from "@qeetrix/react/experimental";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+
 import { ApiError, apiPost } from "@/platform/api/client";
+import { isPasswordRefusal } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
 import { FormAlert } from "@/platform/components/form-alert";
-import { IconPasswordInput } from "@/platform/components/icon-password-input";
+import { FormStack } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { ArrowRightIcon, CheckIcon, MailIcon } from "@/platform/icons";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
-type ResetPasswordFormProps = {
+// The server's answers for a link that can't reset a password any more.
+const LINK_GONE = new Set(["recovery.reset_link_invalid", "recovery.link_used", "recovery.link_expired"]);
+
+/**
+ * Where the reset link lands: a new password the organisation's rules accept (the server names a
+ * rule that isn't met, at the field), then sign in with it. Saving signs the account out
+ * everywhere else, and the page says so. A used or expired link, or one without its token, offers a
+ * new one. Sign in goes back to the application, if the reset started on the way into one.
+ */
+export function ResetPasswordForm({
+  token,
+  returnTo,
+  branding,
+}: {
   token: string;
   returnTo: string;
   branding?: Branding;
-};
-
-export function ResetPasswordForm({ token, returnTo, branding }: ResetPasswordFormProps) {
+}) {
   const { t } = useTranslation("recovery");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [mismatch, setMismatch] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"form" | "done" | "gone">(token ? "form" : "gone");
 
-  // After the reset, sign in again — and, when the reset started on the way
-  // into an application, continue to it (only our own authorize endpoint).
   const dest = safeReturnTo(returnTo);
-  const signInHref = `/sign-in${dest ? `?return_to=${encodeURIComponent(dest)}` : ""}`;
+  const query = dest ? `?return_to=${encodeURIComponent(dest)}` : "";
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setPasswordError(null);
     if (password !== confirm) {
-      setError(t("reset.mismatch"));
+      setMismatch(true);
       return;
     }
-    setLoading(true);
+    setMismatch(false);
+    setBusy(true);
     try {
-      await apiPost("/v1/auth/reset-password", {
-        token,
-        new_password: password,
-      });
-      setDone(true);
+      await apiPost("/v1/auth/reset-password", { token, new_password: password });
+      setState("done");
     } catch (err) {
-      // The backend enforces length, weak-password and breach checks and returns
-      // a clear message; surface it verbatim.
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      if (err instanceof ApiError && LINK_GONE.has(err.code)) setState("gone");
+      else if (isPasswordRefusal(err)) setPasswordError(err.message);
+      else setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
+  if (state === "done") {
+    return (
+      <HostedPage
+        single
+        status="success"
+        branding={branding}
+        title={t("reset.doneTitle")}
+        description={t("reset.doneBody")}
+      >
+        <LinkButton href={`/sign-in${query}`} size="lg" fullWidth icon={ArrowRightIcon}>
+          {t("reset.signIn")}
+        </LinkButton>
+      </HostedPage>
+    );
+  }
+
+  if (state === "gone") {
+    return (
+      <HostedPage
+        single
+        status="danger"
+        branding={branding}
+        title={t("reset.expiredTitle")}
+        description={t("reset.expiredBody")}
+      >
+        <LinkButton href={`/forgot-password${query}`} size="lg" fullWidth icon={MailIcon}>
+          {t("reset.newLink")}
+        </LinkButton>
+      </HostedPage>
+    );
+  }
+
   return (
-    <AuthCard branding={branding} title={t("reset.title")} subtitle={t("reset.subtitle")}>
-      {done ? (
-        <div className="space-y-4 text-center">
-          <p role="status" className="text-muted-foreground text-sm">
-            {t("reset.done")}
-          </p>
-          <Button
-            render={<a href={signInHref} aria-label={t("reset.goToSignIn")} />}
-            size="lg"
-            className="w-full"
+    <HostedPage branding={branding} title={t("reset.title")} description={t("reset.body")}>
+      <form onSubmit={onSubmit}>
+        <FormStack>
+          <FormAlert title={error} />
+          <Field
+            label={t("reset.password")}
+            invalid={Boolean(passwordError)}
+            error={passwordError ?? undefined}
           >
-            {t("reset.goToSignIn")}
-          </Button>
-        </div>
-      ) : !token ? (
-        <FormAlert>{t("reset.missingToken")}</FormAlert>
-      ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium">
-              {t("reset.fields.password")}
-            </label>
-            <IconPasswordInput
-              id="password"
-              autoComplete="new-password"
-              autoFocus
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {password ? (
-              <PasswordStrengthMeter value={password} className="pt-1" />
-            ) : (
-              <p className="text-muted-foreground text-xs">{t("reset.hint")}</p>
+            {(control) => (
+              <PasswordInput
+                {...control}
+                name="new-password"
+                required
+                autoFocus
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+              />
             )}
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="confirm" className="text-sm font-medium">
-              {t("reset.fields.confirm")}
-            </label>
-            <IconPasswordInput
-              id="confirm"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              aria-invalid={confirm.length > 0 && confirm !== password}
-            />
-          </div>
-
-          <FormAlert>{error}</FormAlert>
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            loading={loading}
-            loadingLabel={t("reset.submit.busy")}
+          </Field>
+          <Field
+            label={t("reset.confirm")}
+            invalid={mismatch}
+            error={mismatch ? t("reset.mismatch") : undefined}
           >
-            {t("reset.submit.idle")}
+            {(control) => (
+              <PasswordInput
+                {...control}
+                name="confirm-password"
+                required
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.currentTarget.value)}
+              />
+            )}
+          </Field>
+          <Button type="submit" size="lg" fullWidth icon={CheckIcon} loading={busy}>
+            {busy ? t("reset.saving") : t("reset.save")}
           </Button>
-        </form>
-      )}
-    </AuthCard>
+        </FormStack>
+      </form>
+    </HostedPage>
   );
 }
