@@ -1,26 +1,21 @@
 {
-  "entry": {
-    "title": "Connect a device",
-    "description": "Enter the code shown on your device to continue.",
-    "codeLabel": "Device code",
-    "submit": "Continue",
-    "submitting": "…"
-  },
-  "authorize": {
-    "title": "Authorize device",
-    "wantsPermission": "wants permission to:",
-    "approve": "Approve",
-    "approving": "…",
-    "deny": "Deny"
-  },
-  "terminal": {
-    "approvedTitle": "Device approved",
-    "approvedBody": "Device approved — you can return to your device and continue.",
-    "deniedTitle": "Request denied",
-    "deniedBody": "Request denied."
-  },
-  "errors": {
-    "codeRequired": "Enter the code shown on your device.",
-    "codeInvalid": "That code is unknown, expired, or has already been used. Check it and try again."
-  }
+  "title": "Connect a device",
+  "body": "Enter the code your TV, display or other device is showing.",
+  "code": "Code on the device",
+  "codeHint": "e.g. BDKM-QRTW",
+  "filledHelp": "Check that this matches the code on the device.",
+  "wrong": "That code didn't work. Check it against the device: codes last 10 minutes, so the device may show a new one.",
+  "required": "Enter the code your device is showing.",
+  "continue": "Continue",
+  "allowTitle": "Allow {{device}}?",
+  "codeLine": "Code {{code}}",
+  "warnTitle": "Only if it's in front of you",
+  "warnBody": "Allow this only if you started it on a device you can see. If someone sent you this code, choose Deny.",
+  "allowBody": "It will be able to:",
+  "deny": "Deny",
+  "allow": "Allow",
+  "allowedTitle": "Device connected",
+  "allowedBody": "Go back to {{device}}: it's signing in now. You can close this window.",
+  "deniedTitle": "Device not connected",
+  "deniedBody": "Nothing was shared with it. You can close this window."
 }

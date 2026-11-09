@@ -1,30 +1,39 @@
 "use client";
 
+import { Spinner } from "@qeetrix/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { type Account, fetchSignedInAccount } from "@/platform/api/account";
 import { ApiError, apiGet } from "@/platform/api/client";
 import { fetchClientContext } from "@/platform/api/login-context";
 import { type Branding, normalizeBranding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
-import { AuthShell } from "@/platform/components/auth-shell";
-import { FormAlert } from "@/platform/components/form-alert";
+import { HostedPage } from "@/platform/components/hosted-page";
 
-import { ConsentForm, consentErrorKey } from "./consent-form";
+import { ConsentForm, type Ended, EndedPage, endedBy } from "./consent-form";
 
-// The request as the API recorded it. The hosted-login session cookie (sent
-// with the request) is what lets this browser read it.
+// The request as the server recorded it. The hosted login session cookie, sent with the call, is
+// what lets this browser read it.
 type RecordedRequest = { request_id: string; client_id: string; scope: string };
 
 type State =
   | { kind: "loading" }
-  | { kind: "ready"; requestId: string; scopes: string[]; clientName: string; branding?: Branding }
-  | { kind: "refused"; messageKey: string };
+  | {
+      kind: "ready";
+      requestId: string;
+      scopes: string[];
+      clientName: string;
+      clientLogoUri?: string;
+      clientUri?: string;
+      account: Account | null;
+      branding?: Branding;
+    }
+  | { kind: "ended"; ended: Ended };
 
 /**
- * Loads the recorded authorization request by its id, then the name and
- * branding of the application it is for, and asks the person to decide on
- * it. A request that can't be read (unknown, expired, already decided, or
- * another sign-in's) is refused here, with nothing of it shown.
+ * Loads the recorded authorization request by its id (the address carries nothing else), then the
+ * application it is for and who is signed in, and asks the person to decide. A request that can't
+ * be read (unknown, expired, answered, or another sign-in's) has ended, with nothing of it shown.
  */
 export function ConsentPage({ requestId }: { requestId: string }) {
   const { t } = useTranslation("consent");
@@ -34,29 +43,31 @@ export function ConsentPage({ requestId }: { requestId: string }) {
     let live = true;
     (async () => {
       if (!requestId) {
-        setState({ kind: "refused", messageKey: "errors.requestInvalid" });
+        setState({ kind: "ended", ended: "ended" });
         return;
       }
       try {
         const req = await apiGet<RecordedRequest>(
           `/v1/oauth/authorize/request?request_id=${encodeURIComponent(requestId)}`,
         );
-        const ctx = await fetchClientContext(req.client_id);
+        const [ctx, account] = await Promise.all([
+          fetchClientContext(req.client_id),
+          fetchSignedInAccount(),
+        ]);
         if (!live) return;
         setState({
           kind: "ready",
           requestId: req.request_id,
           scopes: req.scope.split(/\s+/).filter(Boolean),
           clientName: ctx.clientName,
+          clientLogoUri: ctx.logoUri,
+          clientUri: ctx.clientUri,
+          account,
           branding: normalizeBranding(ctx.branding),
         });
       } catch (err) {
         if (!live) return;
-        setState({
-          kind: "refused",
-          messageKey:
-            consentErrorKey(err instanceof ApiError ? err.code : "") ?? "errors.requestInvalid",
-        });
+        setState({ kind: "ended", ended: endedBy(err instanceof ApiError ? err.code : "") ?? "ended" });
       }
     })();
     return () => {
@@ -64,29 +75,13 @@ export function ConsentPage({ requestId }: { requestId: string }) {
     };
   }, [requestId]);
 
-  if (state.kind === "ready") {
-    return (
-      <AuthShell branding={state.branding}>
-        <ConsentForm
-          requestId={state.requestId}
-          scopes={state.scopes}
-          clientName={state.clientName}
-          branding={state.branding}
-        />
-      </AuthShell>
-    );
-  }
+  if (state.kind === "ready") return <ConsentForm {...state} />;
+  if (state.kind === "ended") return <EndedPage ended={state.ended} clientName="" />;
   return (
-    <AuthShell>
-      <AuthCard title={t("title")}>
-        {state.kind === "loading" ? (
-          <p className="text-muted-foreground text-sm" role="status">
-            {t("loading")}
-          </p>
-        ) : (
-          <FormAlert>{t(state.messageKey)}</FormAlert>
-        )}
-      </AuthCard>
-    </AuthShell>
+    <HostedPage single title={t("loading")}>
+      <div role="status" className="flex items-center gap-3 py-2">
+        <Spinner size="md" tone="brand" label={t("loading")} />
+      </div>
+    </HostedPage>
   );
 }

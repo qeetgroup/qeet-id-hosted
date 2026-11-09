@@ -53,12 +53,22 @@ export async function fetchLoginContext(
   }
 }
 
-// The application a browser-side page acts for: its display name ("" when it
-// can't be resolved) and its tenant's branding.
-export type ClientContext = { clientName: string; branding?: BrandingDTO };
+// The application a browser-side page acts for: its display name ("" when it can't be resolved),
+// its logo and home page when registered, and its organisation's branding.
+export type ClientContext = {
+  clientName: string;
+  logoUri?: string;
+  clientUri?: string;
+  branding?: BrandingDTO;
+};
 
-/** Fetches the name and branding of an OAuth client, from the browser. */
+/** Fetches the name, logo, home page and branding of an OAuth client, from the browser. */
 export async function fetchClientContext(clientId: string): Promise<ClientContext> {
   const ctx = await fetchLoginContext(clientId);
-  return { clientName: ctx.client_name ?? "", branding: ctx.branding };
+  return {
+    clientName: ctx.client_name ?? "",
+    logoUri: ctx.logo_uri,
+    clientUri: ctx.client_uri,
+    branding: ctx.branding,
+  };
 }

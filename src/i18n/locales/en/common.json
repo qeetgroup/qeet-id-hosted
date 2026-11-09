@@ -4,14 +4,15 @@
     "addressNotAllowed": "Your organisation doesn't allow sign-in from this network. Contact your administrator."
   },
   "scopes": {
-    "openid": "Verify your identity",
-    "profile": "See your basic profile (name)",
+    "openid": "Confirm it's you",
+    "profile": "See your name",
     "email": "See your email address",
-    "offline_access": "Stay signed in (refresh access)"
+    "offline_access": "Stay signed in, even when you're not using it"
   },
   "fallbacks": {
     "application": "An application",
-    "signYouIn": "Sign you in"
+    "device": "this device",
+    "signYouIn": "Confirm it's you"
   },
   "providers": {
     "google": "Google",

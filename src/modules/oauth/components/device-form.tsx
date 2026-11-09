@@ -1,163 +1,187 @@
 "use client";
 
-import { Button, Input } from "@qeetrix/ui";
-import { type FormEvent, useState } from "react";
+import { Button, Text, TextField } from "@qeetrix/react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { type Account, fetchSignedInAccount } from "@/platform/api/account";
 import { ApiError, apiGet, apiPost } from "@/platform/api/client";
 import { apiErrorMessage } from "@/platform/api/errors";
-import { AuthCard } from "@/platform/components/auth-card";
+import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
+import { FormStack } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { ArrowRightIcon, TvMinimalIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
+
 import { ScopeList } from "./scope-list";
 
 type DeviceContext = { client_name: string; scopes: string[] };
 
-// Where the device-flow context lives on the backend, and where we bounce the
-// user if they aren't signed in yet (so they land back here afterward).
+// Through sign-in and back to this page, with the code, when no one is signed in yet.
 function signInRedirect(code: string): string {
   const returnTo = `/device?user_code=${encodeURIComponent(code)}`;
   return `/sign-in?return_to=${encodeURIComponent(returnTo)}`;
 }
 
+/**
+ * For a device without a keyboard (a TV, a shop-floor display, a command line): the person types
+ * the code it shows (or a link from the device carries it), then sees which device is asking and
+ * what it could do, with a plain warning to allow only a device they started this on (RFC 8628
+ * §5.4). An unknown, expired or used code gets one answer. Allowed, the device signs itself in.
+ */
 export function DeviceForm({ userCode }: { userCode: string }) {
   const { t } = useTranslation("device");
-  const [code, setCode] = useState(userCode);
+  const [code, setCode] = useState(userCode.toUpperCase());
   const [ctx, setCtx] = useState<DeviceContext | null>(null);
+  const [account, setAccount] = useState<Account | null>(null);
   const [decision, setDecision] = useState<"authorized" | "denied" | null>(null);
+  const [wrong, setWrong] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<"continue" | "allow" | "deny" | null>(null);
 
-  async function loadContext(e: FormEvent) {
+  useEffect(() => {
+    void fetchSignedInAccount().then(setAccount);
+  }, []);
+
+  async function lookUp(e: FormEvent) {
     e.preventDefault();
     const trimmed = code.trim();
+    setWrong(null);
+    setError(null);
     if (!trimmed) {
-      setError(t("errors.codeRequired"));
+      setWrong(t("required"));
       return;
     }
-    setError(null);
-    setLoading(true);
+    setBusy("continue");
     try {
-      const res = await apiGet<DeviceContext>(
-        `/v1/oauth/device?user_code=${encodeURIComponent(trimmed)}`,
-      );
-      setCtx(res);
-      setLoading(false);
+      setCtx(await apiGet<DeviceContext>(`/v1/oauth/device?user_code=${encodeURIComponent(trimmed)}`));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        // Not signed in: send them through sign-in, then back to this page.
         goTo(signInRedirect(trimmed));
         return;
       }
-      if (err instanceof ApiError && [400, 404, 409].includes(err.status)) {
-        setError(t("errors.codeInvalid"));
-      } else {
-        setError(apiErrorMessage(err, t, t("common:errors.generic")));
-      }
-      setLoading(false);
+      if (err instanceof ApiError && [400, 404, 409].includes(err.status)) setWrong(t("wrong"));
+      else setError(apiErrorMessage(err, t, t("signIn:problems.generic.title")));
     }
+    setBusy(null);
   }
 
   async function decide(approve: boolean) {
     setError(null);
-    setLoading(true);
+    setBusy(approve ? "allow" : "deny");
     try {
       const res = await apiPost<{ status: string }>("/v1/oauth/device/decision", {
         approve,
         user_code: code.trim(),
       });
       setDecision(res.status === "authorized" ? "authorized" : "denied");
-      setLoading(false);
     } catch (err) {
-      setError(apiErrorMessage(err, t, t("common:errors.generic")));
-      setLoading(false);
+      setError(apiErrorMessage(err, t, t("signIn:problems.generic.title")));
     }
+    setBusy(null);
   }
 
-  // Terminal state: the decision is recorded; the device polls for its token.
+  const device = ctx?.client_name || t("common:fallbacks.device");
+
   if (decision) {
+    const allowed = decision === "authorized";
     return (
-      <AuthCard
-        title={decision === "authorized" ? t("terminal.approvedTitle") : t("terminal.deniedTitle")}
-        subtitle={decision === "authorized" ? t("terminal.approvedBody") : t("terminal.deniedBody")}
+      <HostedPage
+        single
+        status={allowed ? "success" : "info"}
+        title={t(allowed ? "allowedTitle" : "deniedTitle")}
+        description={allowed ? t("allowedBody", { device }) : t("deniedBody")}
       />
     );
   }
 
-  // Approval step: we have the client + scopes, ask the user to approve or deny.
   if (ctx) {
-    const scopes = ctx.scopes ?? [];
     return (
-      <AuthCard
-        title={t("authorize.title")}
-        subtitle={
-          <>
-            <span className="text-foreground font-medium">
-              {ctx.client_name || t("common:fallbacks.application")}
-            </span>{" "}
-            {t("authorize.wantsPermission")}
-          </>
+      <HostedPage
+        title={t("allowTitle", { device })}
+        lead={
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="grid size-10 shrink-0 place-items-center rounded-control bg-[#ffffff] text-[#191818] ring-1 ring-border-default"
+            >
+              <TvMinimalIcon size={24} />
+            </span>
+            <Text size="md" tone="subtle" mono render={<p />}>
+              {t("codeLine", { code: code.trim() })}
+            </Text>
+          </div>
         }
       >
-        <ScopeList scopes={scopes} />
-
-        <FormAlert>{error}</FormAlert>
-
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            size="lg"
-            className="flex-1"
-            disabled={loading}
-            onClick={() => decide(false)}
-          >
-            {t("authorize.deny")}
-          </Button>
-          <Button
-            size="lg"
-            className="flex-1"
-            onClick={() => decide(true)}
-            loading={loading}
-            loadingLabel={t("authorize.approving")}
-          >
-            {t("authorize.approve")}
-          </Button>
-        </div>
-      </AuthCard>
+        <FormStack>
+          <FormAlert title={error} />
+          <FormAlert tone="warning" title={t("warnTitle")}>
+            {t("warnBody")}
+          </FormAlert>
+          <div>
+            <Text size="md" weight="medium" render={<p />}>
+              {t("allowBody")}
+            </Text>
+            <ScopeList className="mt-3" scopes={ctx.scopes ?? []} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant="soft"
+              size="lg"
+              fullWidth
+              loading={busy === "deny"}
+              disabled={busy !== null}
+              onClick={() => void decide(false)}
+            >
+              {t("deny")}
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              fullWidth
+              loading={busy === "allow"}
+              disabled={busy !== null}
+              onClick={() => void decide(true)}
+            >
+              {t("allow")}
+            </Button>
+          </div>
+        </FormStack>
+      </HostedPage>
     );
   }
 
-  // Entry step: enter or confirm the user code from the device.
   return (
-    <AuthCard title={t("entry.title")} subtitle={t("entry.description")}>
-      <form onSubmit={loadContext} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="user_code" className="text-sm font-medium">
-            {t("entry.codeLabel")}
-          </label>
-          <Input
-            id="user_code"
+    <HostedPage
+      title={t("title")}
+      description={t("body")}
+      lead={account ? <AccountChip email={account.email} name={account.name} /> : undefined}
+    >
+      <form onSubmit={lookUp}>
+        <FormStack>
+          <FormAlert title={error} />
+          <TextField
+            label={t("code")}
+            name="user_code"
+            size="lg"
+            autoFocus={!userCode}
             autoComplete="off"
             autoCapitalize="characters"
-            required
+            spellCheck={false}
+            placeholder={t("codeHint")}
+            description={userCode && !wrong ? t("filledHelp") : undefined}
+            invalid={Boolean(wrong)}
+            error={wrong ?? undefined}
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="XXXX-XXXX"
-            className="text-center font-mono text-lg tracking-[0.3em]"
+            onChange={(e) => setCode(e.currentTarget.value.toUpperCase())}
           />
-        </div>
-
-        <FormAlert>{error}</FormAlert>
-
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          loading={loading}
-          loadingLabel={t("entry.submitting")}
-        >
-          {t("entry.submit")}
-        </Button>
+          <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy === "continue"}>
+            {t("continue")}
+          </Button>
+        </FormStack>
       </form>
-    </AuthCard>
+    </HostedPage>
   );
 }

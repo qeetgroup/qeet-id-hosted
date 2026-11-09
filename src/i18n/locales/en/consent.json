@@ -1,15 +1,15 @@
 {
-  "title": "Authorize access",
-  "wantsPermission": "wants permission to:",
-  "actions": {
-    "deny": "Deny",
-    "allow": "Allow",
-    "allowing": "…"
-  },
+  "title": "Allow {{client}} to use your account?",
+  "body": "It will be able to:",
+  "deny": "Deny",
+  "allow": "Allow",
   "loading": "Loading the request…",
-  "errors": {
-    "requestInvalid": "This request has expired or was already answered. Go back to the application and start again.",
-    "redirectNotRegistered": "This application can't take you back: its return address is no longer registered. You can close this window.",
-    "noRedirect": "Your answer was recorded. You can close this window."
-  }
+  "endedTitle": "This request has ended",
+  "endedBody": "It expired, or was answered already. Go back to the application and start again.",
+  "unregisteredTitle": "{{client}} can't take you back",
+  "unregisteredBody": "Its return address is no longer registered with Qeet ID, so nothing was shared. You can close this window.",
+  "recordedTitle": "Your answer was recorded",
+  "recordedBody": "You can close this window.",
+  "networkTitle": "You can't continue from this network",
+  "networkBody": "Your organisation allows sign-in only from its own networks. Connect to one, then try again."
 }
