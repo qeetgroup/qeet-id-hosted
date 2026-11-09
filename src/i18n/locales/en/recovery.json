@@ -1,30 +1,30 @@
 {
   "forgot": {
     "title": "Reset your password",
-    "subtitle": "Enter your email and we'll send you a link to reset your password.",
+    "body": "Enter your email, and we'll send you a link to choose a new password.",
     "label": "Email address",
-    "submit": {
-      "idle": "Send reset link",
-      "busy": "Sending…"
-    },
-    "sent": "If an account exists for that email, we've sent a password reset link. Check your inbox.",
-    "backToSignIn": "Back to sign in"
+    "placeholder": "name@company.com",
+    "send": "Send reset link",
+    "sending": "Sending…",
+    "back": "Back to sign in",
+    "sentTitle": "Check your email",
+    "sentBody": "If {{email}} has an account here, a link to reset your password is on its way.",
+    "tip": "The link works once. Nothing after a minute? Look in your spam folder, or send it again.",
+    "again": "Send it again"
   },
   "reset": {
     "title": "Choose a new password",
-    "subtitle": "Enter a new password for your account.",
-    "fields": {
-      "password": "New password",
-      "confirm": "Confirm new password"
-    },
-    "hint": "Use at least 8 characters.",
-    "submit": {
-      "idle": "Reset password",
-      "busy": "Resetting…"
-    },
-    "mismatch": "Those passwords don't match.",
-    "missingToken": "This reset link is missing its token. Request a new one.",
-    "done": "Your password has been reset. You can now sign in with your new password.",
-    "goToSignIn": "Go to sign in"
+    "body": "Use one you don't use anywhere else.",
+    "password": "New password",
+    "confirm": "Confirm new password",
+    "mismatch": "The two passwords don't match. Type the same password in both.",
+    "save": "Save password",
+    "saving": "Saving…",
+    "doneTitle": "Password changed",
+    "doneBody": "Sign in with your new password. You've been signed out everywhere else.",
+    "signIn": "Sign in",
+    "expiredTitle": "This reset link doesn't work",
+    "expiredBody": "It may have been used already, or it's expired. Ask for a new one.",
+    "newLink": "Get a new link"
   }
 }

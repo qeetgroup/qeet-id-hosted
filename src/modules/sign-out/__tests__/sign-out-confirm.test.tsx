@@ -30,9 +30,7 @@ describe("Sign-out confirmation", () => {
       />,
     );
 
-    expect(
-      await screen.findByText("Acme Notes asked to sign you out of your Qeet account."),
-    ).toBeTruthy();
+    expect(await screen.findByText("Acme Notes asked to sign you out.")).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     const url = new URL(vi.mocked(goTo).mock.calls[0][0]);
@@ -53,7 +51,7 @@ describe("Sign-out confirmation", () => {
   it("offers nothing without a ticket", () => {
     mockApi({});
     render(<SignOutConfirm ticket="" clientId="" postLogoutRedirect="" state="" />);
-    expect(screen.getByText("This sign-out link isn't valid")).toBeTruthy();
+    expect(screen.getByText("This sign-out link doesn't work")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
   });
 });

@@ -23,6 +23,7 @@ const recorded = {
     body: { request_id: "req-1", client_id: "app-1", scope: "openid email" },
   },
   "GET /v1/oauth/login-context": { status: 200, body: { client_name: "Acme Notes" } },
+  "GET /v1/me": { status: 200, body: { email: "ada@example.com", display_name: "Ada" } },
 };
 
 // Renders the page the way the API sends the browser to it, with whatever else
@@ -100,7 +101,7 @@ describe("Consent", () => {
       }),
     );
 
-    expect(await screen.findByText(/expired or was already answered/)).toBeTruthy();
+    expect(await screen.findByText(/It expired, or was answered already/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
   });
 
@@ -112,7 +113,7 @@ describe("Consent", () => {
       }),
     );
 
-    expect(await screen.findByText(/expired or was already answered/)).toBeTruthy();
+    expect(await screen.findByText(/It expired, or was answered already/)).toBeTruthy();
     expect(calls).toHaveLength(0);
   });
 
@@ -126,8 +127,19 @@ describe("Consent", () => {
     });
     fireEvent.click(await openConsent({ request_id: "req-1" }));
 
-    expect(await screen.findByText(/doesn't allow sign-in from this network/)).toBeTruthy();
+    expect(await screen.findByText(/You can't continue from this network/)).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+  });
+
+  it("names the signed-in account, so the wrong one is spotted", async () => {
+    mockApi(recorded);
+    await openConsent({ request_id: "req-1" });
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Allow Acme Notes to use your account?" }),
+    ).toBeTruthy();
+    expect(screen.getByText("ada@example.com")).toBeTruthy();
+    expect(screen.getByText("See your email address")).toBeTruthy();
   });
 });

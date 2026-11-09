@@ -5,7 +5,7 @@ inheritance:
   organization: {repository: qeetgroup/qeet-context, level: L0}
   product:      {repository: qeetgroup/qeet-id-context, level: L1}
 repository:
-  name: qeet-id-hosted   # formerly qeet-id-login; the release image keeps that name until QTID-955
+  name: qeet-id-hosted   # formerly qeet-id-login; the test image keeps that name, which the kit reads
   product: qeet-id
   type: frontend
   role: primary
@@ -13,14 +13,14 @@ repository:
   visibility: private
   default_branch: main
   working_branch: develop
-  host: accounts.id.qeet.in   # formerly login.id.qeet.in, which redirects here (QTID-957)
+  host: accounts.id.qeet.in   # formerly login.id.qeet.in
 runtime:
   language: TypeScript
   framework: Next.js 16.2.6      # App Router, React Compiler
   react: "^19.2.6"
   package_manager: bun@1.3.14
   lint_format: "@biomejs/biome 2.5.15"   # biome.json
-  design_system: "@qeetrix/ui 2.1.5"     # pinned exactly; icons from @qeetrix/icons 1.0.11
+  design_system: "@qeetrix/react 0.5.1"  # pinned exactly, with @qeetrix/tokens 0.0.15 and @qeetrix/icons 2.1.2
   dev_port: 3003                          # REQUIRED — backend allowlists it
 architecture:
   style: stateless-thin-client
@@ -48,11 +48,13 @@ commands:
   check: bun run check            # Biome: format + lint + import order
   test_e2e: bun run test:e2e      # Playwright: each page's CSP + WCAG 2.2 AA (axe)
 ci:
-  workflows: [ci.yml, deploy.yml]
-  jobs: [verify, e2e, image, deploy]   # verify = typecheck + check + test:coverage + build; e2e = test:e2e
+  workflows: [ci.yml, candidate.yml, deploy.yml]
+  branches: "develop (finished work) -> release (what testers check) -> main (production); hotfix/* into main"
+  verify: "ci.yml Verify: typecheck + check + test:coverage + build + browser tests, once per change on its PR; promotions skip them when already tested and up to date"
   runner: ubuntu-latest
-  deploy: push main -> gate -> vercel build/deploy --prod -> tag vX.Y.Z + GitHub release (release/x.y.z merge -> exactly vx.y.z; job runs only on main)
-  release_image: "ci.yml job `image` — push to release/** after verify: ghcr.io/qeetgroup/qeet-id-login:sha-<commit> (the former name, which qeet-id-kit reads, until QTID-955), linux/amd64+arm64 (consumed by the Qeet ID Kit, qeet-id-kit)"
+  candidate: "candidate.yml: merge into release -> ghcr.io/qeetgroup/qeet-id-login:sha-<commit> (the former name, which qeet-id-kit reads), linux/amd64+arm64; a release fix is merged into develop"
+  deploy: "deploy.yml: merge into main (release or hotfix/* PR whose Verify passed) -> vercel build/deploy --prod -> GET /healthz -> tag vX.Y.Z (scripts/next-version.sh, from PR titles) + GitHub release -> release and develop level with main"
+  dependencies: ".github/dependabot.yml: weekly, grouped, into develop"
 container:
   dockerfile: Dockerfile          # Next standalone server; not used by Vercel production
   runtime_env: [PUBLIC_API_URL, PORT, HOSTNAME]

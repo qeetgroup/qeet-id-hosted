@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   // ignores this and keeps using its own build output.
   output: "standalone",
   reactCompiler: true,
-  transpilePackages: ["@qeetrix/ui"],
+  // Qeetrix's barrels hold every component and icon; only what a page imports is loaded.
+  experimental: { optimizePackageImports: ["@qeetrix/react", "@qeetrix/icons"] },
   // Security headers on every response (src/platform/security/security-headers.ts); the
   // per-page Content-Security-Policy comes from src/proxy.ts.
   async headers() {

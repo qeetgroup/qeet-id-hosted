@@ -1,15 +1,10 @@
 {
   "title": "Your passkeys",
-  "subtitle": "Sign in with your fingerprint, face or screen lock instead of a password.",
+  "body": "Sign in with your fingerprint, face or screen lock instead of a password.",
   "loading": "Loading your passkeys…",
-  "retry": "Try again",
-  "signedOut": {
-    "title": "Sign in to manage your passkeys",
-    "body": "You need to be signed in to see and add passkeys.",
-    "action": "Sign in"
-  },
+  "signOut": "Sign out",
   "list": {
-    "empty": "You haven't added a passkey yet.",
+    "label": "Passkeys",
     "unnamed": "Unnamed passkey",
     "added": "Added {{date}}",
     "lastUsed": "Last used {{date}}",
@@ -17,29 +12,44 @@
   },
   "rename": {
     "action": "Rename",
+    "actionFor": "Rename {{name}}",
     "label": "Passkey name",
     "save": "Save",
     "cancel": "Cancel",
     "saved": "Passkey renamed."
   },
+  "empty": {
+    "title": "No passkeys yet",
+    "body": "Add one below, and your next sign-in needs no password."
+  },
   "add": {
-    "nameLabel": "Name (optional)",
+    "title": "Add a passkey",
+    "body": "For this device. You can add one on each device you use.",
+    "nameLabel": "Name",
     "namePlaceholder": "e.g. Work laptop",
     "nameHint": "Leave it empty to name it after this browser. You can rename it later.",
-    "idle": "Create a passkey",
+    "idle": "Add a passkey",
     "busy": "Waiting for your device…",
-    "added": "Passkey created. You can use it the next time you sign in."
+    "addedTitle": "Passkey added",
+    "addedBody": "You can use it the next time you sign in."
   },
-  "disabled": "Your organization has turned off passkeys, so you can't add one.",
-  "unsupported": "This browser can't create passkeys.",
-  "prompt": {
-    "title": "Sign in faster next time",
-    "body": "Create a passkey to sign in with your fingerprint, face or screen lock instead of your password.",
-    "add": "Create a passkey",
-    "busy": "Waiting for your device…",
-    "skip": "Not now",
-    "added": "Passkey added.",
-    "continue": "Continue"
+  "off": {
+    "title": "Your organisation has turned off passkeys",
+    "body": "You can't add one while they're off. Ask your administrator if you need one."
+  },
+  "unsupported": {
+    "title": "This browser can't make passkeys",
+    "body": "Use an up-to-date Chrome, Safari, Edge or Firefox, or add one on another device."
+  },
+  "loadError": {
+    "title": "Your passkeys didn't load",
+    "body": "Check your connection, then try again.",
+    "retry": "Try again"
+  },
+  "signedOut": {
+    "title": "Sign in to see your passkeys",
+    "body": "You need to be signed in to see or add passkeys.",
+    "action": "Sign in"
   },
   "errors": {
     "generic": "We couldn't add your passkey. Please try again.",
@@ -52,5 +62,18 @@
     "invalidName": "Use a name of 1 to 64 characters.",
     "refused": "The request was refused. Reload the page and try again.",
     "load": "We couldn't load your passkeys. Please try again."
+  },
+  "remove": {
+    "action": "Remove",
+    "actionFor": "Remove {{name}}",
+    "title": "Remove “{{name}}”?",
+    "body": "You won't be able to sign in with it any more. Delete it from the device's password manager too.",
+    "cancel": "Cancel",
+    "confirm": "Remove passkey",
+    "busy": "Removing…",
+    "removed": "Passkey removed.",
+    "stepUpTitle": "Sign in again to remove a passkey",
+    "stepUpBody": "For your security, removing one needs a recent sign-in.",
+    "stepUpAction": "Sign in"
   }
 }

@@ -23,8 +23,8 @@ function renderSignUp(selfRegistrationEnabled = true) {
 
 function fillPasswordForm(confirm = "correct horse battery") {
   fireEvent.click(screen.getByRole("button", { name: "Use a password instead" }));
-  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
-  fireEvent.change(screen.getByLabelText("Email address"), {
+  fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Ada" } });
+  fireEvent.change(screen.getByLabelText("Work email"), {
     target: { value: "ada@example.com" },
   });
   fireEvent.change(screen.getByLabelText("Password"), {
@@ -68,7 +68,9 @@ describe("SignUpForm", () => {
 
     fillPasswordForm("something else");
 
-    expect(await screen.findByText("Those passwords don't match.")).toBeTruthy();
+    expect(
+      await screen.findByText("The two passwords don't match. Type the same password in both."),
+    ).toBeTruthy();
     expect(calls).toEqual([]);
   });
 
@@ -76,7 +78,36 @@ describe("SignUpForm", () => {
     mockApi({});
     renderSignUp(false);
 
-    expect(screen.getByText(/Sign-ups aren't open for this application/)).toBeTruthy();
+    expect(screen.getByText("Sign-up is by invitation")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Create account" })).toBeNull();
+  });
+
+  it("says a rule the password doesn't meet at the field, in the server's words", async () => {
+    mockApi({
+      "POST /v1/auth/register": {
+        status: 422,
+        body: {
+          error: {
+            code: "authpolicy.password_no_number",
+            message: "Your password must contain a number.",
+          },
+        },
+      },
+    });
+    renderSignUp();
+
+    fillPasswordForm();
+
+    expect(await screen.findByText("Your password must contain a number.")).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+  });
+
+  it("offers a passkey first, with no password field", () => {
+    mockApi({});
+    renderSignUp();
+
+    expect(screen.getByRole("button", { name: "Create account with a passkey" })).toBeTruthy();
+    expect(screen.queryByLabelText("Password")).toBeNull();
   });
 });

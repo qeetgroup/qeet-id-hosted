@@ -1,11 +1,12 @@
 // The signed-in user's passkeys, for the security page and the "add a passkey"
 // prompt after a password sign-in. Every call is authenticated by the hosted
 // login session cookie (qe_ls) that sign-in set; the backend accepts it on
-// exactly these routes: list, rename, and the two steps of adding a passkey.
-// Mutations carry the CSRF token through src/platform/api/client.ts. Removing a passkey is
-// not offered here: the backend allows that with a bearer token only.
+// exactly these routes: list, rename, remove, and the two steps of adding a
+// passkey. Mutations carry the CSRF token through src/platform/api/client.ts.
+// Removing needs a recent sign-in (403 step_up_required otherwise), and the
+// account's last way to sign in can't be removed (409 auth.last_sign_in_method).
 
-import { ApiError, apiGet, apiPatch, apiPost } from "@/platform/api/client";
+import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from "@/platform/api/client";
 
 /** One of the signed-in user's passkeys, as GET /v1/passkeys returns it. */
 export type Passkey = {
@@ -130,4 +131,9 @@ export function passkeyErrorKey(err: unknown): string {
     }
   }
   return "errors.generic";
+}
+
+/** Removes one of the signed-in person's passkeys. */
+export function removePasskey(id: string): Promise<void> {
+  return apiDelete<void>(`/v1/passkeys/${encodeURIComponent(id)}`);
 }

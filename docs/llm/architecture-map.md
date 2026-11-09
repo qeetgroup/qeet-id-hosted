@@ -18,8 +18,12 @@
 | Runtime config written into every page | `src/app/layout.tsx` → `publicConfigScript` in `src/platform/config/public-config.ts` |
 | Former paths (`/login`, `/signup`, …) → current ones | `next.config.ts` `redirects()` |
 | Global styles | `src/app/globals.css` |
-| Page frame: brand panel, footer (language, theme, legal links) · the card (full-bleed on phones) · the logo | `src/platform/components/auth-shell.tsx` · `auth-card.tsx` · `brand-logo.tsx` |
-| Light / dark / system theme: provider, pre-paint script, storage key | `src/app/layout.tsx` · `src/platform/config/theme.ts` · `src/platform/components/theme-toggle.tsx` |
+| Page frame: the three layouts (phone, tablet card, laptop two columns), a page of its own with a top bar · the footer (language, theme, legal links) · the logo | `src/platform/components/hosted-page.tsx` · `page-footer.tsx` · `brand-logo.tsx` · `qeet-id-logo.tsx` |
+| Shared parts: the account, the application, or-divider, a ruled list of choices, a form message | `src/platform/components/{account-chip,app-line,form-parts,form-alert}.tsx` |
+| Icons (sharp, mirrored in right-to-left) | `src/platform/icons.ts` |
+| An organisation's colour on Qeetrix's brand tokens | `src/platform/branding/branding.ts` · `.hosted-branded` in `src/app/globals.css` |
+| Light / dark / system theme: Qeetrix provider, pre-paint script, storage key | `src/app/layout.tsx` · `src/platform/components/providers.tsx` · `src/platform/config/theme.ts` |
+| Favicon and Apple touch icon (Next.js file convention) | `src/app/icon.svg` · `src/app/apple-icon.png` |
 
 ## Routes — every segment
 
@@ -29,7 +33,7 @@ signed-in self-service pages, `(enterprise)` enterprise setup.
 
 | Route | Module page (`src/modules/…`) | Purpose |
 |---|---|---|
-| `/sign-in` | `authentication/components/sign-in/` (form, passkey prompt, magic-link request, social providers) | password · passkey · social · MFA · "add a passkey" offer after a password sign-in |
+| `/sign-in` | `authentication/components/sign-in/` (form, email step, password step, link step, company step, provider row, passkey offer) | email first, then the company's own sign-in when its domain uses one (`company-sign-in.ts`), else password or a sign-in link · passkey · social · the second step · "add a passkey" offer after a password sign-in |
 | `/sign-up` | `authentication/components/sign-up/` | account creation + passkey registration |
 | `/magic-link` | `authentication/components/magic-link/` | consume an emailed magic link (one requested from hosted sign-in) |
 | `/forgot-password` | `recovery/components/forgot-password-*` | request a reset |
@@ -48,9 +52,9 @@ The MFA steps live in `authentication/components/mfa/`; the session answer types
 
 ```text
 src/platform/     api/ (client · errors · login-context · relay · server) · config/ · navigation/
-                  (return-to · go-to) · branding/ · webauthn/ (passkeys) · components/ (auth-card ·
-                  auth-shell · brand-logo · theme-toggle · language-select · icon-input · form-alert ·
-                  error and not-found pages)
+                  (return-to · go-to) · branding/ · webauthn/ (passkeys) · icons.ts · components/
+                  (hosted-page · page-footer · providers · brand-logo · qeet-id-logo · account-chip ·
+                  app-line · form-parts · form-alert · error and not-found pages)
 src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
                   enterpriseSetup,recovery,security,signIn,signOut,signUp}.json   (English only)
 ```
@@ -59,7 +63,7 @@ src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
 
 | | |
 |---|---|
-| Next config — React Compiler, transpiles `@qeetrix/ui` | `next.config.ts` |
+| Next config — React Compiler, former-path redirects | `next.config.ts` |
 | Scripts | `package.json` |
 | Deploy | `vercel.json` |
 
@@ -74,6 +78,12 @@ POST /v1/auth/reset-password          reset
 POST /v1/passkeys/login/{begin,finish}
 POST /v1/register/passkey/{begin,finish}
 GET  /v1/social/{provider}/start      social redirect
+POST /v1/sso/discovery                where an address signs in (its company's own sign-in?)
+GET  /saml/login/{id}?return_to=      company sign-in (SAML), back to /sign-in#saml_code=
+GET  /v1/oidc-connections/{id}/login  company sign-in (OpenID Connect), back to /sign-in#oidc_code=
+POST /saml/session                    trade the SAML code for the session
+POST /v1/oidc-connections/session     trade the OpenID Connect code for the session
+POST /ldap/{id}/session               a company directory's user name and password
 POST /v1/oauth/authorize/decision     consent
 GET  /v1/oauth/device?user_code=      device grant
 POST /v1/oauth/device/decision
@@ -92,3 +102,13 @@ The contract is owned by **`qeet-id-server`**.
 | Headers on every response (Referrer-Policy, nosniff, X-Frame-Options, Permissions-Policy) | `src/platform/security/security-headers.ts`, applied in `next.config.ts` |
 | Startup check on the server's settings | `src/instrumentation.ts` → `src/platform/config/server-config.ts` |
 | Browser tests: CSP and accessibility | `tests/e2e/`, `playwright.config.ts` |
+
+## CI and releases
+
+| Need | Path |
+|---|---|
+| Verify on every pull request (checks + browser tests; promotions skip what's already tested) | `.github/workflows/ci.yml` |
+| The kit's test image, built when `release` changes | `.github/workflows/candidate.yml`, `Dockerfile` |
+| Production deploy, tag, `release` and `develop` brought level with `main` | `.github/workflows/deploy.yml` |
+| The next release's version (from pull request titles: `feat!` major, `feat` minor, else patch) | `scripts/next-version.sh` |
+| Dependency updates (weekly, grouped, into `develop`) | `.github/dependabot.yml` |

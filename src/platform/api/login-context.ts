@@ -18,6 +18,20 @@ export type LoginContext = {
   // Which sign-in methods the organisation allows; absent = all of them.
   sign_in_methods?: { password?: boolean; passkey?: boolean; magic_link?: boolean };
   branding?: BrandingDTO;
+  // The organisation's name and the settings its pages say before anyone signs in; absent when
+  // the server can't read them.
+  organization_name?: string;
+  password_policy?: PasswordPolicy;
+  magic_link_ttl_minutes?: number;
+  remember_device_days?: number;
+};
+
+/** The rules the organisation's new passwords must meet; the server checks them again. */
+export type PasswordPolicy = {
+  min_length: number;
+  require_uppercase: boolean;
+  require_number: boolean;
+  require_symbol: boolean;
 };
 
 // A hosted page that has a return_to (the API's /oauth/authorize URL the
@@ -53,12 +67,22 @@ export async function fetchLoginContext(
   }
 }
 
-// The application a browser-side page acts for: its display name ("" when it
-// can't be resolved) and its tenant's branding.
-export type ClientContext = { clientName: string; branding?: BrandingDTO };
+// The application a browser-side page acts for: its display name ("" when it can't be resolved),
+// its logo and home page when registered, and its organisation's branding.
+export type ClientContext = {
+  clientName: string;
+  logoUri?: string;
+  clientUri?: string;
+  branding?: BrandingDTO;
+};
 
-/** Fetches the name and branding of an OAuth client, from the browser. */
+/** Fetches the name, logo, home page and branding of an OAuth client, from the browser. */
 export async function fetchClientContext(clientId: string): Promise<ClientContext> {
   const ctx = await fetchLoginContext(clientId);
-  return { clientName: ctx.client_name ?? "", branding: ctx.branding };
+  return {
+    clientName: ctx.client_name ?? "",
+    logoUri: ctx.logo_uri,
+    clientUri: ctx.client_uri,
+    branding: ctx.branding,
+  };
 }

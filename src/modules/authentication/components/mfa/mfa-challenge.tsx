@@ -1,327 +1,292 @@
 "use client";
 
-import { Button, Input, OTPInput } from "@qeetrix/ui";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { Button } from "@qeetrix/react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LoginFactor } from "@/modules/authentication/session";
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
+import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
+import { type Choice, ChoiceList } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { formatClock } from "@/platform/format";
+import {
+  KeyRoundIcon,
+  LockKeyholeIcon,
+  MailIcon,
+  MessageSquareTextIcon,
+  ShieldCheckIcon,
+  SmartphoneIcon,
+} from "@/platform/icons";
 
+import { ApproveOnPhone } from "./approve-on-phone";
+import { CodeStep } from "./code-step";
 import { SEND_INTERVAL_SECONDS, sendWait, useSendCooldown } from "./use-send-cooldown";
 
-// MfaChallenge is the second step of a hosted login: the first factor (a
-// password or a magic link) was accepted and the user has a second factor
-// enrolled. It exchanges the in-memory mfa_token plus a proof for the SSO
-// cookie.
+type Mode =
+  | { kind: "app" }
+  | { kind: "sent"; factor: LoginFactor }
+  | { kind: "recovery" }
+  | { kind: "push" }
+  | { kind: "ways" };
+
+/**
+ * The second step of a sign-in, after the password or link was accepted: a code from the
+ * authenticator app by default, or another way the person set up, chosen from Try another way so
+ * the page stays one task at a time. It trades the in-memory challenge and one proof for the
+ * session cookie. Never in the URL or storage: the challenge token lives in this component only.
+ */
 export function MfaChallenge({
   mfaToken,
   factors,
+  email,
   rememberDeviceEnabled,
+  rememberDays,
   branding,
   onVerified,
-  onBack,
 }: {
   mfaToken: string;
   factors: LoginFactor[];
+  /** The account, when the first step named it. */
+  email?: string;
   rememberDeviceEnabled: boolean;
+  /** How long the organisation remembers a device, when known. */
+  rememberDays?: number;
   branding?: Branding;
   onVerified: () => void | Promise<void>;
-  onBack: () => void;
 }) {
   const { t } = useTranslation("signIn");
-  const [code, setCode] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [recovery, setRecovery] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [waitingPush, setWaitingPush] = useState(false);
-  // The factor whose send was refused as too soon, which the wait message names.
-  const [refused, setRefused] = useState<{ factor: LoginFactor; seconds: number } | null>(null);
-  const { secondsLeft, holdSend } = useSendCooldown();
-  const stopPush = useRef(false);
-  useEffect(
-    () => () => {
-      stopPush.current = true;
-    },
-    [],
-  );
+  // An older server lists no factors: an authenticator app and recovery codes, then.
+  const hasTotp = factors.length === 0 || factors.some((f) => f.type === "totp");
+  const hasRecovery = factors.length === 0 || factors.some((f) => f.type === "recovery_code");
+  const hasPush = factors.some((f) => f.type === "push");
+  const hasPasskey = factors.some((f) => f.type === "passkey");
+  const codeFactors = factors.filter((f) => (f.type === "email" || f.type === "sms") && f.id);
 
-  // A wait as words: seconds under a minute, whole minutes above.
+  const [mode, setMode] = useState<Mode>(
+    hasTotp ? { kind: "app" } : hasPush ? { kind: "push" } : { kind: "ways" },
+  );
+  const [remember, setRemember] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [wrong, setWrong] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const { secondsLeft, holdSend } = useSendCooldown();
+  const lead = email ? <AccountChip email={email} /> : undefined;
+
   function waitText(seconds: number): string {
     return seconds < 60
       ? t("mfa.wait.seconds", { count: seconds })
       : t("mfa.wait.minutes", { count: Math.ceil(seconds / 60) });
   }
 
-  const codeFactors = factors.filter((f) => (f.type === "email" || f.type === "sms") && f.id);
-  const hasPasskey = factors.some((f) => f.type === "passkey");
-  const hasPush = factors.some((f) => f.type === "push");
-  const hasRecovery = factors.length === 0 || factors.some((f) => f.type === "recovery_code");
-  const onlyAuthenticator = factors.every((f) => f.type === "totp" || f.type === "recovery_code");
+  function go(next: Mode) {
+    setWrong(null);
+    setError(null);
+    setNotice(null);
+    setMode(next);
+  }
 
-  // Completes the challenge with one proof: a code, a passkey assertion, or
-  // an approved push.
   async function complete(proof: Record<string, unknown>) {
     await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, remember, ...proof });
     await onVerified();
   }
 
-  async function attempt(fn: () => Promise<void>) {
+  async function verify(code: string) {
+    setWrong(null);
     setError(null);
-    setLoading(true);
+    setBusy(true);
     try {
-      await fn();
+      await complete({ code });
     } catch (err) {
-      const cancelled = err instanceof Error && err.name === "NotAllowedError";
-      if (!cancelled) setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
-      setLoading(false);
-      setWaitingPush(false);
+      if (err instanceof ApiError && err.code === "mfa.code_invalid") {
+        setWrong(mode.kind === "sent" ? t("mfa.wrongSent") : t("mfa.wrong"));
+      } else {
+        setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
+      }
+      setBusy(false);
     }
   }
 
-  function verify(value: string) {
-    void attempt(() => complete({ code: value }));
-  }
-
-  function sendCode(f: LoginFactor) {
-    void attempt(async () => {
-      try {
-        await apiPost("/v1/auth/mfa/send", { mfa_token: mfaToken, factor_id: f.id });
-      } catch (err) {
-        const wait = sendWait(err);
-        if (wait === null) throw err;
-        // Refused as too soon: a code was sent recently, so enter that one or
-        // wait to ask again.
-        holdSend(f, wait);
-        setRefused({ factor: f, seconds: wait });
-        setRecovery(false);
-        setLoading(false);
-        return;
+  async function sendCode(factor: LoginFactor) {
+    go({ kind: "sent", factor });
+    setBusy(true);
+    try {
+      await apiPost("/v1/auth/mfa/send", { mfa_token: mfaToken, factor_id: factor.id });
+      holdSend(factor, SEND_INTERVAL_SECONDS);
+    } catch (err) {
+      const wait = sendWait(err);
+      if (wait === null) {
+        setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
+      } else {
+        // Sent recently: enter that code, or wait to ask again.
+        holdSend(factor, wait);
+        setNotice(t("mfa.sendWait", { destination: factor.destination, time: waitText(wait) }));
       }
-      holdSend(f, SEND_INTERVAL_SECONDS);
-      setRefused(null);
-      setSentTo(f.destination ?? "");
-      setRecovery(false);
-      setLoading(false);
-    });
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function passkeyFactor() {
-    void attempt(async () => {
+  async function verifyWithPasskey() {
+    setError(null);
+    setBusy(true);
+    try {
       const PK = window.PublicKeyCredential as
         | (typeof window.PublicKeyCredential & {
             parseRequestOptionsFromJSON?: (o: unknown) => PublicKeyCredentialRequestOptions;
           })
         | undefined;
-      if (!PK || !navigator.credentials) throw new Error(t("errors.passkeyUnsupported"));
+      if (!PK || !navigator.credentials) throw new Error(t("problems.passkeyUnsupported.title"));
       const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
         "/v1/auth/mfa/passkey/begin",
-        {
-          mfa_token: mfaToken,
-        },
+        { mfa_token: mfaToken },
       );
       const options = PK.parseRequestOptionsFromJSON
         ? PK.parseRequestOptionsFromJSON(begin.publicKey)
         : (begin.publicKey as PublicKeyCredentialRequestOptions);
-      const assertion = (await navigator.credentials.get({
-        publicKey: options,
-      })) as PublicKeyCredential & {
-        toJSON?: () => unknown;
-      };
-      if (!assertion) throw new Error(t("errors.noPasskeySelected"));
+      const assertion = (await navigator.credentials.get({ publicKey: options })) as
+        | (PublicKeyCredential & { toJSON?: () => unknown })
+        | null;
+      if (!assertion) throw new Error(t("problems.passkey.title"));
       await complete({
         passkey: {
           session_id: begin.session_id,
           credential: assertion.toJSON ? assertion.toJSON() : assertion,
         },
       });
-    });
-  }
-
-  // Sends the push request, then asks every two seconds until it is approved
-  // (unanswered costs no attempt), denied or expired.
-  function approveOnPhone() {
-    void attempt(async () => {
-      await apiPost("/v1/auth/mfa/push", { mfa_token: mfaToken });
-      setWaitingPush(true);
-      stopPush.current = false;
-      while (!stopPush.current) {
-        try {
-          await complete({ push: true });
-          return;
-        } catch (err) {
-          if (!(err instanceof ApiError && err.code === "mfa.push_pending")) throw err;
-        }
-        await new Promise((r) => setTimeout(r, 2000));
+    } catch (err) {
+      // Closing the browser's own prompt is a choice, not an error.
+      if (!(err instanceof DOMException && err.name === "NotAllowedError")) {
+        setError(err instanceof Error ? err.message : t("problems.generic.title"));
       }
-    });
+      setBusy(false);
+    }
   }
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    void verify(code);
+  if (mode.kind === "push") {
+    return (
+      <ApproveOnPhone
+        mfaToken={mfaToken}
+        remember={remember}
+        branding={branding}
+        lead={lead}
+        onApproved={onVerified}
+        onAnother={() => go({ kind: "ways" })}
+      />
+    );
   }
 
-  function toggleMode() {
-    setRecovery((r) => !r);
-    setCode("");
-    setError(null);
+  if (mode.kind === "ways") {
+    const items: Choice[] = [];
+    if (hasPush)
+      items.push({
+        id: "push",
+        icon: SmartphoneIcon,
+        title: t("mfa.ways.push.title"),
+        detail: t("mfa.ways.push.detail"),
+        onClick: () => go({ kind: "push" }),
+      });
+    if (hasTotp)
+      items.push({
+        id: "totp",
+        icon: ShieldCheckIcon,
+        title: t("mfa.ways.totp.title"),
+        detail: t("mfa.ways.totp.detail"),
+        onClick: () => go({ kind: "app" }),
+      });
+    for (const f of codeFactors) {
+      const way = f.type === "sms" ? "sms" : "email";
+      items.push({
+        id: f.id ?? way,
+        icon: way === "sms" ? MessageSquareTextIcon : MailIcon,
+        title: t(`mfa.ways.${way}.title`),
+        detail: t(`mfa.ways.${way}.detail`, { destination: f.destination }),
+        onClick: () => void sendCode(f),
+      });
+    }
+    if (hasPasskey)
+      items.push({
+        id: "passkey",
+        icon: KeyRoundIcon,
+        title: busy ? t("mfa.passkeyBusy") : t("mfa.ways.passkey.title"),
+        detail: t("mfa.ways.passkey.detail"),
+        disabled: busy,
+        onClick: () => void verifyWithPasskey(),
+      });
+    if (hasRecovery)
+      items.push({
+        id: "recovery",
+        icon: LockKeyholeIcon,
+        title: t("mfa.ways.recovery.title"),
+        detail: t("mfa.ways.recovery.detail"),
+        onClick: () => go({ kind: "recovery" }),
+      });
+    return (
+      <HostedPage
+        branding={branding}
+        title={t("mfa.waysTitle")}
+        description={t("mfa.waysBody")}
+        lead={lead}
+      >
+        <div className="flex flex-col gap-5">
+          <FormAlert title={error} />
+          <ChoiceList label={t("mfa.waysLabel")} items={items} />
+        </div>
+      </HostedPage>
+    );
   }
 
+  const description =
+    mode.kind === "recovery"
+      ? t("mfa.recoveryBody")
+      : mode.kind === "sent"
+        ? t(mode.factor.type === "sms" ? "mfa.textedBody" : "mfa.sentBody", {
+            destination: mode.factor.destination,
+          })
+        : t("mfa.appBody");
+  const sentFactor = mode.kind === "sent" ? mode.factor : null;
+  const left = sentFactor ? secondsLeft(sentFactor) : 0;
   return (
-    <AuthCard
-      branding={branding}
-      title={t("mfa.title")}
-      subtitle={
-        recovery
-          ? t("mfa.subtitleRecovery")
-          : onlyAuthenticator
-            ? t("mfa.subtitle")
-            : t("mfa.subtitleAny")
-      }
-    >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="mfa-code" className="text-sm font-medium">
-            {recovery ? t("mfa.recoveryLabel") : t("mfa.label")}
-          </label>
-          {recovery ? (
-            <Input
-              id="mfa-code"
-              type="text"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder={t("mfa.recoveryPlaceholder")}
-            />
-          ) : (
-            <OTPInput
-              value={code}
-              onChange={setCode}
-              onComplete={(v) => void verify(v)}
-              autoFocus
-              disabled={loading}
-              aria-label={t("mfa.label")}
-            />
-          )}
-          {sentTo && !recovery && (
-            <p role="status" className="text-muted-foreground text-xs">
-              {t("mfa.codeSentTo", { destination: sentTo })}
-            </p>
-          )}
-          {refused && secondsLeft(refused.factor) > 0 && (
-            <p className="text-muted-foreground text-xs">
-              {/* The wait is announced once; the time shown counts down. */}
-              <span role="status" className="sr-only">
-                {t("mfa.sendWait", {
-                  destination: refused.factor.destination,
-                  time: waitText(refused.seconds),
-                })}
-              </span>
-              <span aria-hidden="true">
-                {t("mfa.sendWait", {
-                  destination: refused.factor.destination,
-                  time: waitText(secondsLeft(refused.factor)),
-                })}
-              </span>
-            </p>
-          )}
-        </div>
-
-        {rememberDeviceEnabled && (
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            {t("mfa.remember")}
-          </label>
-        )}
-
-        <FormAlert>{error}</FormAlert>
-
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          disabled={loading || code.length === 0}
-          loading={loading}
-          loadingLabel={t("mfa.submit.busy")}
+    <HostedPage branding={branding} title={t("mfa.title")} description={description} lead={lead}>
+      <div className="flex flex-col gap-5">
+        <FormAlert title={error} />
+        {notice && <FormAlert tone="info" title={notice} />}
+        <CodeStep
+          key={mode.kind + (sentFactor?.id ?? "")}
+          kind={mode.kind}
+          wrong={wrong}
+          busy={busy}
+          rememberEnabled={rememberDeviceEnabled}
+          rememberDays={rememberDays}
+          remember={remember}
+          onRemember={setRemember}
+          onVerify={(code) => void verify(code)}
         >
-          {t("mfa.submit.idle")}
-        </Button>
-      </form>
-
-      {(codeFactors.length > 0 || hasPasskey || hasPush) && (
-        <div className="space-y-2">
-          {codeFactors.map((f) => {
-            const left = secondsLeft(f);
-            return (
-              <Button
-                key={f.id}
-                type="button"
-                variant="outline"
-                className="w-full"
-                disabled={loading || left > 0}
-                onClick={() => sendCode(f)}
-              >
-                {left > 0
-                  ? t("mfa.sendCodeToIn", { destination: f.destination, time: waitText(left) })
-                  : t("mfa.sendCodeTo", { destination: f.destination })}
-              </Button>
-            );
-          })}
-          {hasPasskey && (
+          {sentFactor && (
             <Button
               type="button"
-              variant="outline"
-              className="w-full"
-              disabled={loading}
-              onClick={passkeyFactor}
+              variant="ghost"
+              size="lg"
+              fullWidth
+              disabled={busy || left > 0}
+              onClick={() => void sendCode(sentFactor)}
             >
-              {t("mfa.usePasskey")}
+              {left > 0 ? t("mfa.resendIn", { time: formatClock(left) }) : t("mfa.resend")}
             </Button>
           )}
-          {hasPush && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={loading}
-              onClick={approveOnPhone}
-            >
-              {waitingPush ? t("mfa.pushWaiting") : t("mfa.pushBtn")}
-            </Button>
-          )}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1 text-center">
-        {hasRecovery && (
-          <button
+          <Button
             type="button"
-            className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-            onClick={toggleMode}
+            variant="ghost"
+            size="lg"
+            fullWidth
+            onClick={() => go({ kind: "ways" })}
           >
-            {recovery ? t("mfa.useTotp") : t("mfa.useRecovery")}
-          </button>
-        )}
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-          disabled={loading}
-          onClick={onBack}
-        >
-          {t("mfa.back")}
-        </button>
+            {t("mfa.another")}
+          </Button>
+        </CodeStep>
       </div>
-    </AuthCard>
+    </HostedPage>
   );
 }

@@ -1,21 +1,20 @@
 "use client";
 
-import { Button } from "@qeetrix/ui";
+import { LinkButton } from "@qeetrix/react";
 import { useTranslation } from "react-i18next";
 
-import { AuthCard } from "./auth-card";
-import { AuthShell } from "./auth-shell";
+import { LogInIcon } from "@/platform/icons";
 
-/** Shown for an address that isn't a page here, with the way back to sign-in. */
+import { HostedPage } from "./hosted-page";
+
+/** An address that isn't a page here: say so, in the same frame, and offer the way in. */
 export function NotFoundPage() {
   const { t } = useTranslation("common");
   return (
-    <AuthShell>
-      <AuthCard title={t("notFound.title")} subtitle={t("notFound.body")}>
-        <Button render={<a href="/sign-in" />} size="lg" className="w-full">
-          {t("notFound.action")}
-        </Button>
-      </AuthCard>
-    </AuthShell>
+    <HostedPage single status="info" title={t("notFound.title")} description={t("notFound.body")}>
+      <LinkButton href="/sign-in" size="lg" fullWidth icon={LogInIcon}>
+        {t("notFound.action")}
+      </LinkButton>
+    </HostedPage>
   );
 }

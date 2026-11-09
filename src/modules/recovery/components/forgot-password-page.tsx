@@ -1,6 +1,5 @@
 import { getLoginContext } from "@/platform/api/server";
 import { normalizeBranding } from "@/platform/branding/branding";
-import { AuthShell } from "@/platform/components/auth-shell";
 
 import { ForgotPasswordForm } from "./forgot-password-form";
 
@@ -10,9 +9,5 @@ import { ForgotPasswordForm } from "./forgot-password-form";
 // tenant's branding.
 export async function ForgotPasswordPage({ returnTo }: { returnTo: string }) {
   const branding = normalizeBranding((await getLoginContext(returnTo)).branding);
-  return (
-    <AuthShell branding={branding}>
-      <ForgotPasswordForm returnTo={returnTo} branding={branding} />
-    </AuthShell>
-  );
+  return <ForgotPasswordForm returnTo={returnTo} branding={branding} />;
 }
