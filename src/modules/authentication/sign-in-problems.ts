@@ -17,6 +17,7 @@ export type Problem =
         | "closed"
         | "passkey"
         | "passkeyUnsupported"
+        | "company"
         | "generic";
     }
   // A refusal with no copy of its own: the server's message, which already says what to do.
@@ -39,7 +40,7 @@ export function problemOf(err: unknown): Problem {
   return err.message ? { kind: "server", message: err.message } : { kind: "generic" };
 }
 
-/** The problem a social sign-in came back with (?error= on /sign-in), if it is one. */
+/** The problem a social or company sign-in came back with (?error= on /sign-in), if it is one. */
 export function problemOfRedirect(code: string): Problem | null {
   switch (code) {
     case "":
@@ -52,6 +53,8 @@ export function problemOfRedirect(code: string): Problem | null {
       return { kind: "unverified" };
     case "registration_closed":
       return { kind: "closed" };
+    case "sso":
+      return { kind: "company" };
     default:
       return { kind: "provider" };
   }

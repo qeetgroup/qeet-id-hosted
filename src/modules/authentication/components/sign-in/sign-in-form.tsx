@@ -1,8 +1,10 @@
 "use client";
 
+import { Spinner, Text } from "@qeetrix/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { type Company, discover, readHandBack } from "@/modules/authentication/company-sign-in";
 import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challenge";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
 import { startPasskeyAutofill } from "@/modules/authentication/passkey-autofill";
@@ -14,7 +16,7 @@ import {
 import type { LoginFactor, SessionResponse } from "@/modules/authentication/session";
 import { readSocialChallenge } from "@/modules/authentication/social-challenge";
 import { fetchSignedInAccount } from "@/platform/api/account";
-import { apiPost } from "@/platform/api/client";
+import { ApiError, apiPost } from "@/platform/api/client";
 import { clientIdFromReturnTo } from "@/platform/api/login-context";
 import type { Organisation } from "@/platform/api/organisation";
 import type { Branding } from "@/platform/branding/branding";
@@ -28,6 +30,7 @@ import { returnsToDevice, safeReturnTo } from "@/platform/navigation/return-to";
 import { shouldOfferPasskey } from "@/platform/webauthn/passkeys";
 
 import { type Problem, problemOf, problemOfRedirect } from "../../sign-in-problems";
+import { CompanyStep } from "./company-step";
 import { EmailStep } from "./email-step";
 import { LinkStep } from "./link-step";
 import { PasskeyOffer } from "./passkey-offer";
@@ -53,7 +56,7 @@ export type SignInFormProps = {
   branding?: Branding;
 };
 
-type Step = "email" | "password" | "link" | "mfa" | "offer";
+type Step = "email" | "password" | "link" | "company" | "finishing" | "mfa" | "offer";
 
 // What the application asked for in its authorize request: a fresh sign-in (prompt=login), and
 // the account to sign in (login_hint).
@@ -70,10 +73,11 @@ function authorizeHints(returnTo: string): { fresh: boolean; hint: string } {
 }
 
 /**
- * Sign in, as the mockups draw it: the email first, then the way the organisation allows (a
- * password, a sign-in link), or a passkey or social account straight away; then the second step
- * when the account has one, and once, after a password, the offer of a passkey. Every way on goes
- * through safeReturnTo; without an application to return to, to the passkeys page.
+ * Sign in, as the mockups draw it: the email first, then the company's own sign-in when the
+ * address's domain uses one, else the way the organisation allows (a password, a sign-in link);
+ * or a passkey or social account straight away. Then the second step when the account has one,
+ * and once, after a password, the offer of a passkey. Every way on goes through safeReturnTo;
+ * without an application to return to, to the passkeys page.
  */
 export function SignInForm(props: SignInFormProps) {
   const { returnTo, tenantId, branding } = props;
@@ -85,12 +89,17 @@ export function SignInForm(props: SignInFormProps) {
   const [email, setEmail] = useState(hints.hint);
   const [problem, setProblem] = useState<Problem | null>(() => problemOfRedirect(props.errorCode));
   const [busy, setBusy] = useState(false);
+  const [continuing, setContinuing] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  // Where the address's domain signs in, when it's its company's own sign-in.
+  const [company, setCompany] = useState<Company | null>(null);
   // The pending second-step challenge: held in memory only, never in the URL or storage.
   const [mfa, setMfa] = useState<{
     token: string;
     factors: LoginFactor[];
     enrollment: { dueAt?: string } | null;
+    /** Met after a company's sign-in, which goes straight on: no passkey offer. */
+    company?: boolean;
   } | null>(null);
   // The person's name, for the account a fresh sign-in is asked of, when this browser knows it.
   const [name, setName] = useState<string | undefined>();
@@ -100,6 +109,12 @@ export function SignInForm(props: SignInFormProps) {
   const emailEnabled = props.passwordEnabled || (props.magicLinkEnabled && tenantId !== "");
   const providers = tenantId !== "" && returnTo !== "" ? props.providers : [];
   const query = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : "";
+  // Qeet ID's own way on from the email, when the organisation allows one.
+  const ownWay: Step | null = props.passwordEnabled
+    ? "password"
+    : props.magicLinkEnabled && tenantId !== ""
+      ? "link"
+      : null;
   const forgotHref = `/forgot-password${query}`;
 
   function continueToApp() {
@@ -136,6 +151,24 @@ export function SignInForm(props: SignInFormProps) {
     setStep("mfa");
   }, []);
 
+  // Back from a company's sign-in: its identity provider handed a one-time code back in the URL
+  // fragment, which is cleared at once and traded for the session; then on to return_to.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once per page load
+  useEffect(() => {
+    const back = readHandBack(window.location.hash);
+    if (!back) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    stopAutofill.current();
+    setStep("finishing");
+    apiPost<SessionResponse>(back.path, { code: back.code })
+      .then(continueToApp)
+      .catch((err) => {
+        const p = problemOf(err);
+        setProblem(p.kind === "server" || p.kind === "generic" ? { kind: "company" } : p);
+        setStep("email");
+      });
+  }, []);
+
   // After a password or a second step: offer a passkey once, when the person could add one and
   // has none; otherwise on to the application.
   async function afterPasswordSignIn() {
@@ -146,11 +179,38 @@ export function SignInForm(props: SignInFormProps) {
     continueToApp();
   }
 
-  function onContinue(address: string) {
+  // The company's own sign-in, when the address's domain uses one.
+  async function toCompany(address: string): Promise<boolean> {
+    const found = await discover(address);
+    if (!found) return false;
+    setCompany(found);
+    setStep("company");
+    return true;
+  }
+
+  async function onContinue(address: string) {
     stopAutofill.current();
     setProblem(null);
     setEmail(address);
-    setStep(props.passwordEnabled ? "password" : "link");
+    setContinuing(true);
+    const routed = await toCompany(address);
+    setContinuing(false);
+    if (!routed) setStep(props.passwordEnabled ? "password" : "link");
+  }
+
+  // A company directory's answer: signed in, or a second step to meet first.
+  function onCompanySession(res: SessionResponse) {
+    if (res.mfa_required && res.mfa_token) {
+      setMfa({
+        token: res.mfa_token,
+        factors: res.factors ?? [],
+        enrollment: res.enrollment_required ? { dueAt: res.enrollment_due_at } : null,
+        company: true,
+      });
+      setStep("mfa");
+      return;
+    }
+    continueToApp();
   }
 
   async function onPassword(password: string) {
@@ -176,6 +236,11 @@ export function SignInForm(props: SignInFormProps) {
       }
       await afterPasswordSignIn();
     } catch (err) {
+      // An address its company signs in itself: on to that sign-in.
+      if (err instanceof ApiError && err.code === "auth.sso_required" && (await toCompany(email))) {
+        setBusy(false);
+        return;
+      }
       setProblem(problemOf(err));
       setBusy(false);
     }
@@ -213,6 +278,33 @@ export function SignInForm(props: SignInFormProps) {
     setStep("email");
   }
 
+  if (step === "finishing") {
+    return (
+      <HostedPage single branding={branding} title={t("company.finishing")}>
+        <div role="status" className="flex items-center gap-3 py-2">
+          <Spinner size="md" tone="brand" decorative />
+          <Text size="md" tone="subtle">
+            {t("company.finishingBody")}
+          </Text>
+        </div>
+      </HostedPage>
+    );
+  }
+
+  if (step === "company" && company) {
+    return (
+      <CompanyStep
+        email={email}
+        company={company}
+        returnTo={returnTo}
+        branding={branding}
+        onOther={ownWay ? () => setStep(ownWay) : undefined}
+        onChangeEmail={backToEmail}
+        onSession={onCompanySession}
+      />
+    );
+  }
+
   if (step === "offer") {
     return <PasskeyOffer email={email} branding={branding} onContinue={continueToApp} />;
   }
@@ -225,7 +317,7 @@ export function SignInForm(props: SignInFormProps) {
         email={email || undefined}
         orgName={org.name}
         branding={branding}
-        onDone={afterPasswordSignIn}
+        onDone={mfa.company ? continueToApp : afterPasswordSignIn}
       />
     ) : (
       <MfaChallenge
@@ -235,7 +327,7 @@ export function SignInForm(props: SignInFormProps) {
         rememberDeviceEnabled={props.rememberDeviceEnabled}
         rememberDays={org.rememberDays}
         branding={branding}
-        onVerified={afterPasswordSignIn}
+        onVerified={mfa.company ? continueToApp : afterPasswordSignIn}
       />
     );
   }
@@ -325,6 +417,7 @@ export function SignInForm(props: SignInFormProps) {
         org={org.name}
         problem={problem}
         passkeyBusy={passkeyBusy}
+        continuing={continuing}
         onContinue={onContinue}
         onPasskey={onPasskey}
         onProvider={onProvider}

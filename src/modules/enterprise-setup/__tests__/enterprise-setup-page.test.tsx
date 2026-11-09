@@ -108,7 +108,10 @@ describe("EnterpriseSetupPage", () => {
   it("starts on verifying the domain, with the rest still to come", async () => {
     await open(NOTHING);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Verify your domain" })).toBeTruthy();
+    // The page's heading comes first; the steps once what the link may see has loaded.
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Verify your domain" }),
+    ).toBeTruthy();
     expect(screen.getByText("Step 1 of 5")).toBeTruthy();
     expect(screen.getAllByText("After step 1").length).toBeGreaterThan(0);
     expect(screen.getByText(/Link works until/)).toBeTruthy();

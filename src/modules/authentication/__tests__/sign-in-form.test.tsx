@@ -63,7 +63,9 @@ describe("SignInForm", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Enter your password" })).toBeTruthy();
     expect(screen.getByText("ada@example.com")).toBeTruthy();
     await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+    // Where the address signs in first: its domain isn't sent to a company's own sign-in.
     expect(calls).toEqual([
+      { method: "POST", path: "/v1/sso/discovery", body: { email: "ada@example.com" } },
       {
         method: "POST",
         path: "/v1/auth/session",
@@ -220,7 +222,11 @@ describe("SignInForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
 
     await waitFor(() => expect(goTo).toHaveBeenCalledWith(device));
-    expect(calls.map((c) => c.path)).toEqual(["/v1/auth/session", "/v1/auth/session/mfa"]);
+    expect(calls.map((c) => c.path)).toEqual([
+      "/v1/sso/discovery",
+      "/v1/auth/session",
+      "/v1/auth/session/mfa",
+    ]);
   });
 
   it("asks only for the proof when the application wants a fresh sign-in of a named account", () => {
@@ -243,7 +249,7 @@ describe("SignInForm", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Email me the link" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Check your email" })).toBeTruthy();
-    expect(calls[0]).toMatchObject({
+    expect(calls.find((c) => c.path !== "/v1/sso/discovery")).toMatchObject({
       path: "/v1/auth/magic-link/start",
       body: {
         tenant_id: "tenant-1",
@@ -264,5 +270,141 @@ describe("SignInForm", () => {
     renderSignIn({ passwordEnabled: false, passkeyEnabled: false, magicLinkEnabled: false });
     expect(screen.getByText("There's no way to sign in here")).toBeTruthy();
     expect(screen.queryByLabelText("Email address")).toBeNull();
+  });
+
+  describe("an address its company signs in itself", () => {
+    const OKTA = {
+      id: "c1",
+      protocol: "saml",
+      name: "Brightleaf Okta",
+      method: "redirect",
+      login_path: "/saml/login/c1",
+    };
+    const DIRECTORY = {
+      id: "l1",
+      protocol: "ldap",
+      name: "Brightleaf Directory",
+      method: "credentials",
+      login_path: "/ldap/l1/authenticate",
+      session_path: "/ldap/l1/session",
+    };
+    const routed = (...connections: object[]) => ({
+      status: 200,
+      body: { sso: true, organization_name: "Brightleaf", connections },
+    });
+
+    async function continueAs(email = "meera.iyer@brightleaffoods.in") {
+      fireEvent.change(screen.getByLabelText("Email address"), { target: { value: email } });
+      fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    }
+
+    it("names the company's identity provider and sends the browser there, to come back to the application", async () => {
+      const calls = mockApi({ "POST /v1/sso/discovery": routed(OKTA) });
+      renderSignIn();
+      await continueAs();
+
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Sign in with Brightleaf" }),
+      ).toBeTruthy();
+      expect(
+        screen.getByText(
+          "Brightleaf signs its people in with Okta. You'll come back here when you're done.",
+        ),
+      ).toBeTruthy();
+      expect(calls.map((c) => c.path)).toEqual(["/v1/sso/discovery"]);
+      fireEvent.click(screen.getByRole("button", { name: "Continue to Okta" }));
+
+      expect(goTo).toHaveBeenCalledWith(
+        `https://api.id.example/saml/login/c1?${new URLSearchParams({ return_to: AUTHORIZE })}`,
+      );
+      expect(screen.getByRole("button", { name: "Opening Okta…" })).toBeTruthy();
+    });
+
+    it("still offers the application's own way, for the members who keep it", async () => {
+      mockApi({ "POST /v1/sso/discovery": routed(OKTA) });
+      renderSignIn();
+      await continueAs();
+
+      fireEvent.click(await screen.findByRole("button", { name: "Sign in another way" }));
+
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Enter your password" }),
+      ).toBeTruthy();
+    });
+
+    it("lists several ways, and signs in to the directory with its user name and password", async () => {
+      const calls = mockApi({
+        "POST /v1/sso/discovery": routed(OKTA, DIRECTORY),
+        "POST /ldap/l1/session": { status: 200, body: { user_id: "u-1" } },
+      });
+      renderSignIn();
+      await continueAs();
+
+      const ways = await screen.findByRole("list", { name: "Ways to sign in" });
+      expect(ways.textContent).toContain("Brightleaf Okta · SAML");
+      expect(ways.textContent).toContain("Brightleaf Directory · LDAP");
+      fireEvent.click(screen.getByRole("button", { name: /^Directory/ }));
+
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Sign in to Brightleaf" }),
+      ).toBeTruthy();
+      expect((screen.getByLabelText("User name") as HTMLInputElement).value).toBe("meera.iyer");
+      fireEvent.change(screen.getByLabelText("Password"), { target: { value: "s3cret" } });
+      fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+      await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+      expect(calls.find((c) => c.path === "/ldap/l1/session")?.body).toEqual({
+        username: "meera.iyer",
+        password: "s3cret",
+      });
+    });
+
+    it("says at the field when the directory refuses the user name and password", async () => {
+      mockApi({
+        "POST /v1/sso/discovery": routed(DIRECTORY),
+        "POST /ldap/l1/session": refuse(401, "ldap.invalid_credentials"),
+      });
+      renderSignIn();
+      await continueAs();
+
+      fireEvent.change(await screen.findByLabelText("Password"), { target: { value: "nope" } });
+      fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+      expect(
+        await screen.findByText("That user name and password don't match. Try again."),
+      ).toBeTruthy();
+      expect(goTo).not.toHaveBeenCalled();
+    });
+
+    it("trades the code the company's sign-in hands back, once, and goes on to the application", async () => {
+      window.history.replaceState(
+        null,
+        "",
+        `/sign-in?${new URLSearchParams({ return_to: AUTHORIZE })}#saml_code=one-time`,
+      );
+      const calls = mockApi({ "POST /saml/session": { status: 200, body: { user_id: "u-1" } } });
+      renderSignIn();
+
+      await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+      expect(window.location.hash).toBe("");
+      expect(calls).toEqual([
+        { method: "POST", path: "/saml/session", body: { code: "one-time" } },
+      ]);
+    });
+
+    it("says the company's sign-in didn't work when its code is refused, or it comes back with an error", async () => {
+      window.history.replaceState(null, "", "/sign-in#oidc_code=spent");
+      mockApi({
+        "POST /v1/oidc-connections/session": refuse(400, "oidc_connection.login_code_used"),
+      });
+      renderSignIn();
+
+      expect(await screen.findByText("Your company's sign-in didn't sign you in")).toBeTruthy();
+      expect(screen.getByLabelText("Email address")).toBeTruthy();
+      cleanup();
+
+      renderSignIn({ errorCode: "sso" });
+      expect(screen.getByText("Your company's sign-in didn't sign you in")).toBeTruthy();
+    });
   });
 });

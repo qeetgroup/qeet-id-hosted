@@ -31,7 +31,7 @@ flowchart LR
 
 | Part | Where |
 |:--|:--|
-| 🔑 **Sign-in** | Passkeys (WebAuthn), password, social, magic link, one-time code and two-step verification: `src/modules/authentication` |
+| 🔑 **Sign-in** | Passkeys (WebAuthn), password, social, company sign-in (SAML, OpenID Connect, LDAP), magic link, one-time code and two-step verification: `src/modules/authentication` |
 | 📝 **Sign-up, consent, devices** | Account creation, the OAuth consent screen and TV / CLI device codes: `src/app/(auth)`, `src/modules/oauth` |
 | 🛟 **Recovery and sign-out** | Password reset, magic links, sign-out: `src/modules/recovery`, `src/modules/sign-out` |
 | 🏢 **Enterprise setup** | SAML and SCIM setup for an invited IT admin: `src/modules/enterprise-setup` |

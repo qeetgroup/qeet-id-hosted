@@ -22,6 +22,8 @@ export type EmailStepProps = {
   org?: string;
   problem: Problem | null;
   passkeyBusy: boolean;
+  /** Finding where the address signs in, after Continue. */
+  continuing?: boolean;
   onContinue: (email: string) => void;
   onPasskey: () => void;
   onProvider: (provider: string) => void;
@@ -69,6 +71,7 @@ export function EmailStep(props: EmailStepProps) {
             fullWidth
             icon={ArrowRightIcon}
             disabled={busy}
+            loading={props.continuing}
             className="mt-5"
           >
             {t("email.continue")}

@@ -111,7 +111,10 @@ The pending MFA challenge token is held **in memory only, never in the URL**. Ke
 one hand-over the server makes through the address — a social sign-in that must meet a second factor
 comes back to `/sign-in` with the challenge in the URL **fragment** (never sent to a server or in a
 Referer) — is read on load, the fragment cleared at once, and the token then held in memory like any
-other (`src/modules/authentication/social-challenge.ts`).
+other (`src/modules/authentication/social-challenge.ts`). A company's sign-in (SAML or OpenID
+Connect) comes back the same way, with a one-time code in the fragment (`#saml_code` or
+`#oidc_code`), read on load, cleared at once and traded once for the session
+(`src/modules/authentication/company-sign-in.ts`).
 
 ### 3. CSRF is not optional
 Every request sets `credentials: "include"`. Mutations read the `qe_csrf` cookie and echo it as

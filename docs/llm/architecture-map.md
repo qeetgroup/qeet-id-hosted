@@ -33,7 +33,7 @@ signed-in self-service pages, `(enterprise)` enterprise setup.
 
 | Route | Module page (`src/modules/…`) | Purpose |
 |---|---|---|
-| `/sign-in` | `authentication/components/sign-in/` (form, email step, password step, link step, provider row, passkey offer) | email first, then password or a sign-in link · passkey · social · the second step · "add a passkey" offer after a password sign-in |
+| `/sign-in` | `authentication/components/sign-in/` (form, email step, password step, link step, company step, provider row, passkey offer) | email first, then the company's own sign-in when its domain uses one (`company-sign-in.ts`), else password or a sign-in link · passkey · social · the second step · "add a passkey" offer after a password sign-in |
 | `/sign-up` | `authentication/components/sign-up/` | account creation + passkey registration |
 | `/magic-link` | `authentication/components/magic-link/` | consume an emailed magic link (one requested from hosted sign-in) |
 | `/forgot-password` | `recovery/components/forgot-password-*` | request a reset |
@@ -78,6 +78,12 @@ POST /v1/auth/reset-password          reset
 POST /v1/passkeys/login/{begin,finish}
 POST /v1/register/passkey/{begin,finish}
 GET  /v1/social/{provider}/start      social redirect
+POST /v1/sso/discovery                where an address signs in (its company's own sign-in?)
+GET  /saml/login/{id}?return_to=      company sign-in (SAML), back to /sign-in#saml_code=
+GET  /v1/oidc-connections/{id}/login  company sign-in (OpenID Connect), back to /sign-in#oidc_code=
+POST /saml/session                    trade the SAML code for the session
+POST /v1/oidc-connections/session     trade the OpenID Connect code for the session
+POST /ldap/{id}/session               a company directory's user name and password
 POST /v1/oauth/authorize/decision     consent
 GET  /v1/oauth/device?user_code=      device grant
 POST /v1/oauth/device/decision

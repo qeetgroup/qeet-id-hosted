@@ -132,6 +132,10 @@
     "generic": {
       "title": "Something went wrong",
       "body": "Please try again."
+    },
+    "company": {
+      "title": "Your company's sign-in didn't sign you in",
+      "body": "Try again. If it keeps happening, tell your IT team: they can see what went wrong in the console."
     }
   },
   "mfa": {
@@ -242,5 +246,33 @@
     "textedBody": "We texted a 6-digit code to {{destination}}. It works for 10 minutes.",
     "empty": "Enter the 6-digit code.",
     "emptyRecovery": "Enter one of your recovery codes."
+  },
+  "company": {
+    "title": "Sign in with {{org}}",
+    "titleNoOrg": "Sign in with your company",
+    "body": "{{org}} signs its people in with {{idp}}. You'll come back here when you're done.",
+    "bodyNoOrg": "Your company signs its people in with {{idp}}. You'll come back here when you're done.",
+    "continue": "Continue to {{idp}}",
+    "opening": "Opening {{idp}}…",
+    "other": "Sign in another way",
+    "chooseBody": "{{org}} has more than one way to sign in. Choose the one you use at work.",
+    "chooseBodyNoOrg": "Your company has more than one way to sign in. Choose the one you use at work.",
+    "chooseLabel": "Ways to sign in",
+    "protocols": {
+      "saml": "SAML",
+      "oidc": "OpenID Connect",
+      "ldap": "LDAP"
+    },
+    "dirTitle": "Sign in to {{org}}",
+    "dirTitleNoOrg": "Sign in to your company",
+    "dirBody": "Use the user name and password you use for {{org}}'s computers.",
+    "dirBodyNoOrg": "Use the user name and password you use for your company's computers.",
+    "user": "User name",
+    "userHint": "e.g. firstname.lastname",
+    "password": "Password",
+    "signIn": "Sign in",
+    "wrong": "That user name and password don't match. Try again.",
+    "finishing": "Signing you in…",
+    "finishingBody": "Your company's sign-in is done. Taking you on."
   }
 }

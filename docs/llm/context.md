@@ -32,7 +32,8 @@ cross-product SSO model depends on that being the single point of interactive au
 
 ## Responsibilities
 
-Rendering the interactive flows: password, passkey, social, MFA (TOTP + recovery code), signup with
+Rendering the interactive flows: password, passkey, social, company sign-in (SAML, OpenID Connect or
+a directory, found from the address's domain), MFA (TOTP + recovery code), signup with
 passkey registration, forgot/reset password, **OAuth consent**, **device-grant user-code entry**, and
 **enterprise setup** for an external IT administrator. Applying per-tenant branding.
 
