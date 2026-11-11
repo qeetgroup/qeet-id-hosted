@@ -13,7 +13,8 @@
     "test:e2e": "bun run build && playwright test",
     "lint": "biome lint --error-on-warnings .",
     "format": "biome format --write .",
-    "check": "biome check --error-on-warnings ."
+    "check": "biome check --error-on-warnings .",
+    "audit": "bun audit --audit-level=high"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
@@ -23,7 +24,7 @@
     "@thesvg/react": "3.0.10",
     "i18next": "^26.3.1",
     "i18next-browser-languagedetector": "^8.2.1",
-    "next": "16.3.8",
+    "next": "16.4.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.8",
@@ -50,5 +51,8 @@
     "esbuild",
     "lightningcss",
     "sharp"
-  ]
+  ],
+  "overrides": {
+    "undici": "^7.30.1"
+  }
 }
