@@ -194,7 +194,7 @@ branch. CI runs the essential checks only; the tests, the build and the browser 
 
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · **Verify** | Pull requests into `develop`, `release/**` and `main`, and before every test image: `bun run typecheck` + `bun run check` + `bun run audit`. A release branch into `main` skips them when every commit already passed Verify on its way in and the branch hasn't moved since; `main` takes only `release/…` or `hotfix/…`, a release branch anything but `main` |
+| `ci.yml` · **Verify** | Pull requests into `develop` and `main`, and before every test image (each push to a release or hotfix branch): `bun run typecheck` + `bun run check` + `bun run audit`. A release or hotfix branch into `main` skips them when its candidate build passed for that commit and it holds all of `main` |
 | `candidate.yml` · Test image | Push to `release/**` or `hotfix/**`, after Verify: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64), labelled with its release and branch, for the Qeet ID Kit, which numbers the test copies (`2027.1.0-rc.1` …). The image keeps the repository's former name, which the kit reads |
 | `deploy.yml` | A merged `release/…` or `hotfix/…` pull request into `main` whose Verify passed: Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag `vYEAR.MONTH.N`, delete the released branch, bring `develop` level with `main`. Any other push to `main` deploys nothing. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
 
