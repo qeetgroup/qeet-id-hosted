@@ -70,12 +70,15 @@ bun run dev            # http://localhost:3003, the origin the server allows for
 
 ## 🚢 Releasing
 
-1. Open a pull request into `develop`; **Verify** checks it, the browser tests included.
-2. Once a sprint, a pull request from `develop` into `release` hands testers the next version in TEST and STAGING.
-   A fix they need goes into `release` by pull request.
-3. After sign-off, the pull request from `release` into `main` deploys
-   [accounts.id.qeet.in](https://accounts.id.qeet.in) and tags the version. The version comes from the pull request
-   titles: `feat!: …` is a major, `feat: …` a minor, anything else (`fix:`, `docs:` …) a patch.
+Releases are monthly and named after the month they ship.
+
+1. Changes land on `develop`; run the tests, the build and the browser tests locally before pushing (**Verify** in CI
+   checks types, formatting, lint and the dependency audit).
+2. Each month `release/2027.1.0` (for example) is cut from `develop`: testers check it in TEST and STAGING. A fix they
+   need is made on `develop` first, then copied to the release branch.
+3. After sign-off, the pull request from the release branch into `main` deploys
+   [accounts.id.qeet.in](https://accounts.id.qeet.in) and tags `v2027.1.0`. An urgent fix afterwards is
+   `hotfix/2027.1.1`.
 
 ## 🧩 Related repositories
 

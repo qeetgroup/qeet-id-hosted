@@ -117,10 +117,10 @@ bun run typecheck && bun run check && bun run test && bun run build
 git diff
 ```
 
-> CI (`ci.yml`, **Verify**) runs typecheck, Biome (`bun run check`), the Vitest suite, the build and the browser
-> tests on every pull request. Add or update a test with every behaviour change, and read your own diff carefully.
-> A fix for something testers found goes into `release`; everything else into `develop`. The pull request title sets
-> the version: `feat!:` major, `feat:` minor, anything else patch.
+> CI (`ci.yml`, **Verify**) runs typecheck, Biome (`bun run check`) and the dependency audit; the Vitest suite with
+> coverage, the build and the browser tests run locally before every push. Add or update a test with every behaviour
+> change, and read your own diff carefully. Every change goes into `develop`; a fix for something testers found is
+> then copied to the `release/YEAR.MONTH.0` branch.
 
 ### Escalate rather than proceed
 
