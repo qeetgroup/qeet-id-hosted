@@ -40,8 +40,8 @@ Read them when a task needs organization or product understanding; this reposito
 ## Finishing a change
 
 ```bash
-bun run typecheck && bun run check && bun run test && bun run build
-git diff
+bun run typecheck && bun run check && bun run audit && bun run test:coverage && bun run test:e2e
+git diff   # test:e2e builds first; CI runs only typecheck, check and audit
 ```
 
 ## Escalate rather than proceed

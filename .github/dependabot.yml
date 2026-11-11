@@ -1,4 +1,4 @@
-# One grouped pull request a week for each ecosystem, into develop. Each update waits 3 days after its release: a
+# One grouped pull request a month for each ecosystem, into develop. Each update waits 3 days after its release: a
 # compromised version is usually pulled from npm within that window. Major versions come one per pull request.
 version: 2
 updates:
@@ -6,8 +6,7 @@ updates:
     directory: /
     target-branch: develop
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     cooldown:
       default-days: 3
     commit-message:
@@ -20,8 +19,7 @@ updates:
     directory: /
     target-branch: develop
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     cooldown:
       default-days: 3
     commit-message:

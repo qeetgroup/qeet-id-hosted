@@ -107,8 +107,8 @@ The contract is owned by **`qeet-id-server`**.
 
 | Need | Path |
 |---|---|
-| Verify on every pull request (checks + browser tests; promotions skip what's already tested) | `.github/workflows/ci.yml` |
-| The kit's test image, built when `release` changes | `.github/workflows/candidate.yml`, `Dockerfile` |
-| Production deploy, tag, `release` and `develop` brought level with `main` | `.github/workflows/deploy.yml` |
-| The next release's version (from pull request titles: `feat!` major, `feat` minor, else patch) | `scripts/next-version.sh` |
-| Dependency updates (weekly, grouped, into `develop`) | `.github/dependabot.yml` |
+| Verify on every pull request and test image (typecheck, Biome, audit; a release skips what's already tested) | `.github/workflows/ci.yml` |
+| The kit's test image, built on each push to `release/**` or `hotfix/**` | `.github/workflows/candidate.yml`, `Dockerfile` |
+| Production deploy, tag, released branch deleted, `develop` brought level with `main` | `.github/workflows/deploy.yml` |
+| The release version, from the branch name (`release/YEAR.MONTH.0`, `hotfix/YEAR.MONTH.N`) | `scripts/release/version.sh` |
+| Dependency updates (monthly, grouped, into `develop`) | `.github/dependabot.yml` |

@@ -84,8 +84,8 @@ One way to do each thing.
 | No import cycles | Biome `noImportCycles` |
 | A source file stays within 500 lines | `src/__tests__/source-files.test.ts` |
 | Every translation key the code names exists in English | `src/i18n/__tests__/translation-keys.test.ts` |
-| Coverage never drops below the floor | thresholds in `vitest.config.mts` (`bun run test:coverage`, CI) |
-| Every page runs under its CSP without a violation, and passes axe WCAG 2.2 AA | `tests/e2e` (`bun run test:e2e`, CI Browser tests) |
+| Coverage never drops below the floor | thresholds in `vitest.config.mts` (`bun run test:coverage`, before every push) |
+| Every page runs under its CSP without a violation, and passes axe WCAG 2.2 AA | `tests/e2e` (`bun run test:e2e`, before every push) |
 | Server-only code (the relay key) never reaches the browser | `import "server-only"` in `src/platform/api/server.ts` fails the build |
 
 Never relax a rule to make a change pass; change the code, or raise it as a decision.
@@ -170,9 +170,10 @@ bun run dev -- -p 3003     # 3003 is REQUIRED, see below
 bun run build
 bun run typecheck
 bun run test                 # vitest run: unit + component tests, no server needed
-bun run test:coverage        # the same, held to the coverage floor — what CI runs
+bun run test:coverage        # the same, held to the coverage floor — run before every push
 bun run test:e2e             # build, then every page in Chromium: its CSP and a WCAG 2.2 AA scan
 bun run check                # Biome: format + lint + import order — what CI runs
+bun run audit                # known high and critical advisories in the dependencies — what CI runs
 bun run format               # Biome: rewrite formatting in place
 ```
 
@@ -185,28 +186,27 @@ Biome (`biome.json`) is the formatter and linter. A suppression carries a one-li
 
 ## What CI enforces
 
-Three branches: `develop` (finished work), `release` (the version testers check in TEST and STAGING) and `main`
-(production). Work goes into `develop` by pull request; once a sprint `develop` is promoted into `release`, and after
-sign-off `release` into `main`. A fix found in testing goes into `release` by pull request; an urgent production fix is
-a `hotfix/*` pull request into `main`. Tests run once for each change.
+Branches: `develop` (where changes land) and `main` (production). Each month `release/YEAR.MONTH.0` is cut from
+`develop` (e.g. `release/2027.1.0`): the version testers check in TEST and STAGING, taking fixes only. An urgent fix
+after a release is `hotfix/YEAR.MONTH.N` from `main` (e.g. `hotfix/2027.1.1`). No leading zeros:
+`scripts/release/version.sh` is the rule. A fix found in testing is made on `develop` first, then copied to the release
+branch. CI runs the essential checks only; the tests, the build and the browser tests run locally before every push.
 
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · **Verify** | Pull requests into `develop`, `release` and `main`: `bun run typecheck` + `bun run check` + `bun run test:coverage` + `bun run build`, then the **browser tests** on that build (every page under its Content-Security-Policy without a violation, and an axe WCAG 2.2 AA scan, `tests/e2e`). A promotion (`develop` → `release`, `release` → `main`) skips them when every commit already passed Verify on its way in and the branch hasn't moved since; `main` takes only `release` or `hotfix/*`, `release` anything but `main` |
-| `candidate.yml` · Test image | Merge into `release` (a merged pull request whose Verify passed): `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64) for the Qeet ID Kit, which numbers the release candidate. The image keeps the repository's former name, which the kit reads. A fix merged into `release` is merged into `develop` too |
-| `deploy.yml` | Merge into `main` (a merged `release` or `hotfix/*` pull request whose Verify passed): Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag the next version, bring `release` and `develop` level with `main`. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
+| `ci.yml` · **Verify** | Pull requests into `develop`, `release/**` and `main`, and before every test image: `bun run typecheck` + `bun run check` + `bun run audit`. A release branch into `main` skips them when every commit already passed Verify on its way in and the branch hasn't moved since; `main` takes only `release/…` or `hotfix/…`, a release branch anything but `main` |
+| `candidate.yml` · Test image | Push to `release/**` or `hotfix/**`, after Verify: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64), labelled with its release and branch, for the Qeet ID Kit, which numbers the test copies (`2027.1.0-rc.1` …). The image keeps the repository's former name, which the kit reads |
+| `deploy.yml` | A merged `release/…` or `hotfix/…` pull request into `main` whose Verify passed: Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag `vYEAR.MONTH.N`, delete the released branch, bring `develop` level with `main`. Any other push to `main` deploys nothing. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
 
-The version comes from the pull request titles since the last tag (`scripts/next-version.sh`): `feat!:` (any type
-with `!`) is a major, `feat:` a minor, anything else a patch; `"version"` in `package.json` wins when it is higher.
-Merge into `develop` with a squash, and promotions with a merge commit; click **Update branch** first when a pull
-request is behind. Dependabot opens one grouped pull request a week into `develop`. Vercel's own Git deployments are
+Merge into `develop` with a squash, and a release or hotfix branch into `main` with a merge commit; click **Update
+branch** first when a pull request is behind. Dependabot opens one grouped pull request a month into `develop`. Vercel's own Git deployments are
 off (`vercel.json`). The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
 production does not use it. Health: `GET /healthz`.
 
 ## Before you finish
 
 ```bash
-bun run typecheck && bun run check && bun run test && bun run build
+bun run typecheck && bun run check && bun run audit && bun run test:coverage && bun run test:e2e
 git diff
 ```
 
