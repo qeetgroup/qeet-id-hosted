@@ -40,7 +40,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
                              (auth) sign-in journeys · (account) signed-in self-service · (enterprise)
 2  src/modules/<area>/components/<name>-page.tsx   (server component — getLoginContext for branding)
 3  a client form component beside it if it needs interactivity, its tests in the module's __tests__/
-4  compose from src/platform/components/{auth-card,auth-shell,form-alert}
+4  compose from src/platform/components/{hosted-page,form-parts,form-alert}, after the approved mockup
 5  register any new i18n namespace in src/i18n/
 6  bun run typecheck && bun run check && bun run test && bun run build
 ```
@@ -117,8 +117,10 @@ bun run typecheck && bun run check && bun run test && bun run build
 git diff
 ```
 
-> CI (`ci.yml`) runs typecheck, Biome (`bun run check`), the Vitest suite and the build. Add or
-> update a test with every behaviour change, and read your own diff carefully.
+> CI (`ci.yml`, **Verify**) runs typecheck, Biome (`bun run check`), the Vitest suite, the build and the browser
+> tests on every pull request. Add or update a test with every behaviour change, and read your own diff carefully.
+> A fix for something testers found goes into `release`; everything else into `develop`. The pull request title sets
+> the version: `feat!:` major, `feat:` minor, anything else patch.
 
 ### Escalate rather than proceed
 

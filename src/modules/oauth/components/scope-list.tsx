@@ -1,32 +1,44 @@
 "use client";
 
-import { CheckIcon } from "@qeetrix/icons";
+import { Text } from "@qeetrix/react";
 import { useTranslation } from "react-i18next";
 
+import {
+  type Icon,
+  MailIcon,
+  RefreshCwIcon,
+  ShieldCheckIcon,
+  UserRoundIcon,
+} from "@/platform/icons";
+
+const ICONS: Record<string, Icon> = {
+  openid: ShieldCheckIcon,
+  profile: UserRoundIcon,
+  email: MailIcon,
+  offline_access: RefreshCwIcon,
+};
+
 /**
- * The permissions list shown on the consent + device-authorization screens:
- * each requested OAuth scope rendered as a friendly, human-readable row with a
- * brand-colored check. Falls back to a "sign you in" line when no scopes are
- * requested. Scope labels come from the shared `common:scopes.*` catalog.
+ * What an application may do with the account: one OAuth scope per ruled row, in plain words with
+ * an icon. A scope without words of its own shows its name. With none, it can still confirm who
+ * the person is.
  */
-export function ScopeList({ scopes }: { scopes: string[] }) {
-  const { t } = useTranslation();
-  if (scopes.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t("common:fallbacks.signYouIn")}</p>;
-  }
+export function ScopeList({ scopes, className }: { scopes: string[]; className?: string }) {
+  const { t } = useTranslation("common");
+  const rows = scopes.length > 0 ? scopes : ["openid"];
   return (
-    <ul className="border-border/60 divide-border/60 divide-y overflow-hidden rounded-lg border">
-      {scopes.map((s) => (
-        <li key={s} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
-          <span
-            className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full"
-            aria-hidden
-          >
-            <CheckIcon className="size-3" strokeWidth={3} />
-          </span>
-          <span>{t(`common:scopes.${s}`, { defaultValue: s })}</span>
-        </li>
-      ))}
+    <ul
+      className={`divide-y divide-border-subtle rounded-surface border border-border-default ${className ?? ""}`}
+    >
+      {rows.map((s) => {
+        const ScopeIcon = ICONS[s] ?? ShieldCheckIcon;
+        return (
+          <li key={s} className="flex items-center gap-3 px-4 py-3">
+            <ScopeIcon size={20} className="shrink-0 text-icon-subtle" />
+            <Text size="md">{t(`scopes.${s}`, { defaultValue: s })}</Text>
+          </li>
+        );
+      })}
     </ul>
   );
 }

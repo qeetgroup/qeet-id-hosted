@@ -1,12 +1,6 @@
-import { AuthShell } from "@/platform/components/auth-shell";
-
 import { SecurityView } from "./security-view";
 
-/** The signed-in user's own security page: their passkeys, renamed or added here. */
+/** The signed-in person's passkeys: added and renamed here. */
 export function SecurityPage() {
-  return (
-    <AuthShell>
-      <SecurityView />
-    </AuthShell>
-  );
+  return <SecurityView />;
 }

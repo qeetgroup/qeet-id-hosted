@@ -1,66 +1,90 @@
 "use client";
 
-import { Button, CopyableSecret, OTPInput, QRCode } from "@qeetrix/ui";
-import { useState } from "react";
+import { Button, LinkButton, Text } from "@qeetrix/react";
+import { CopyField, OTPInput, QRCode } from "@qeetrix/react/experimental";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
-import { AuthCard } from "@/platform/components/auth-card";
+import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
+import { FormStack } from "@/platform/components/form-parts";
+import { HostedPage } from "@/platform/components/hosted-page";
+import { formatDay } from "@/platform/format";
+import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, QrCodeIcon } from "@/platform/icons";
+
+import { RecoveryCodes } from "./recovery-codes";
 
 type Enrollment = { secret: string; provisioning_url: string };
 
-// MfaEnrollment is the hosted-login step for an account that must have a
-// second factor and holds none (its organisation requires MFA, or it is marked
-// as requiring it): set up an authenticator app and confirm it with a code,
-// which sets the SSO cookie, then save the recovery codes shown once. While
-// the organisation's grace period runs (dueAt), the setup can be skipped. The
-// mfa_token stays in memory only.
+// A base32 key in groups of four, as an authenticator app asks for it.
+function grouped(secret: string): string {
+  return secret.replace(/\s+/g, "").replace(/(.{4})(?=.)/g, "$1 ");
+}
+
+/**
+ * When the organisation requires a second step and the account has none: an authenticator app is
+ * set up during sign-in. Required now, or by a date the organisation set, until when it can be
+ * skipped. From a tablet up the page shows the QR code to scan with the phone; on a phone, which
+ * can't scan its own screen, it opens the authenticator app instead (otpauth://). Confirm checks one
+ * code before turning it on, so a mistyped key never locks anyone out; then the recovery codes.
+ */
 export function MfaEnrollment({
   mfaToken,
   dueAt,
+  email,
+  orgName,
   branding,
   onDone,
-  onBack,
 }: {
   mfaToken: string;
   dueAt?: string;
+  email?: string;
+  /** The organisation that requires the second step, when known. */
+  orgName?: string;
   branding?: Branding;
   onDone: () => void | Promise<void>;
-  onBack?: () => void;
 }) {
   const { t, i18n } = useTranslation("signIn");
   const [app, setApp] = useState<Enrollment | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
+  const [wrong, setWrong] = useState(false);
+  const [empty, setEmpty] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const due = dueAt
-    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" }).format(new Date(dueAt))
-    : null;
+  const [busy, setBusy] = useState(false);
+  const codeLabel = useId();
+  const due = dueAt ? formatDay(dueAt, i18n.language) : null;
+  const dueShort = dueAt ? formatDay(dueAt, i18n.language, false) : null;
+  const body = due
+    ? orgName
+      ? t("mfa.enroll.dueBodyOrg", { org: orgName, date: due })
+      : t("mfa.enroll.dueBody", { date: due })
+    : orgName
+      ? t("mfa.enroll.requiredBodyOrg", { org: orgName })
+      : t("mfa.enroll.requiredBody");
 
   async function attempt(fn: () => Promise<void>) {
     setError(null);
-    setLoading(true);
+    setWrong(false);
+    setBusy(true);
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common:errors.generic"));
+      if (err instanceof ApiError && err.code === "mfa.code_invalid") setWrong(true);
+      else setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
-  function start() {
-    void attempt(async () => {
+  const start = () =>
+    attempt(async () => {
       setApp(await apiPost<Enrollment>("/v1/auth/mfa/enroll", { mfa_token: mfaToken }));
     });
-  }
 
-  function confirm(value: string) {
-    void attempt(async () => {
+  const confirm = (value: string) =>
+    attempt(async () => {
       const res = await apiPost<{ recovery_codes?: string[] }>("/v1/auth/session/mfa", {
         mfa_token: mfaToken,
         code: value,
@@ -71,157 +95,146 @@ export function MfaEnrollment({
       }
       await onDone();
     });
-  }
 
-  function skip() {
-    void attempt(async () => {
+  const skip = () =>
+    attempt(async () => {
       await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, skip: true });
       await onDone();
     });
-  }
-
-  function copy(list: string[]) {
-    void navigator.clipboard?.writeText(list.join("\n")).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    });
-  }
-
-  function download(list: string[]) {
-    const blob = new Blob([`${list.join("\n")}\n`], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "recovery-codes.txt";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   if (codes) {
     return (
-      <AuthCard
+      <RecoveryCodes
+        codes={codes}
+        email={email}
         branding={branding}
-        title={t("mfa.enroll.codesTitle")}
-        subtitle={t("mfa.enroll.codesSubtitle")}
+        onContinue={() => void onDone()}
+      />
+    );
+  }
+
+  if (!app) {
+    return (
+      <HostedPage
+        single
+        branding={branding}
+        title={t("mfa.enroll.title")}
+        description={body}
+        lead={email ? <AccountChip email={email} /> : undefined}
       >
-        <ul className="bg-muted/30 grid grid-cols-2 gap-2 rounded-lg border p-4 font-mono text-sm">
-          {codes.map((c) => (
-            <li key={c}>{c}</li>
-          ))}
-        </ul>
-        <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="outline" onClick={() => copy(codes)}>
-            {copied ? t("mfa.enroll.copiedBtn") : t("mfa.enroll.copyBtn")}
+        <FormStack>
+          <FormAlert title={error} />
+          <Text size="md" render={<p />}>
+            {t("mfa.enroll.need")}
+          </Text>
+          <Button
+            type="button"
+            size="lg"
+            fullWidth
+            icon={QrCodeIcon}
+            loading={busy}
+            onClick={() => void start()}
+          >
+            {t("mfa.enroll.start")}
           </Button>
-          <Button type="button" variant="outline" onClick={() => download(codes)}>
-            {t("mfa.enroll.downloadBtn")}
-          </Button>
-        </div>
-        <Button type="button" size="lg" className="w-full" onClick={() => void onDone()}>
-          {t("mfa.enroll.continueBtn")}
-        </Button>
-      </AuthCard>
+          {dueShort && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              fullWidth
+              disabled={busy}
+              onClick={() => void skip()}
+            >
+              {t("mfa.enroll.skip", { date: dueShort })}
+            </Button>
+          )}
+        </FormStack>
+      </HostedPage>
     );
   }
 
   return (
-    <AuthCard
+    <HostedPage
       branding={branding}
-      title={t("mfa.enroll.title")}
-      subtitle={due ? t("mfa.enroll.subtitleDue", { date: due }) : t("mfa.enroll.subtitle")}
+      title={t("mfa.enroll.scanTitle")}
+      description={
+        <>
+          <span className="tablet:hidden">{t("mfa.enroll.phoneBody")}</span>
+          <span className="hidden tablet:inline">{t("mfa.enroll.scanBody")}</span>
+        </>
+      }
     >
-      {app ? (
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            confirm(code);
-          }}
-        >
-          <div className="space-y-1.5">
-            <p id="enroll-scan" className="text-sm font-medium">
-              {t("mfa.enroll.scanLabel")}
-            </p>
-            <div className="flex justify-center">
-              <QRCode
-                value={app.provisioning_url}
-                size={200}
-                aria-labelledby="enroll-scan"
-                aria-describedby="enroll-key"
-              />
-            </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setEmpty(code.length < 6);
+          if (code.length === 6) void confirm(code);
+        }}
+      >
+        <FormStack>
+          <FormAlert title={error} />
+          {/* A phone can't scan its own screen: it opens the authenticator app instead. */}
+          <LinkButton
+            href={app.provisioning_url}
+            variant="soft"
+            size="lg"
+            fullWidth
+            icon={ExternalLinkIcon}
+            className="tablet:hidden"
+          >
+            {t("mfa.enroll.open")}
+          </LinkButton>
+          <div className="hidden place-items-center rounded-surface border border-border-default bg-[#ffffff] p-5 tablet:grid">
+            <QRCode value={app.provisioning_url} label={t("mfa.enroll.qrLabel")} size={168} />
           </div>
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">{t("mfa.enroll.keyLabel")}</p>
-            <div id="enroll-key">
-              <CopyableSecret value={app.secret} size="sm" />
-            </div>
-            <p className="text-muted-foreground text-xs">{t("mfa.enroll.keyHint")}</p>
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="enroll-code" className="text-sm font-medium">
-              {t("mfa.enroll.codeLabel")}
-            </label>
+          <CopyField
+            label={t("mfa.enroll.key")}
+            value={grouped(app.secret)}
+            description={email ? t("mfa.enroll.keyHelpFor", { email }) : t("mfa.enroll.keyHelp")}
+          />
+          <div>
+            <Text size="sm" weight="medium" tone="subtle" render={<p id={codeLabel} />}>
+              {t("mfa.enroll.code")}
+            </Text>
             <OTPInput
-              id="enroll-code"
+              length={6}
+              groups={[3, 3]}
+              size="lg"
+              autoComplete="one-time-code"
+              disabled={busy}
               value={code}
-              onChange={setCode}
-              onComplete={confirm}
-              autoFocus
-              disabled={loading}
-              aria-label={t("mfa.enroll.codeLabel")}
+              onValueChange={setCode}
+              onValueComplete={(value) => void confirm(value)}
+              aria-labelledby={codeLabel}
+              aria-invalid={wrong || empty ? true : undefined}
+              className="mt-1.5"
             />
+            {(wrong || empty) && (
+              <Text size="sm" className="mt-2 text-text-danger" render={<p role="alert" />}>
+                {t(wrong ? "mfa.enroll.wrong" : "mfa.enroll.empty")}
+              </Text>
+            )}
           </div>
-          <FormAlert>{error}</FormAlert>
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={loading || code.length === 0}
-            loading={loading}
-            loadingLabel={t("mfa.submit.busy")}
-          >
-            {t("mfa.enroll.confirmBtn")}
+          <Button type="submit" size="lg" fullWidth icon={ArrowRightIcon} loading={busy}>
+            {t("mfa.enroll.confirm")}
           </Button>
-        </form>
-      ) : (
-        <div className="space-y-4">
-          <FormAlert>{error}</FormAlert>
           <Button
             type="button"
+            variant="ghost"
             size="lg"
-            className="w-full"
-            disabled={loading}
-            loading={loading}
-            onClick={start}
+            fullWidth
+            icon={ArrowLeftIcon}
+            disabled={busy}
+            onClick={() => {
+              setApp(null);
+              setCode("");
+            }}
           >
-            {t("mfa.enroll.startBtn")}
+            {t("mfa.enroll.back")}
           </Button>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1 text-center">
-        {due && (
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-            disabled={loading}
-            onClick={skip}
-          >
-            {t("mfa.enroll.skipBtn")}
-          </button>
-        )}
-        {onBack && (
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground text-sm underline-offset-2 hover:underline"
-            disabled={loading}
-            onClick={onBack}
-          >
-            {t("mfa.back")}
-          </button>
-        )}
-      </div>
-    </AuthCard>
+        </FormStack>
+      </form>
+    </HostedPage>
   );
 }

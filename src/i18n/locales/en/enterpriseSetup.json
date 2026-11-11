@@ -1,61 +1,233 @@
 {
   "page": {
-    "opening": "Opening enterprise setup",
-    "verifying": "Verifying this secure link…",
-    "unavailable": "This link isn't available",
-    "unavailableBody": "It may have expired, been revoked, already been used, or the URL is incomplete.",
-    "askForNew": "Ask whoever sent you this link to generate a new one."
+    "opening": "Checking this link…",
+    "expiredTitle": "This link doesn't work",
+    "expiredBody": "It may have expired, been turned off, or the address is incomplete. Ask the person who sent it to make a new one.",
+    "bar": "Enterprise setup",
+    "barOrg": "Enterprise setup · {{org}}"
   },
-  "view": {
-    "title": "Configure SSO for {{tenant}}",
-    "expires": "This link expires {{date}}. You can return to it until then."
+  "setup": {
+    "title": "Set up single sign-on",
+    "body": "For {{org}}. When it's done, people at your verified domains sign in with your identity provider.",
+    "bodyDomain": "For {{org}}. When it's done, people at {{domain}} sign in with your identity provider.",
+    "expires": "Link works until {{expires}}",
+    "back": "Close the page any time: this link brings you back here.",
+    "stepOf": "Step {{n}} of {{total}}",
+    "after": "After step {{n}}",
+    "loadFailed": "The setup didn't load. Reload the page; this link keeps your place."
   },
-  "saml": {
-    "title": "Connections",
-    "description": "Your organisation's SAML identity provider(s).",
-    "empty": "No connections yet — add one below.",
-    "loadFailed": "Failed to load.",
-    "test": "Test",
-    "delete": "Delete",
-    "confirmDelete": "Delete the \"{{name}}\" connection?",
-    "checkOk": "OK",
-    "checkFail": "Fail",
-    "testFailed": "Test failed.",
-    "deleteFailed": "Delete failed."
+  "steps": {
+    "domain": {
+      "label": "Verify your domain",
+      "todo": "Prove you own it"
+    },
+    "connect": {
+      "label": "Connect your identity provider",
+      "todo": "Okta, Entra ID or another"
+    },
+    "test": {
+      "label": "Test it",
+      "todo": "Sign in once as yourself"
+    },
+    "turnOn": {
+      "label": "Turn it on",
+      "todo": "For your whole domain"
+    },
+    "scim": {
+      "label": "Sync people (optional)",
+      "todo": "SCIM"
+    }
   },
-  "create": {
-    "title": "Add a connection",
-    "description": "Enter the details from your identity provider (Okta, Entra ID, Google Workspace, …).",
-    "name": "Connection name",
-    "entityId": "IdP entity ID / issuer",
-    "ssoUrl": "IdP SSO URL",
-    "certificate": "IdP signing certificate",
-    "certificatePlaceholder": "-----BEGIN CERTIFICATE----- … or bare base64 from IdP metadata",
-    "emailAttribute": "Email attribute",
-    "emailAttributePlaceholder": "email (blank = use NameID)",
-    "nameAttribute": "Display-name attribute",
-    "nameAttributePlaceholder": "displayName (optional)",
-    "status": "Initial status",
-    "draft": "Draft (not yet live)",
-    "active": "Active",
-    "submit": "Add connection",
-    "submitting": "Adding…",
-    "failed": "Could not create the connection."
+  "domain": {
+    "body": "Only people with an email at a domain you've verified are sent to your identity provider. You'll add a TXT record at your DNS provider.",
+    "add": "Add a domain",
+    "verified": "{{domain}} · verified",
+    "pending": "{{domain}} · waiting for its DNS record",
+    "verifyNow": "Verify"
+  },
+  "connect": {
+    "which": "Which identity provider do you use?",
+    "other": "Another SAML 2.0 provider",
+    "give": "Give {{idp}} these two values",
+    "addDetails": "Add {{idp}}'s details",
+    "connected": "{{idp}} · SAML · Draft until it's turned on",
+    "connectedOn": "{{idp}} · SAML · Active",
+    "view": "View",
+    "remove": "Remove",
+    "preparing": "Getting Qeet ID's values…",
+    "idps": {
+      "okta": {
+        "name": "Okta",
+        "how": "Create the app in Okta",
+        "howBody": "In Okta's Admin Console: Applications, Create App Integration, SAML 2.0. Name it Qeet ID.",
+        "acs": "Single sign-on URL",
+        "audience": "Audience URI (SP Entity ID)",
+        "send": "Send Qeet ID Okta's details",
+        "sendBody": "On the app's Sign On tab, download the metadata file (or copy its URL).",
+        "fix1": "In Okta, open the app's Sign On tab"
+      },
+      "entra": {
+        "name": "Microsoft Entra ID",
+        "how": "Create the app in Entra ID",
+        "howBody": "In the Microsoft Entra admin center: Enterprise applications, New application, Create your own application, then Single sign-on and SAML. Name it Qeet ID.",
+        "acs": "Reply URL (Assertion Consumer Service URL)",
+        "audience": "Identifier (Entity ID)",
+        "send": "Send Qeet ID Entra ID's details",
+        "sendBody": "Under SAML Certificates, download the Federation Metadata XML.",
+        "fix1": "In Entra ID, open the app's Single sign-on page"
+      },
+      "google": {
+        "name": "Google Workspace",
+        "how": "Create the app in Google Workspace",
+        "howBody": "In the Google Admin console: Apps, Web and mobile apps, Add app, Add custom SAML app. Name it Qeet ID.",
+        "acs": "ACS URL",
+        "audience": "Entity ID",
+        "send": "Send Qeet ID Google's details",
+        "sendBody": "On the Google identity provider details page, download the metadata.",
+        "fix1": "In the Google Admin console, open the app's details"
+      },
+      "other": {
+        "name": "your identity provider",
+        "how": "Create a SAML 2.0 app for Qeet ID",
+        "howBody": "In your identity provider, add a SAML 2.0 application and name it Qeet ID.",
+        "acs": "Assertion Consumer Service (ACS) URL",
+        "audience": "Service provider entity ID (audience)",
+        "send": "Send Qeet ID its details",
+        "sendBody": "Download its SAML metadata file, or note its entity ID, sign-in URL and signing certificate.",
+        "fix1": "In your identity provider, open the app's SAML settings"
+      }
+    }
+  },
+  "test": {
+    "checks": "Checks on the connection",
+    "body": "Last, sign in once through {{idp}} as yourself, to see exactly what it sends.",
+    "signIn": "Test sign-in",
+    "waiting": "Waiting for {{idp}} in the other tab…",
+    "passed": "Passed",
+    "failed": "Failed",
+    "passedTitle": "{{idp}} signed you in",
+    "passedBody": "This is what it sent. People are matched to Qeet ID by their email.",
+    "email": "Email",
+    "domainOk": "Domain verified",
+    "domainNotVerified": "Domain not verified",
+    "name": "Name",
+    "nameId": "NameID",
+    "attributes": "Attributes",
+    "again": "Test again",
+    "passedRow": "Passed: {{idp}} signed in {{email}}",
+    "failedTitle": "{{idp}}'s answer was refused",
+    "fix1Body": "Download the signing certificate again: {{idp}} may have rotated it.",
+    "fix2": "Update the connection",
+    "fix2Body": "Paste the new certificate, or add the metadata file again.",
+    "fix3": "Test again",
+    "update": "Update the connection",
+    "expired": "The test sign-in ran out of time. Test again.",
+    "popupBlocked": "Your browser blocked the new tab. Allow pop-ups for this page, then test again."
+  },
+  "turnOn": {
+    "body": "From now on, people at {{domain}} who sign in to {{org}}'s applications go to {{idp}}. You can turn it off again here or in the console.",
+    "button": "Turn on single sign-on",
+    "row": "On for {{domain}}",
+    "liveTitle": "Single sign-on is on",
+    "liveBody": "People at {{domain}} now sign in with {{idp}}.",
+    "turnOff": "Turn off"
   },
   "scim": {
-    "title": "SCIM provisioning",
-    "description": "Point your IdP's SCIM connector at this endpoint and bearer token.",
-    "provisioned_one": "{{count}} user provisioned via SCIM.",
-    "provisioned_other": "{{count}} users provisioned via SCIM.",
-    "roll": "Roll token",
-    "enable": "Enable SCIM",
-    "disable": "Disable",
-    "confirmDisable": "Disable SCIM provisioning? Your IdP will stop syncing.",
-    "newToken": "Your new SCIM bearer token",
-    "newTokenBody": "Copy it now — for security it is shown once and cannot be retrieved again.",
-    "saved": "I've saved it",
-    "loadFailed": "Failed to load.",
-    "rotateFailed": "Rotate failed.",
-    "revokeFailed": "Revoke failed."
+    "body": "Let {{idp}} add, update and remove {{org}}'s people in Qeet ID, so nobody has to do it by hand. You can do this later from the same link.",
+    "turnOn": "Turn on SCIM",
+    "notNow": "Not now",
+    "row_one": "{{count}} person synced",
+    "row_other": "{{count}} people synced",
+    "skipped": "Not now: turn it on any time from this link",
+    "newToken": "New token",
+    "turnOff": "Turn off",
+    "endpoint": "SCIM endpoint",
+    "doneTitle": "Everything is set up",
+    "doneBody": "People at {{domain}} sign in with {{idp}}, and {{idp}} keeps them in step. Nothing else to do."
+  },
+  "addSaml": {
+    "title": "Add {{idp}}'s details",
+    "titleView": "{{name}}",
+    "body": "Enter the details from your identity provider, or fill them in from its metadata file.",
+    "metadata": "Metadata file",
+    "metadataHint": "XML, from your identity provider's SAML app settings",
+    "metadataError": "This file isn't SAML metadata from an identity provider. Download it again, or enter the details by hand.",
+    "details": "Connection details",
+    "name": "Connection name",
+    "nameHint": "e.g. Brightleaf Okta",
+    "nameHelp": "People see this name when they choose how to sign in.",
+    "entity": "Identity provider entity ID",
+    "entityHint": "e.g. http://www.okta.com/exk9…",
+    "sso": "Identity provider sign-in URL",
+    "ssoHint": "e.g. https://brightleaf.okta.com/app/…/sso/saml",
+    "cert": "Signing certificate",
+    "certHint": "-----BEGIN CERTIFICATE----- …",
+    "certError": "This isn't a certificate. Paste the whole PEM block, or the base64 value from the metadata.",
+    "email": "Email attribute",
+    "emailHint": "e.g. email",
+    "emailHelp": "Leave it empty to use the NameID.",
+    "display": "Display-name attribute",
+    "displayHint": "e.g. displayName",
+    "status": "Start as",
+    "draft": "Draft",
+    "draftHelp": "Not used for sign-in yet. You can test it.",
+    "active": "Active",
+    "activeHelp": "People at your verified domains sign in with it.",
+    "save": "Add connection",
+    "saveView": "Save changes",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "failedTitle": "The connection wasn't saved",
+    "failedBody": "Something went wrong on our side. Your details are kept: try again."
+  },
+  "verifyDomain": {
+    "title": "Verify a domain",
+    "domainBody": "Enter the domain in your people's email addresses.",
+    "domain": "Domain",
+    "domainHint": "e.g. brightleaffoods.in",
+    "next": "Next",
+    "cancel": "Cancel",
+    "recordBody": "Add this TXT record at your DNS provider, then choose Verify.",
+    "host": "Name (host)",
+    "value": "Value",
+    "type": "Type: TXT. Any TTL works.",
+    "verify": "Verify",
+    "checking": "Checking…",
+    "later": "Verify later",
+    "missingTitle": "We couldn't find the record yet",
+    "missingBody": "DNS changes can take up to an hour to appear. Check the name and value, then try again; this link keeps your place.",
+    "takenTitle": "This domain belongs to another organisation",
+    "takenBody": "Another organisation on Qeet ID has verified it. If that's wrong, tell the person who sent you this link.",
+    "verifiedTitle": "{{domain}} is verified",
+    "verifiedBody": "People with an email at this domain will be sent to your identity provider when they sign in.",
+    "done": "Done"
+  },
+  "removeConnection": {
+    "title": "Remove “{{name}}”?",
+    "body": "People at {{domain}} won't be able to sign in with {{idp}} until you add a connection again. This can't be undone.",
+    "bodyNoDomain": "People won't be able to sign in with {{idp}} until you add a connection again. This can't be undone.",
+    "cancel": "Cancel",
+    "remove": "Remove connection",
+    "removing": "Removing…",
+    "failedTitle": "It wasn't removed",
+    "failedBody": "Something went wrong on our side. Try again in a moment."
+  },
+  "scimToken": {
+    "newTitle": "Your new SCIM token",
+    "firstTitle": "SCIM is on",
+    "body": "Copy it now: for security it's shown only once.",
+    "newBody": "Replace the old token in {{idp}}'s provisioning settings with this one.",
+    "firstBody": "In {{idp}}'s provisioning settings, enter this endpoint and token.",
+    "endpoint": "SCIM endpoint",
+    "token": "Bearer token",
+    "saved": "I've copied the token",
+    "done": "Done"
+  },
+  "turnOffScim": {
+    "title": "Turn off SCIM provisioning?",
+    "body": "{{idp}} will stop adding, updating and removing {{org}}'s people in Qeet ID. Nobody is removed now: the people added so far stay.",
+    "cancel": "Cancel",
+    "turnOff": "Turn off",
+    "turningOff": "Turning off…"
   }
 }

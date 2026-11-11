@@ -34,4 +34,21 @@ describe("DeviceForm", () => {
       ),
     );
   });
+
+  it("signs out to change the account, then signs in again on the way back to the code", async () => {
+    const calls = mockApi({
+      "GET /v1/me": { status: 200, body: { email: "ada@example.com", display_name: "Ada" } },
+      "DELETE /v1/auth/session": { status: 204 },
+    });
+    render(<DeviceForm userCode="ABCD-EFGH" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Change" }));
+
+    await waitFor(() =>
+      expect(goTo).toHaveBeenCalledWith(
+        `/sign-in?return_to=${encodeURIComponent("/device?user_code=ABCD-EFGH")}`,
+      ),
+    );
+    expect(calls.some((c) => c.method === "DELETE" && c.path === "/v1/auth/session")).toBe(true);
+  });
 });

@@ -1,24 +1,23 @@
+import { organisationOf } from "@/platform/api/organisation";
 import { getLoginContext } from "@/platform/api/server";
 import { normalizeBranding } from "@/platform/branding/branding";
-import { AuthShell } from "@/platform/components/auth-shell";
 
 import { SignUpForm } from "./sign-up-form";
 
-// Self-registration is a per-tenant policy. We resolve the tenant + whether
-// sign-up is open from the originating client (same login-context the sign-in
-// page uses); the backend re-checks the gate on POST, so this only drives UI.
+// Self-registration is the organisation's choice: whether sign-up is open, and for which
+// organisation, comes from the application's login context (as on the sign-in page). The server
+// checks again when the account is made, so this only decides what the page shows.
 export async function SignUpPage({ returnTo }: { returnTo: string }) {
   const ctx = await getLoginContext(returnTo);
-  const branding = normalizeBranding(ctx.branding);
   return (
-    <AuthShell branding={branding}>
-      <SignUpForm
-        returnTo={returnTo}
-        clientName={ctx.client_name ?? ""}
-        tenantId={ctx.tenant_id ?? ""}
-        selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
-        branding={branding}
-      />
-    </AuthShell>
+    <SignUpForm
+      returnTo={returnTo}
+      clientName={ctx.client_name ?? ""}
+      clientLogoUri={ctx.logo_uri}
+      tenantId={ctx.tenant_id ?? ""}
+      selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
+      organisation={organisationOf(ctx)}
+      branding={normalizeBranding(ctx.branding)}
+    />
   );
 }

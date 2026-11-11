@@ -22,12 +22,13 @@ application. Client-side redirect safety.
 | Operator UI | `qeet-id-console` |
 | Magic-link **consumption** | `qeet-id-console` |
 | Marketing | `qeet-id-website` |
-| The design system | `qeetrix-ui` |
+| The design system | `qeetrix` (`@qeetrix/react`, `@qeetrix/tokens`, `@qeetrix/icons`) |
+| How every page looks | `qeet-mockups` (`products/qeet-id`, the hosted application): approved before it is built |
 
 ## Consumes
 
 `api.id.qeet.in` over HTTPS with `credentials: "include"` and a CSRF double-submit header ·
-`@qeetrix/ui` · `@qeetrix/icons`. **No database, no state, and no server-side secret except the
+`@qeetrix/react` · `@qeetrix/tokens` · `@qeetrix/icons`. **No database, no state, and no server-side secret except the
 optional relay key** (`QEET_ID_RELAY_KEY`, see `src/platform/api/relay.ts`).
 
 ## Provides
@@ -64,7 +65,8 @@ never include it in React state, logs, error messages, telemetry, or analytics.*
 
 ```text
 qeet-id-server ──contract + sets qe_ls──►  qeet-id-hosted
-qeetrix-ui     ──@qeetrix/ui──────────►  qeet-id-hosted
+qeetrix        ──@qeetrix/react───────►  qeet-id-hosted
+qeet-mockups   ──approved screens─────►  qeet-id-hosted
 every Qeet product ──OIDC redirect────►  qeet-id-hosted
 ```
 
@@ -73,7 +75,7 @@ organization's entire SSO model.
 
 ## Safe to change without coordination
 
-UI copy, layout and styling · i18n strings · a new component composed from existing endpoints ·
+UI copy, layout and styling that follow an approved mockup · i18n strings · a new component composed from existing endpoints ·
 accessibility improvements · error-message copy (as long as it uses codes, not backend messages).
 
 ## Requires cross-repository coordination
@@ -86,7 +88,8 @@ accessibility improvements · error-message copy (as long as it uses codes, not 
 | A new auth flow | `qeet-id-server`, and usually `qeet-id-context/FLOWS/` |
 | Hostname or port | Backend `LOGIN_BASE_URL`, `ALLOWED_ORIGINS`, `WEBAUTHN_RP_ORIGINS`, `qeet-id-deploy` |
 | Consent screen fields | `qeet-id-server` owns the scope list |
-| `@qeetrix/ui` / `@qeetrix/icons` upgrade | `qeetrix-ui`, `qeetrix-icons` — pinned `2.1.5` / `1.0.11`; re-check tenant branding (`brandingVars`) |
+| `@qeetrix/react` / `@qeetrix/tokens` / `@qeetrix/icons` upgrade | `qeetrix`: pinned exactly; re-check the brand tokens `.hosted-branded` overrides (`globals.css`) and the browser tests |
+| A page that looks different from its mockup | `qeet-mockups`: change and approve the mockup first |
 
 Product-level fan-out: `qeet-id-context/CHANGE-MATRIX.md`.
 

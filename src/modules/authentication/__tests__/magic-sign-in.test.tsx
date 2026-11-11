@@ -12,11 +12,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const NETWORK =
-  "Your organisation doesn't allow sign-in from this network. Contact your administrator.";
+const NETWORK = "You can't sign in from this network";
 
 describe("MagicSignIn", () => {
-  it("says a refused network plainly, without offering a new link or another way in", async () => {
+  it("says a refused network plainly, without offering a new link", async () => {
     mockApi({
       "POST /v1/auth/magic-link/session": {
         status: 403,
@@ -27,8 +26,7 @@ describe("MagicSignIn", () => {
 
     expect(await screen.findByText(NETWORK)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Send a new link" })).toBeNull();
-    expect(screen.queryByText("Sign in another way")).toBeNull();
-    expect(screen.queryByText(/used already or expired/)).toBeNull();
+    expect(screen.queryByText(/used already/)).toBeNull();
   });
 
   it("still offers a new link for a link that has expired", async () => {
@@ -41,5 +39,13 @@ describe("MagicSignIn", () => {
     render(<MagicSignIn token="tok-2" />);
 
     expect(await screen.findByRole("button", { name: "Send a new link" })).toBeTruthy();
+  });
+
+  it("says an incomplete link plainly, without asking the server", () => {
+    const calls = mockApi({});
+    render(<MagicSignIn token="" />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "This link is incomplete" })).toBeTruthy();
+    expect(calls).toEqual([]);
   });
 });

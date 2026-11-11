@@ -12,7 +12,7 @@ function choosePassword(confirm = "a new long password") {
     target: { value: "a new long password" },
   });
   fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: confirm } });
-  fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save password" }));
 }
 
 afterEach(() => {
@@ -27,7 +27,7 @@ describe("ResetPasswordForm", () => {
 
     choosePassword();
 
-    expect(await screen.findByText(/Your password has been reset/)).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Password changed" })).toBeTruthy();
     expect(calls).toEqual([
       {
         method: "POST",
@@ -35,7 +35,7 @@ describe("ResetPasswordForm", () => {
         body: { token: "reset-1", new_password: "a new long password" },
       },
     ]);
-    expect(screen.getByRole("link", { name: "Go to sign in" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe(
       `/sign-in?return_to=${encodeURIComponent(AUTHORIZE)}`,
     );
   });
@@ -46,7 +46,7 @@ describe("ResetPasswordForm", () => {
 
     choosePassword();
 
-    expect((await screen.findByRole("link", { name: "Go to sign in" })).getAttribute("href")).toBe(
+    expect((await screen.findByRole("link", { name: "Sign in" })).getAttribute("href")).toBe(
       "/sign-in",
     );
   });
@@ -57,14 +57,37 @@ describe("ResetPasswordForm", () => {
 
     choosePassword("not the same");
 
-    expect(await screen.findByText("Those passwords don't match.")).toBeTruthy();
+    expect(
+      await screen.findByText("The two passwords don't match. Type the same password in both."),
+    ).toBeTruthy();
     expect(calls).toEqual([]);
   });
 
-  it("says the link is broken when it carries no token", () => {
+  it("says the link doesn't work when it carries no token, and offers a new one", () => {
     mockApi({});
     render(<ResetPasswordForm token="" returnTo="" />);
 
-    expect(screen.getByText(/This reset link is missing its token/)).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "This reset link doesn't work" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Get a new link" }).getAttribute("href")).toBe(
+      "/forgot-password",
+    );
+  });
+
+  it("says the link doesn't work when the server finds it used or expired", async () => {
+    mockApi({
+      "POST /v1/auth/reset-password": {
+        status: 410,
+        body: { error: { code: "recovery.link_used", message: "used" } },
+      },
+    });
+    render(<ResetPasswordForm token="reset-1" returnTo="" />);
+
+    choosePassword();
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "This reset link doesn't work" }),
+    ).toBeTruthy();
   });
 });

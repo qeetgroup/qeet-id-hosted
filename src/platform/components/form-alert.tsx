@@ -1,18 +1,31 @@
 "use client";
 
-import { Alert, AlertDescription } from "@qeetrix/ui";
+import { Alert, type AlertTone } from "@qeetrix/react/experimental";
 import type { ReactNode } from "react";
 
 /**
- * Inline error banner for auth forms. Renders nothing when there's no message,
- * so callers can pass a nullable error straight through. Uses the design
- * system's `danger` alert variant for consistent error styling.
+ * A form's message: what went wrong and what to do next, as the mockups write them. A short
+ * message is the title alone; a longer one has a title and a body. Renders nothing without a
+ * title, so a form passes its nullable error straight through. Announced at once, since it
+ * answers what the person just did.
  */
-export function FormAlert({ children }: { children?: ReactNode }) {
-  if (!children) return null;
+export function FormAlert({
+  title,
+  children,
+  tone = "danger",
+  actions,
+  className,
+}: {
+  title?: ReactNode;
+  children?: ReactNode;
+  tone?: AlertTone;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  if (!title) return null;
   return (
-    <Alert variant="danger" role="alert">
-      <AlertDescription>{children}</AlertDescription>
+    <Alert tone={tone} title={title} actions={actions} announce="urgent" className={className}>
+      {children}
     </Alert>
   );
 }
