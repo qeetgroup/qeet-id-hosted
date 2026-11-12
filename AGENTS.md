@@ -194,12 +194,12 @@ branch. CI runs the essential checks only; the tests, the build and the browser 
 
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · **Verify** | Pull requests into `develop`, `release/**` and `main`, and before every test image: `bun run typecheck` + `bun run check` + `bun run audit`. A release branch into `main` skips them when every commit already passed Verify on its way in and the branch hasn't moved since; `main` takes only `release/…` or `hotfix/…`, a release branch anything but `main` |
-| `candidate.yml` · Test image | Push to `release/**` or `hotfix/**`, after Verify: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64), labelled with its release and branch, for the Qeet ID Kit, which numbers the test copies (`2027.1.0-rc.1` …). The image keeps the repository's former name, which the kit reads |
-| `deploy.yml` | A merged `release/…` or `hotfix/…` pull request into `main` whose Verify passed: Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag `vYEAR.MONTH.N`, delete the released branch, bring `develop` level with `main`. Any other push to `main` deploys nothing. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
+| `ci.yml` · **Verify** | Pull requests into `develop` and `main` (a release reaches `main` by one): `bun run typecheck` + `bun run check` + `bun run audit` + gitleaks (secrets in the pull request's commits) |
+| `candidate.yml` · Test image | Push to `release/**` or `hotfix/**`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64), labelled with its release and branch, for the Qeet ID Kit, which numbers the test copies (`2027.1.0-rc.1` …). The image keeps the repository's former name, which the kit reads |
+| `deploy.yml` | A merged `release/…` or `hotfix/…` pull request into `main` whose Verify passed: Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag `vYEAR.MONTH.N`. Any other push to `main` deploys nothing. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
 
 Merge into `develop` with a squash, and a release or hotfix branch into `main` with a merge commit; click **Update
-branch** first when a pull request is behind. Dependabot opens one grouped pull request a month into `develop`. Vercel's own Git deployments are
+branch** first when a pull request is behind. On release day, once the deploy is live: delete the release (or hotfix) branch and merge `main` into `develop`. Dependabot opens one grouped pull request a month into `develop`. Vercel's own Git deployments are
 off (`vercel.json`). The container image (`Dockerfile`, Next `output: "standalone"`) is for the test kit; Vercel
 production does not use it. Health: `GET /healthz`.
 
