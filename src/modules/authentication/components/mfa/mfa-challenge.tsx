@@ -3,8 +3,13 @@
 import { Button } from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { LoginFactor } from "@/modules/authentication/session";
-import { ApiError, apiPost } from "@/platform/api/client";
+import {
+  beginPasskeySecondStep,
+  completeSecondStep,
+  sendSecondStepCode,
+} from "@/modules/authentication/api/mfa";
+import type { LoginFactor } from "@/modules/authentication/api/session";
+import { ApiError } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
@@ -19,6 +24,7 @@ import {
   ShieldCheckIcon,
   SmartphoneIcon,
 } from "@/platform/icons";
+import { getAssertion, isCancelled, PasskeyUnsupportedError } from "@/platform/webauthn/ceremony";
 
 import { ApproveOnPhone } from "./approve-on-phone";
 import { CodeStep } from "./code-step";
@@ -88,8 +94,8 @@ export function MfaChallenge({
     setMode(next);
   }
 
-  async function complete(proof: Record<string, unknown>) {
-    await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, remember, ...proof });
+  async function complete(proof: Parameters<typeof completeSecondStep>[1]) {
+    await completeSecondStep(mfaToken, { remember, ...proof });
     await onVerified();
   }
 
@@ -113,7 +119,7 @@ export function MfaChallenge({
     go({ kind: "sent", factor });
     setBusy(true);
     try {
-      await apiPost("/v1/auth/mfa/send", { mfa_token: mfaToken, factor_id: factor.id });
+      await sendSecondStepCode(mfaToken, factor.id ?? "");
       holdSend(factor, SEND_INTERVAL_SECONDS);
     } catch (err) {
       const wait = sendWait(err);
@@ -133,33 +139,19 @@ export function MfaChallenge({
     setError(null);
     setBusy(true);
     try {
-      const PK = window.PublicKeyCredential as
-        | (typeof window.PublicKeyCredential & {
-            parseRequestOptionsFromJSON?: (o: unknown) => PublicKeyCredentialRequestOptions;
-          })
-        | undefined;
-      if (!PK || !navigator.credentials) throw new Error(t("problems.passkeyUnsupported.title"));
-      const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
-        "/v1/auth/mfa/passkey/begin",
-        { mfa_token: mfaToken },
-      );
-      const options = PK.parseRequestOptionsFromJSON
-        ? PK.parseRequestOptionsFromJSON(begin.publicKey)
-        : (begin.publicKey as PublicKeyCredentialRequestOptions);
-      const assertion = (await navigator.credentials.get({ publicKey: options })) as
-        | (PublicKeyCredential & { toJSON?: () => unknown })
-        | null;
-      if (!assertion) throw new Error(t("problems.passkey.title"));
-      await complete({
-        passkey: {
-          session_id: begin.session_id,
-          credential: assertion.toJSON ? assertion.toJSON() : assertion,
-        },
-      });
+      const begin = await beginPasskeySecondStep(mfaToken);
+      const credential = await getAssertion(begin.publicKey);
+      await complete({ passkey: { session_id: begin.sessionId, credential } });
     } catch (err) {
       // Closing the browser's own prompt is a choice, not an error.
-      if (!(err instanceof DOMException && err.name === "NotAllowedError")) {
-        setError(err instanceof Error ? err.message : t("problems.generic.title"));
+      if (!isCancelled(err)) {
+        setError(
+          err instanceof PasskeyUnsupportedError
+            ? t("problems.passkeyUnsupported.title")
+            : err instanceof ApiError
+              ? err.message
+              : t("problems.passkey.title"),
+        );
       }
       setBusy(false);
     }

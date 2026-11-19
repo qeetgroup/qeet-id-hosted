@@ -59,6 +59,8 @@ bun run dev            # http://localhost:3003, the origin the server allows for
 | `bun run check` | Lint and format (Biome) |
 | `bun run test` | Unit and component tests (Vitest) |
 | `bun run test:e2e` | Every page in Chromium: its Content-Security-Policy and a WCAG 2.2 AA scan |
+| `bun run contract:sync` | Copy the server's API documents and regenerate the types every call is checked against |
+| `bun run contract:check` | The copied documents and generated types are current |
 
 ## ⚙️ Configuration
 

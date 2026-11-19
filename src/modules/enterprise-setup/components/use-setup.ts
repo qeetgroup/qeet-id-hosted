@@ -63,8 +63,8 @@ export function useSetup(context: PortalContext) {
     const can = (c: string) => context.capabilities.includes(c as never);
     try {
       const [domains, saml, scim] = await Promise.all([
-        can("domain_verification") ? listDomains().then((r) => r.items) : Promise.resolve([]),
-        can("saml") ? listSamlConnections().then((r) => r.items) : Promise.resolve([]),
+        can("domain_verification") ? listDomains() : Promise.resolve([]),
+        can("saml") ? listSamlConnections() : Promise.resolve([]),
         can("scim") ? getScimConfig() : Promise.resolve(null),
       ]);
       setSetup({ domains, connection: pick(saml), scim });

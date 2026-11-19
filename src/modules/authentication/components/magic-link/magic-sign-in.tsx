@@ -3,12 +3,11 @@
 import { Button, LinkButton, Spinner, Text } from "@qeetrix/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { resendSignInLink, tradeSignInLink } from "@/modules/authentication/api/magic-link";
+import { challengeOf, type LoginFactor } from "@/modules/authentication/api/session";
 import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challenge";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
-import type { LoginFactor } from "@/modules/authentication/session";
-import { apiPost } from "@/platform/api/client";
-import { isAddressRefusal } from "@/platform/api/errors";
+import { isAddressRefusal, isSsoRequired } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
@@ -16,17 +15,6 @@ import { HostedPage } from "@/platform/components/hosted-page";
 import { ArrowLeftIcon, MailIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
-
-// The exchange answers the session (cookie set) or, when the account has a second step or must
-// set one up, a challenge to complete first. The link is spent either way.
-type MagicSessionResponse = {
-  return_to?: string;
-  mfa_required?: boolean;
-  mfa_token?: string;
-  factors?: LoginFactor[];
-  enrollment_required?: boolean;
-  enrollment_due_at?: string;
-};
 
 type Challenge = {
   token: string;
@@ -36,7 +24,7 @@ type Challenge = {
   returnTo: string;
 };
 
-type State = "checking" | "failed" | "resent" | "missing" | "network";
+type State = "checking" | "failed" | "resent" | "missing" | "network" | "sso";
 
 /**
  * Where the emailed sign-in link lands: it checks the link, signs this browser in and goes straight
@@ -65,32 +53,39 @@ export function MagicSignIn({
     // One exchange per page load, even under React's double effect in development.
     if (!token || started.current) return;
     started.current = true;
-    apiPost<MagicSessionResponse>("/v1/auth/magic-link/session", { token })
+    // The exchange answers the session (cookie set) or, when the account has a second step or must
+    // set one up, a challenge to complete first. The link is spent either way, except when the
+    // address must now sign in through its organisation: that link stays unused.
+    tradeSignInLink(token)
       .then((res) => {
-        if (res.mfa_required && res.mfa_token) {
+        const pending = challengeOf(res);
+        if (pending) {
           // The challenge token stays in memory only.
           setChallenge({
-            token: res.mfa_token,
-            factors: res.factors ?? [],
-            enrollment: !!res.enrollment_required,
-            dueAt: res.enrollment_due_at,
+            token: pending.mfa_token,
+            factors: pending.factors ?? [],
+            enrollment: !!pending.enrollment_required,
+            dueAt: pending.enrollment_due_at,
             returnTo: res.return_to ?? "",
           });
           return;
         }
         goTo(safeReturnTo(res.return_to ?? "") ?? "/security");
       })
-      .catch((err) => setState(isAddressRefusal(err) ? "network" : "failed"));
+      .catch((err) =>
+        setState(isAddressRefusal(err) ? "network" : isSsoRequired(err) ? "sso" : "failed"),
+      );
   }, [token]);
 
   async function resend() {
     setResendError(null);
     setResending(true);
     try {
-      await apiPost("/v1/auth/magic-link/resend", { token });
+      await resendSignInLink(token);
       setState("resent");
-    } catch {
-      setResendError(t("problems.generic.title"));
+    } catch (err) {
+      if (isSsoRequired(err)) setState("sso");
+      else setResendError(t("problems.generic.title"));
     } finally {
       setResending(false);
     }
@@ -170,6 +165,20 @@ export function MagicSignIn({
           </Button>
           {other}
         </FormStack>
+      </HostedPage>
+    );
+  }
+
+  if (state === "sso") {
+    return (
+      <HostedPage
+        single
+        status="warning"
+        branding={branding}
+        title={t("problems.sso.title")}
+        description={orgName ? t("problems.sso.bodyOrg", { org: orgName }) : t("problems.sso.body")}
+      >
+        {other}
       </HostedPage>
     );
   }

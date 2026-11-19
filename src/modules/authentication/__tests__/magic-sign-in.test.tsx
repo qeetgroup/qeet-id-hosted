@@ -41,6 +41,20 @@ describe("MagicSignIn", () => {
     expect(await screen.findByRole("button", { name: "Send a new link" })).toBeTruthy();
   });
 
+  it("says to use the organisation's sign-in when the address must now use it, keeping the link", async () => {
+    mockApi({
+      "POST /v1/auth/magic-link/session": {
+        status: 403,
+        body: { error: { code: "auth.sso_required", message: "refused" } },
+      },
+    });
+    render(<MagicSignIn token="tok-3" orgName="Brightleaf" />);
+
+    expect(await screen.findByText("Use your organisation's sign-in")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Send a new link" })).toBeNull();
+    expect(screen.queryByText(/used already/)).toBeNull();
+  });
+
   it("says an incomplete link plainly, without asking the server", () => {
     const calls = mockApi({});
     render(<MagicSignIn token="" />);

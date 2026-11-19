@@ -66,7 +66,7 @@ export function SsoSetup({
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const org = context.tenant_name;
+  const org = context.organization_name ?? "";
   const expires = `${formatDay(context.expires_at, i18n.language)}, ${new Intl.DateTimeFormat(
     i18n.language === "en" ? "en-IN" : i18n.language,
     { hour: "numeric", minute: "2-digit" },

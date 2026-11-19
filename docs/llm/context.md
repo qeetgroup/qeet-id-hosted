@@ -50,15 +50,17 @@ before looking for it.
 
 ```text
 browser
+  ↓  a module's api/ function (src/modules/<area>/api/)
+src/platform/api/backend.ts  the typed client: path, body and answer checked against the contract
   ↓  credentials: "include"  +  X-CSRF-Token on cookie-authenticated mutations
-src/platform/api/client.ts   the single client
+src/platform/api/client.ts   the single transport
   ↓
 api.id.qeet.in
   ↓
 backend sets scoped HttpOnly login or enterprise-setup cookies
 ```
 
-Server components fetch per-tenant branding per page via
+Server components fetch the organisation's branding per page via
 `GET /v1/oauth/login-context?client_id=…` (`getLoginContext` in `src/platform/api/server.ts`), so a user sees their own
 organization's identity before signing in.
 

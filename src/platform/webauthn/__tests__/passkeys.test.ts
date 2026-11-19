@@ -93,7 +93,7 @@ test("adding a passkey sends the session cookie and the CSRF token on both steps
     assert.equal(init.credentials, "include");
     assert.equal(new Headers(init.headers).get("X-CSRF-Token"), "csrf-token");
   }
-  assert.deepEqual(JSON.parse(String(calls[1].init.body)), {
+  assert.deepEqual(JSON.parse(String(calls[1]?.init.body)), {
     session_id: "ceremony-1",
     credential: { id: "cred-1", type: "public-key" },
     name: "Work laptop",
@@ -107,7 +107,7 @@ test("a declined name is sent empty so the server names the passkey", async () =
     () => new Response(null, { status: 204 }),
   );
   await addPasskey("");
-  assert.equal(JSON.parse(String(calls[1].init.body)).name, "");
+  assert.equal(JSON.parse(String(calls[1]?.init.body)).name, "");
 });
 
 test("failures map to copy, never to the backend's message", () => {

@@ -4,15 +4,14 @@ import { Button, Field, TextField } from "@qeetrix/react";
 import { PasswordInput } from "@qeetrix/react/experimental";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { type SessionResponse, signInWithDirectory } from "@/modules/authentication/api/session";
 import {
   type Company,
   type Connection,
   shortName,
   startUrl,
 } from "@/modules/authentication/company-sign-in";
-import type { SessionResponse } from "@/modules/authentication/session";
-import { ApiError, apiPost } from "@/platform/api/client";
+import { ApiError } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { ChoiceList, FormStack } from "@/platform/components/form-parts";
@@ -49,7 +48,7 @@ export type CompanyStepProps = {
 export function CompanyStep(props: CompanyStepProps) {
   const { email, company, branding } = props;
   const { t } = useTranslation("signIn");
-  const only = company.connections.length === 1 ? company.connections[0] : null;
+  const only = company.connections.length === 1 ? (company.connections[0] ?? null) : null;
   const [chosen, setChosen] = useState<Connection | null>(only);
   const [opening, setOpening] = useState<string | null>(null);
   const org = company.organization;
@@ -175,7 +174,8 @@ function DirectoryForm({
     setProblem(null);
     setBusy(true);
     try {
-      const res = await apiPost<SessionResponse>(connection.session_path ?? "", {
+      const res = await signInWithDirectory({
+        connectionId: connection.id,
         username: username.trim(),
         password,
       });

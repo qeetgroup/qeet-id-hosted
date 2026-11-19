@@ -136,6 +136,15 @@
     "company": {
       "title": "Your company's sign-in didn't sign you in",
       "body": "Try again. If it keeps happening, tell your IT team: they can see what went wrong in the console."
+    },
+    "sso": {
+      "title": "Use your organisation's sign-in",
+      "body": "Your organisation signs you in through its own sign-in, so this way isn't available. Enter your work email and continue with your organisation.",
+      "bodyOrg": "{{org}} signs you in through its own sign-in, so this way isn't available. Enter your work email and continue with {{org}}."
+    },
+    "otherBrowser": {
+      "title": "Finish signing in in the same browser",
+      "body": "That sign-in started in another browser, so it couldn't finish here. Start it again in this browser."
     }
   },
   "mfa": {

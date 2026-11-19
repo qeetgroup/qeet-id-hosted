@@ -3,7 +3,12 @@
 // answer, so the page never tells whether an account exists.
 
 import { ApiError } from "@/platform/api/client";
-import { ADDRESS_NOT_ALLOWED, ADDRESS_NOT_ALLOWED_REDIRECT } from "@/platform/api/errors";
+import {
+  ADDRESS_NOT_ALLOWED,
+  ADDRESS_NOT_ALLOWED_REDIRECT,
+  SSO_REQUIRED,
+  SSO_REQUIRED_REDIRECT,
+} from "@/platform/api/errors";
 
 export type Problem =
   | { kind: "wrong" }
@@ -18,6 +23,8 @@ export type Problem =
         | "passkey"
         | "passkeyUnsupported"
         | "company"
+        | "sso"
+        | "otherBrowser"
         | "generic";
     }
   // A refusal with no copy of its own: the server's message, which already says what to do.
@@ -36,6 +43,8 @@ export function problemOf(err: unknown): Problem {
       return { kind: "inactive" };
     case ADDRESS_NOT_ALLOWED:
       return { kind: "network" };
+    case SSO_REQUIRED:
+      return { kind: "sso" };
   }
   return err.message ? { kind: "server", message: err.message } : { kind: "generic" };
 }
@@ -55,6 +64,10 @@ export function problemOfRedirect(code: string): Problem | null {
       return { kind: "closed" };
     case "sso":
       return { kind: "company" };
+    case SSO_REQUIRED_REDIRECT:
+      return { kind: "sso" };
+    case "other_browser":
+      return { kind: "otherBrowser" };
     default:
       return { kind: "provider" };
   }

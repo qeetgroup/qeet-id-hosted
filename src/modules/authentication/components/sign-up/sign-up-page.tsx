@@ -14,7 +14,7 @@ export async function SignUpPage({ returnTo }: { returnTo: string }) {
       returnTo={returnTo}
       clientName={ctx.client_name ?? ""}
       clientLogoUri={ctx.logo_uri}
-      tenantId={ctx.tenant_id ?? ""}
+      organizationId={ctx.organization_id ?? ""}
       selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
       organisation={organisationOf(ctx)}
       branding={normalizeBranding(ctx.branding)}

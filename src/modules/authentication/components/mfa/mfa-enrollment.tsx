@@ -4,7 +4,12 @@ import { Button, LinkButton, Text } from "@qeetrix/react";
 import { CopyField, OTPInput, QRCode } from "@qeetrix/react/experimental";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError, apiPost } from "@/platform/api/client";
+import {
+  type AppEnrollment,
+  completeSecondStep,
+  startAppEnrollment,
+} from "@/modules/authentication/api/mfa";
+import { ApiError } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
@@ -14,8 +19,6 @@ import { formatDay } from "@/platform/format";
 import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, QrCodeIcon } from "@/platform/icons";
 
 import { RecoveryCodes } from "./recovery-codes";
-
-type Enrollment = { secret: string; provisioning_url: string };
 
 // A base32 key in groups of four, as an authenticator app asks for it.
 function grouped(secret: string): string {
@@ -46,7 +49,7 @@ export function MfaEnrollment({
   onDone: () => void | Promise<void>;
 }) {
   const { t, i18n } = useTranslation("signIn");
-  const [app, setApp] = useState<Enrollment | null>(null);
+  const [app, setApp] = useState<AppEnrollment | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [wrong, setWrong] = useState(false);
@@ -80,15 +83,12 @@ export function MfaEnrollment({
 
   const start = () =>
     attempt(async () => {
-      setApp(await apiPost<Enrollment>("/v1/auth/mfa/enroll", { mfa_token: mfaToken }));
+      setApp(await startAppEnrollment(mfaToken));
     });
 
   const confirm = (value: string) =>
     attempt(async () => {
-      const res = await apiPost<{ recovery_codes?: string[] }>("/v1/auth/session/mfa", {
-        mfa_token: mfaToken,
-        code: value,
-      });
+      const res = await completeSecondStep(mfaToken, { code: value });
       if (res.recovery_codes?.length) {
         setCodes(res.recovery_codes);
         return;
@@ -98,7 +98,7 @@ export function MfaEnrollment({
 
   const skip = () =>
     attempt(async () => {
-      await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, skip: true });
+      await completeSecondStep(mfaToken, { skip: true });
       await onDone();
     });
 

@@ -5,8 +5,9 @@ import { PasswordInput } from "@qeetrix/react/experimental";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError, apiPost } from "@/platform/api/client";
-import { isPasswordRefusal } from "@/platform/api/errors";
+import { resetPassword } from "@/modules/recovery/api/recovery";
+import { ApiError } from "@/platform/api/client";
+import { isPasswordRefusal, isSsoRequired } from "@/platform/api/errors";
 import type { PasswordPolicy } from "@/platform/api/login-context";
 import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
@@ -64,11 +65,12 @@ export function ResetPasswordForm({
     setMismatch(false);
     setBusy(true);
     try {
-      await apiPost("/v1/auth/reset-password", { token, new_password: password });
+      await resetPassword({ token, password });
       setState("done");
     } catch (err) {
       if (err instanceof ApiError && LINK_GONE.has(err.code)) setState("gone");
       else if (isPasswordRefusal(err)) setPasswordError(err.message);
+      else if (isSsoRequired(err)) setError(t("signIn:problems.sso.body"));
       else setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
     } finally {
       setBusy(false);

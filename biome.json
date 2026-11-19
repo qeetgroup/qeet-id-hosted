@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!bun.lock"]
+    "includes": ["**", "!bun.lock", "!**/*.gen.ts", "!contract"]
   },
   "formatter": {
     "enabled": true,
@@ -129,7 +129,11 @@
                 ],
                 "paths": {
                   "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
-                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
                 }
               }
             }
@@ -157,7 +161,12 @@
                 ],
                 "paths": {
                   "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
-                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/backend": "A module calls the server only from its api/ folder (src/modules/<name>/api/): add the call there, typed with backend, and import it.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
                 }
               }
             }
@@ -185,7 +194,12 @@
                 ],
                 "paths": {
                   "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
-                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/backend": "A module calls the server only from its api/ folder (src/modules/<name>/api/): add the call there, typed with backend, and import it.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
                 }
               }
             }
@@ -213,7 +227,12 @@
                 ],
                 "paths": {
                   "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
-                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/backend": "A module calls the server only from its api/ folder (src/modules/<name>/api/): add the call there, typed with backend, and import it.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
                 }
               }
             }
@@ -241,7 +260,12 @@
                 ],
                 "paths": {
                   "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
-                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/backend": "A module calls the server only from its api/ folder (src/modules/<name>/api/): add the call there, typed with backend, and import it.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
                 }
               }
             }
@@ -269,7 +293,12 @@
                 ],
                 "paths": {
                   "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
-                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape."
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/backend": "A module calls the server only from its api/ folder (src/modules/<name>/api/): add the call there, typed with backend, and import it.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
                 }
               }
             }
@@ -293,6 +322,67 @@
                   {
                     "group": ["@/modules/**", "!@/modules/sign-out/**"],
                     "message": "A module never imports another module: move what both need into src/platform."
+                  }
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/backend": "A module calls the server only from its api/ folder (src/modules/<name>/api/): add the call there, typed with backend, and import it.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/modules/*/api/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**"],
+                    "message": "A module renders pages for src/app; it never imports from it."
+                  },
+                  {
+                    "group": ["@/modules/**"],
+                    "message": "A module's api/ holds its calls to the server only: it imports @/platform and packages, never a module's pages or another module."
+                  }
+                ],
+                "paths": {
+                  "@qeetrix/ui": "@qeetrix/ui is deprecated: use @qeetrix/react, @qeetrix/tokens and @qeetrix/icons.",
+                  "@qeetrix/icons": "Icons come from @/platform/icons, which draws them in the sharp shape.",
+                  "@/platform/api/client": {
+                    "importNames": ["request"],
+                    "message": "request() is the transport under the typed client: call the server with backend.get/post/put/patch/delete (@/platform/api/backend), typed against its API contract."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/platform/api/backend.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/app/**", "@/modules/**"],
+                    "message": "platform/ is shared by every module, so it can't depend on one: import only @/platform, @/i18n or packages."
                   }
                 ],
                 "paths": {

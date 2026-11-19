@@ -27,9 +27,9 @@ describe("Signed-out page", () => {
     const frames = container.querySelectorAll("iframe");
     expect([...frames].map((f) => f.getAttribute("src"))).toEqual(pages);
     expect(screen.queryByText("You're signed out")).toBeNull();
-    fireEvent.load(frames[0]);
+    fireEvent.load(frames.item(0));
     expect(screen.queryByText("You're signed out")).toBeNull();
-    fireEvent.load(frames[1]);
+    fireEvent.load(frames.item(1));
     expect(screen.getByText("You're signed out")).toBeTruthy();
   });
 
@@ -45,7 +45,7 @@ describe("Signed-out page", () => {
 
   it("continues to the application through the API's signed ticket once the pages have loaded", () => {
     const { container } = render(
-      <SignedOutContent frontchannel={[pages[0]]} continueTicket="tkt" />,
+      <SignedOutContent frontchannel={pages.slice(0, 1)} continueTicket="tkt" />,
     );
     expect(goTo).not.toHaveBeenCalled();
     fireEvent.load(container.querySelector("iframe") as HTMLIFrameElement);

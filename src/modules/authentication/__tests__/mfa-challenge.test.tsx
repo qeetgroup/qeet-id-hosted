@@ -3,7 +3,7 @@ import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
-import type { LoginFactor } from "@/modules/authentication/session";
+import type { LoginFactor } from "@/modules/authentication/api/session";
 import { mockApi } from "@/testing/mock-api";
 import { render } from "@/testing/render";
 import { MfaChallenge } from "../components/mfa/mfa-challenge";

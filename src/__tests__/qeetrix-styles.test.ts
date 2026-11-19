@@ -57,7 +57,7 @@ describe("Qeetrix styles", () => {
           const cssFile = join(
             DIST,
             "css",
-            from.endsWith("experimental") ? "experimental" : "",
+            from?.endsWith("experimental") ? "experimental" : "",
             `${folder}.css`,
           );
           if (existsSync(cssFile) && !GLOBALS.includes(`"${entry.css}${folder}.css"`)) {

@@ -29,7 +29,8 @@ export function ProblemAlert({
   if (problem.kind === "server") {
     return <FormAlert title={problem.message} className={className} />;
   }
-  const warning = problem.kind === "network" || problem.kind === "passkeyUnsupported";
+  const warning =
+    problem.kind === "network" || problem.kind === "passkeyUnsupported" || problem.kind === "sso";
   return (
     <FormAlert
       tone={warning ? "warning" : "danger"}
@@ -43,7 +44,7 @@ export function ProblemAlert({
         ) : undefined
       }
     >
-      {org && (problem.kind === "inactive" || problem.kind === "network")
+      {org && (problem.kind === "inactive" || problem.kind === "network" || problem.kind === "sso")
         ? t(`problems.${problem.kind}.bodyOrg`, { org })
         : t(`problems.${problem.kind}.body`)}
     </FormAlert>

@@ -4,7 +4,9 @@ import { Button, LinkButton, Text, TextField } from "@qeetrix/react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError, apiPost } from "@/platform/api/client";
+import { requestPasswordReset } from "@/modules/recovery/api/recovery";
+import { ApiError } from "@/platform/api/client";
+import { isSsoRequired } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
@@ -34,14 +36,12 @@ export function ForgotPasswordForm({
     setError(null);
     setBusy(true);
     try {
-      // app: the link opens this site's reset page, not the console's. return_to: kept by the
-      // server only when it is its own /oauth/authorize address.
-      const body: Record<string, string> = { email, app: "hosted_login" };
-      if (returnTo) body.return_to = returnTo;
-      await apiPost("/v1/auth/forgot-password", body);
+      await requestPasswordReset({ email, returnTo });
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
+      // The address's organisation signs its people in itself: it has no password here to reset.
+      if (isSsoRequired(err)) setError(t("signIn:problems.sso.body"));
+      else setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
     } finally {
       setBusy(false);
     }

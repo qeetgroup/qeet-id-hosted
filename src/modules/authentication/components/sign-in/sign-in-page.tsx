@@ -13,7 +13,7 @@ export async function SignInPage({ returnTo, errorCode }: { returnTo: string; er
       returnTo={returnTo}
       clientName={ctx.client_name ?? ""}
       clientLogoUri={ctx.logo_uri}
-      tenantId={ctx.tenant_id ?? ""}
+      organizationId={ctx.organization_id ?? ""}
       providers={ctx.providers ?? []}
       selfRegistrationEnabled={ctx.self_registration_enabled ?? false}
       rememberDeviceEnabled={ctx.remember_device_enabled ?? false}

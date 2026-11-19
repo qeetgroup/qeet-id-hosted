@@ -4,7 +4,8 @@ import { Button, Spinner, Text } from "@qeetrix/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError, apiPost } from "@/platform/api/client";
+import { completeSecondStep, sendPushRequest } from "@/modules/authentication/api/mfa";
+import { ApiError } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
@@ -55,9 +56,7 @@ export function ApproveOnPhone({
     setError(null);
     setState("sending");
     try {
-      const res = await apiPost<{ expires_at?: string; number?: number }>("/v1/auth/mfa/push", {
-        mfa_token: mfaToken,
-      });
+      const res = await sendPushRequest(mfaToken);
       if (mine !== run.current) return;
       setNumber(typeof res.number === "number" ? res.number : null);
       setExpiresAt(res.expires_at ? Date.parse(res.expires_at) : null);
@@ -66,7 +65,7 @@ export function ApproveOnPhone({
         await new Promise((r) => setTimeout(r, POLL_MS));
         if (mine !== run.current) return;
         try {
-          await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, remember, push: true });
+          await completeSecondStep(mfaToken, { remember, push: true });
         } catch (err) {
           if (err instanceof ApiError && err.code === "mfa.push_pending") continue;
           if (mine !== run.current) return;

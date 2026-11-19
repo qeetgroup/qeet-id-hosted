@@ -3,9 +3,9 @@
 import { Button, Text } from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { decideConsent } from "@/modules/oauth/api/consent";
 import type { Account } from "@/platform/api/account";
-import { ApiError, apiPost } from "@/platform/api/client";
+import { ApiError } from "@/platform/api/client";
 import { ADDRESS_NOT_ALLOWED } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
@@ -111,12 +111,9 @@ export function ConsentForm({
     setError(null);
     setBusy(approve ? "allow" : "deny");
     try {
-      const res = await apiPost<{ redirect?: string }>("/v1/oauth/authorize/decision", {
-        request_id: requestId,
-        approve,
-      });
-      if (res?.redirect && isWebAddress(res.redirect)) {
-        goTo(res.redirect);
+      const redirect = await decideConsent(requestId, approve);
+      if (redirect && isWebAddress(redirect)) {
+        goTo(redirect);
         return;
       }
       setEnded("recorded");

@@ -6,11 +6,13 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type Account, fetchSignedInAccount } from "@/platform/api/account";
-import { ApiError, apiDelete } from "@/platform/api/client";
+import { ApiError } from "@/platform/api/client";
+import { signOutHostedSession } from "@/platform/api/session";
 import { FormAlert } from "@/platform/components/form-alert";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { KeyRoundIcon, LogInIcon, PlusIcon, RotateCwIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
+import { passkeysSupported } from "@/platform/webauthn/ceremony";
 import {
   addPasskey,
   listPasskeys,
@@ -18,7 +20,6 @@ import {
   type Passkey,
   type PasskeyList,
   passkeyErrorKey,
-  passkeysSupported,
   removePasskey,
   renamePasskey,
 } from "@/platform/webauthn/passkeys";
@@ -145,11 +146,9 @@ export function SecurityView() {
   // Signs this browser out of the hosted login, then out of each application on the signed-out page.
   async function signOut() {
     try {
-      const res = await apiDelete<{ frontchannel_logout_uris?: string[] } | undefined>(
-        "/v1/auth/session",
-      );
+      const uris = await signOutHostedSession();
       const q = new URLSearchParams();
-      for (const uri of res?.frontchannel_logout_uris ?? []) q.append("frontchannel_logout", uri);
+      for (const uri of uris) q.append("frontchannel_logout", uri);
       goTo(`/sign-out/done${q.size ? `?${q.toString()}` : ""}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));

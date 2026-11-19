@@ -8,13 +8,14 @@ import { CircleCheckIcon, CircleDashedIcon } from "@/platform/icons";
 
 /** Which of the organisation's rules a password meets, in the order the page lists them. */
 export function passwordRules(policy: PasswordPolicy, password: string) {
-  const rules: { id: string; met: boolean; length?: number }[] = [
-    {
+  const rules: { id: string; met: boolean; length?: number }[] = [];
+  if (policy.min_length) {
+    rules.push({
       id: "length",
       met: Array.from(password).length >= policy.min_length,
       length: policy.min_length,
-    },
-  ];
+    });
+  }
   if (policy.require_uppercase) rules.push({ id: "uppercase", met: /\p{Lu}/u.test(password) });
   if (policy.require_number) rules.push({ id: "number", met: /\p{Nd}/u.test(password) });
   if (policy.require_symbol) rules.push({ id: "symbol", met: /[^\p{L}\p{Nd}\s]/u.test(password) });

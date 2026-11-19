@@ -33,7 +33,7 @@ describe("Sign-out confirmation", () => {
     expect(await screen.findByText("Acme Notes asked to sign you out.")).toBeTruthy();
     expect(goTo).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
-    const url = new URL(vi.mocked(goTo).mock.calls[0][0]);
+    const url = new URL(vi.mocked(goTo).mock.calls[0]?.[0] ?? "");
     expect(url.origin + url.pathname).toBe(`${TEST_API}/v1/oauth/logout`);
     expect(url.searchParams.get("logout_confirmation")).toBe("tkt");
     expect(url.searchParams.get("post_logout_redirect_uri")).toBe("https://app.example/bye");

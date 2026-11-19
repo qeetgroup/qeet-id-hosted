@@ -1,6 +1,7 @@
-// Browser HTTP client for the hosted login/consent flow. The backend sets
-// HttpOnly cookies for login and enterprise-setup sessions, so every request uses
-// `credentials: "include"`. Mutations echo the CSRF double-submit token.
+// The one transport to the Qeet ID API, under the typed client (backend.ts). The backend sets
+// HttpOnly cookies for the login and enterprise-setup sessions, so every request sends
+// credentials; a mutation echoes the CSRF double-submit token unless it carries a bearer
+// credential, which the server's CSRF check accepts instead.
 
 import { getApiBaseUrl } from "@/platform/config/public-config";
 
@@ -18,43 +19,54 @@ export class ApiError extends Error {
   }
 }
 
-function apiURL(path: string): string {
-  return new URL(path.replace(/^\//, ""), `${getApiBaseUrl()}/`).toString();
+export type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+export type RequestOptions = {
+  query?: Record<string, string>;
+  body?: unknown;
+  // A one-time credential sent as a bearer token; the server then needs no CSRF token.
+  bearer?: string;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
+};
+
+function apiURL(path: string, query?: Record<string, string>): string {
+  const url = new URL(path.replace(/^\//, ""), `${getApiBaseUrl()}/`);
+  for (const [key, value] of Object.entries(query ?? {})) url.searchParams.set(key, value);
+  return url.toString();
 }
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return m ? decodeURIComponent(m[1]) : null;
+  return m?.[1] === undefined ? null : decodeURIComponent(m[1]);
 }
 
-// ensureCsrf seeds the double-submit cookie. The backend issues `qe_csrf` on any
-// GET; we read it back and echo it on mutations. (In dev CSRF is disabled; in
-// prod the cookie must be readable here — set a shared CookieDomain across the
-// login and API subdomains.)
+// The server issues `qe_csrf` on any GET; a mutation reads it back and echoes it. Production
+// shares the cookie across the sign-in and API hosts through the server's CSRF cookie domain.
 async function csrfHeader(): Promise<Record<string, string>> {
   let tok = readCookie("qe_csrf");
   if (!tok) {
     try {
-      await fetch(apiURL("/healthz"), { credentials: "include" });
+      await fetch(apiURL("/healthz"), { credentials: "include", cache: "no-store" });
     } catch {
-      /* best-effort seed */
+      // Best effort: without the cookie the server refuses the mutation, and the page says so.
     }
     tok = readCookie("qe_csrf");
   }
   return tok ? { "X-CSRF-Token": tok } : {};
 }
 
-async function parse<T>(res: Response): Promise<T> {
-  if (res.status === 204) return undefined as T;
+type ErrorEnvelope = {
+  error?: { code?: string; message?: string; metadata?: Record<string, unknown> };
+};
+
+async function parse(res: Response): Promise<unknown> {
+  if (res.status === 204) return undefined;
   const text = await res.text();
   const data = text ? safeParse(text) : null;
   if (!res.ok) {
-    const err = (
-      data as {
-        error?: { code?: string; message?: string; metadata?: Record<string, unknown> };
-      } | null
-    )?.error;
+    const err = (data as ErrorEnvelope | null)?.error;
     throw new ApiError(
       res.status,
       err?.code ?? `http_${res.status}`,
@@ -62,7 +74,7 @@ async function parse<T>(res: Response): Promise<T> {
       err?.metadata,
     );
   }
-  return data as T;
+  return data;
 }
 
 function safeParse(s: string): unknown {
@@ -73,60 +85,27 @@ function safeParse(s: string): unknown {
   }
 }
 
-export async function apiGet<T = unknown>(path: string): Promise<T> {
-  const res = await fetch(apiURL(path), {
-    method: "GET",
-    headers: { Accept: "application/json" },
+/**
+ * Sends one request to the API and resolves to its JSON answer (undefined for 204); a refusal
+ * throws an ApiError carrying the server's code. Only the typed client calls this.
+ */
+export async function request(
+  method: Method,
+  path: string,
+  options: RequestOptions = {},
+): Promise<unknown> {
+  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (options.bearer) headers.Authorization = `Bearer ${options.bearer}`;
+  else if (method !== "GET") Object.assign(headers, await csrfHeader());
+  const res = await fetch(apiURL(path, options.query), {
+    method,
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
     credentials: "include",
+    // Answers are about one person or one sign-in: never from a cache.
+    cache: "no-store",
+    signal: options.signal,
   });
-  return parse<T>(res);
-}
-
-export async function apiPost<T = unknown>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(apiURL(path), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(await csrfHeader()),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    credentials: "include",
-  });
-  return parse<T>(res);
-}
-
-export async function apiExchangeBearer<T = unknown>(path: string, token: string): Promise<T> {
-  const res = await fetch(apiURL(path), {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    credentials: "include",
-  });
-  return parse<T>(res);
-}
-
-export async function apiPatch<T = unknown>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(apiURL(path), {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(await csrfHeader()),
-    },
-    body: JSON.stringify(body),
-    credentials: "include",
-  });
-  return parse<T>(res);
-}
-
-export async function apiDelete<T = unknown>(path: string): Promise<T> {
-  const res = await fetch(apiURL(path), {
-    method: "DELETE",
-    headers: { Accept: "application/json", ...(await csrfHeader()) },
-    credentials: "include",
-  });
-  return parse<T>(res);
+  return parse(res);
 }

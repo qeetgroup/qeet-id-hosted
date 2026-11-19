@@ -29,9 +29,10 @@ architecture:
   legacy_redirects: {/login: /sign-in, /signup: /sign-up, /logout: /sign-out, /logged-out: /sign-out/done, /reset: /reset-password, /magic: /magic-link, /admin-portal: /enterprise-setup}   # next.config.ts; server + sent emails still use the old paths
   src: [src/app, src/modules, src/platform, src/i18n, src/testing]
   layers: "app → modules → platform → i18n; a module never imports another (biome.json)"
-  guardrails: [biome noRestrictedImports, fetch only in platform/api, 500-line files, translation keys, coverage floor, server-only]
+  guardrails: [biome noRestrictedImports, fetch only in platform/api, server calls only from a module's api/ via the typed client, API contract types, 500-line files, translation keys, coverage floor, server-only]
 contracts:
   consumes: {api: qeet-id-server}
+  contract_copy: contract/qeet-id-server/   # the server's five OpenAPI documents + source.json; bun run contract:sync
   base_url_env: PUBLIC_API_URL    # runtime (src/platform/config/public-config.ts); falls back to build-time NEXT_PUBLIC_API_URL (Vercel)
   base_url_default: http://localhost:4001
   auth_scheme: HttpOnly cookies + CSRF double-submit
@@ -47,10 +48,11 @@ commands:
   test: bun run test
   check: bun run check            # Biome: format + lint + import order
   test_e2e: bun run test:e2e      # Playwright: each page's CSP + WCAG 2.2 AA (axe)
+  contract_check: bun run contract:check   # copied documents + generated types current (CI)
 ci:
   workflows: [ci.yml, candidate.yml, deploy.yml]
   branches: "develop · main (production) · release/YEAR.MONTH.0 (monthly, what testers check, fixes only) · hotfix/YEAR.MONTH.N — scripts/release/version.sh"
-  verify: "ci.yml Verify: typecheck + check + audit + gitleaks, on PRs into develop and main; tests, build and browser tests run locally"
+  verify: "ci.yml Verify: contract:check + typecheck + check + audit + gitleaks, on PRs into develop and main; tests, build and browser tests run locally"
   runner: ubuntu-latest
   candidate: "candidate.yml: push to release/** or hotfix/** -> ghcr.io/qeetgroup/qeet-id-login:sha-<commit> (the former name, which qeet-id-kit reads), linux/amd64+arm64, in.qeet.release + in.qeet.source-branch labels"
   deploy: "deploy.yml: merged release/* or hotfix/* PR into main whose Verify passed -> vercel build/deploy --prod -> GET /healthz -> tag vYEAR.MONTH.N + GitHub release; any other push deploys nothing; then by hand: delete the released branch, merge main into develop"
@@ -62,6 +64,7 @@ container:
 security:
   sensitive_paths:
     - src/platform/api/client.ts # CSRF seeding + credentials: include
+    - src/platform/api/backend.ts # the typed client every call goes through
     - src/modules/enterprise-setup/components/enterprise-setup-page.tsx   # one-time fragment exchange
     - src/modules/enterprise-setup/api/admin-portal.ts                     # then cookie-only requests
     - src/proxy.ts                                                         # per-request nonce CSP

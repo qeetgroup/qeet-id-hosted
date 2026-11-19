@@ -5,9 +5,15 @@ import { PasswordInput } from "@qeetrix/react/experimental";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { challengeOf } from "@/modules/authentication/api/session";
+import {
+  beginPasskeySignUp,
+  finishPasskeySignUp,
+  signUpWithPassword,
+} from "@/modules/authentication/api/sign-up";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
-import { ApiError, apiPost } from "@/platform/api/client";
-import { isAddressRefusal, isPasswordRefusal } from "@/platform/api/errors";
+import { ApiError } from "@/platform/api/client";
+import { isAddressRefusal, isPasswordRefusal, isSsoRequired } from "@/platform/api/errors";
 import type { Organisation } from "@/platform/api/organisation";
 import type { Branding } from "@/platform/branding/branding";
 import { AppLine } from "@/platform/components/app-line";
@@ -18,12 +24,18 @@ import { PasswordRules } from "@/platform/components/password-rules";
 import { ArrowRightIcon, KeyRoundIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
+import {
+  createCredential,
+  isCancelled,
+  PasskeyUnsupportedError,
+} from "@/platform/webauthn/ceremony";
 
 type SignUpFormProps = {
   returnTo: string;
   clientName: string;
   clientLogoUri?: string;
-  tenantId: string;
+  /** The application's organisation, where the account is made; empty without an application. */
+  organizationId: string;
   selfRegistrationEnabled: boolean;
   organisation?: Organisation;
   branding?: Branding;
@@ -39,7 +51,7 @@ export function SignUpForm({
   returnTo,
   clientName,
   clientLogoUri,
-  tenantId,
+  organizationId,
   selfRegistrationEnabled,
   organisation,
   branding,
@@ -76,6 +88,15 @@ export function SignUpForm({
     if (isAddressRefusal(err)) {
       return { title: ts("problems.network.title"), body: ts("problems.network.body") };
     }
+    // The address's organisation signs its people in itself: no account is made here.
+    if (isSsoRequired(err)) {
+      return {
+        title: ts("problems.sso.title"),
+        body: organisation?.name
+          ? ts("problems.sso.bodyOrg", { org: organisation.name })
+          : ts("problems.sso.body"),
+      };
+    }
     return { title: err instanceof ApiError ? err.message : ts("problems.generic.title") };
   }
 
@@ -84,32 +105,15 @@ export function SignUpForm({
     setError(null);
     setBusy(true);
     try {
-      const PK = window.PublicKeyCredential as
-        | (typeof window.PublicKeyCredential & {
-            parseCreationOptionsFromJSON?: (o: unknown) => PublicKeyCredentialCreationOptions;
-          })
-        | undefined;
-      if (!PK || !navigator.credentials) throw new DOMException("unsupported", "NotSupportedError");
-      const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
-        "/v1/register/passkey/begin",
-        { tenant_id: tenantId, email, display_name: name },
-      );
-      const options = PK.parseCreationOptionsFromJSON
-        ? PK.parseCreationOptionsFromJSON(begin.publicKey)
-        : (begin.publicKey as PublicKeyCredentialCreationOptions);
-      const created = (await navigator.credentials.create({ publicKey: options })) as
-        | (PublicKeyCredential & { toJSON?: () => unknown })
-        | null;
-      if (!created) throw new DOMException("cancelled", "NotAllowedError");
-      await apiPost("/v1/register/passkey/finish", {
-        session_id: begin.session_id,
-        credential: created.toJSON ? created.toJSON() : created,
-        name: "",
-      });
+      // A taken address isn't refused here: the server answers the same either way, and refuses it
+      // neutrally once the passkey is made.
+      const begin = await beginPasskeySignUp({ organizationId, email, name });
+      const credential = await createCredential(begin.publicKey);
+      await finishPasskeySignUp(begin.sessionId, credential);
       continueToApp();
     } catch (err) {
       setError(
-        err instanceof DOMException
+        isCancelled(err) || err instanceof PasskeyUnsupportedError || err instanceof DOMException
           ? { title: t("failedTitle"), body: t("failedBody") }
           : refusal(err),
       );
@@ -130,13 +134,10 @@ export function SignUpForm({
     try {
       // The account is made in the application's organisation and signed in; unless the
       // organisation requires a second step, which it sets up first.
-      const res = await apiPost<{
-        mfa_required?: boolean;
-        mfa_token?: string;
-        enrollment_due_at?: string;
-      }>("/v1/auth/register", { tenant_id: tenantId, email, password, display_name: name });
-      if (res.mfa_required && res.mfa_token) {
-        setEnrollment({ token: res.mfa_token, dueAt: res.enrollment_due_at });
+      const res = await signUpWithPassword({ organizationId, email, password, name });
+      const challenge = challengeOf(res);
+      if (challenge) {
+        setEnrollment({ token: challenge.mfa_token, dueAt: challenge.enrollment_due_at });
         setBusy(false);
         return;
       }
@@ -161,7 +162,7 @@ export function SignUpForm({
     );
   }
 
-  if (!selfRegistrationEnabled || !tenantId) {
+  if (!selfRegistrationEnabled || !organizationId) {
     return (
       <HostedPage single branding={branding} title={t("title")} lead={lead}>
         <FormStack>

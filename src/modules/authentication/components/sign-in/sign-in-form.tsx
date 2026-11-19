@@ -4,19 +4,21 @@ import { Spinner, Text } from "@qeetrix/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import {
+  challengeOf,
+  type LoginFactor,
+  type SessionResponse,
+  signInWithPassword,
+  tradeHandBack,
+} from "@/modules/authentication/api/session";
 import { type Company, discover, readHandBack } from "@/modules/authentication/company-sign-in";
 import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challenge";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
 import { startPasskeyAutofill } from "@/modules/authentication/passkey-autofill";
-import {
-  NoPasskeySelectedError,
-  PasskeyUnsupportedError,
-  signInWithPasskey,
-} from "@/modules/authentication/passkey-sign-in";
-import type { LoginFactor, SessionResponse } from "@/modules/authentication/session";
+import { signInWithPasskey } from "@/modules/authentication/passkey-sign-in";
 import { readSocialChallenge } from "@/modules/authentication/social-challenge";
 import { fetchSignedInAccount } from "@/platform/api/account";
-import { ApiError, apiPost } from "@/platform/api/client";
+import { ApiError } from "@/platform/api/client";
 import { clientIdFromReturnTo } from "@/platform/api/login-context";
 import type { Organisation } from "@/platform/api/organisation";
 import type { Branding } from "@/platform/branding/branding";
@@ -27,6 +29,7 @@ import { HostedPage } from "@/platform/components/hosted-page";
 import { getApiBaseUrl } from "@/platform/config/public-config";
 import { goTo } from "@/platform/navigation/go-to";
 import { returnsToDevice, safeReturnTo } from "@/platform/navigation/return-to";
+import { isCancelled, PasskeyUnsupportedError } from "@/platform/webauthn/ceremony";
 import { shouldOfferPasskey } from "@/platform/webauthn/passkeys";
 
 import { type Problem, problemOf, problemOfRedirect } from "../../sign-in-problems";
@@ -40,7 +43,8 @@ export type SignInFormProps = {
   returnTo: string;
   clientName: string;
   clientLogoUri?: string;
-  tenantId: string;
+  /** The application's organisation; empty when the page has no application. */
+  organizationId: string;
   providers: string[];
   selfRegistrationEnabled: boolean;
   /** Offers "remember this device" on the second step; only when the organisation opted in. */
@@ -80,7 +84,7 @@ function authorizeHints(returnTo: string): { fresh: boolean; hint: string } {
  * without an application to return to, to the passkeys page.
  */
 export function SignInForm(props: SignInFormProps) {
-  const { returnTo, tenantId, branding } = props;
+  const { returnTo, organizationId, branding } = props;
   const org = props.organisation ?? {};
   const { t } = useTranslation("signIn");
   const hints = authorizeHints(returnTo);
@@ -106,13 +110,13 @@ export function SignInForm(props: SignInFormProps) {
   // Stops the background passkey ceremony behind the email field; called before any other way.
   const stopAutofill = useRef<() => void>(() => {});
 
-  const emailEnabled = props.passwordEnabled || (props.magicLinkEnabled && tenantId !== "");
-  const providers = tenantId !== "" && returnTo !== "" ? props.providers : [];
+  const emailEnabled = props.passwordEnabled || (props.magicLinkEnabled && organizationId !== "");
+  const providers = organizationId !== "" && returnTo !== "" ? props.providers : [];
   const query = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : "";
   // Qeet ID's own way on from the email, when the organisation allows one.
   const ownWay: Step | null = props.passwordEnabled
     ? "password"
-    : props.magicLinkEnabled && tenantId !== ""
+    : props.magicLinkEnabled && organizationId !== ""
       ? "link"
       : null;
   const forgotHref = `/forgot-password${query}`;
@@ -160,8 +164,8 @@ export function SignInForm(props: SignInFormProps) {
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
     stopAutofill.current();
     setStep("finishing");
-    apiPost<SessionResponse>(back.path, { code: back.code })
-      .then(continueToApp)
+    tradeHandBack(back)
+      .then(onCompanySession)
       .catch((err) => {
         const p = problemOf(err);
         setProblem(p.kind === "server" || p.kind === "generic" ? { kind: "company" } : p);
@@ -200,11 +204,12 @@ export function SignInForm(props: SignInFormProps) {
 
   // A company directory's answer: signed in, or a second step to meet first.
   function onCompanySession(res: SessionResponse) {
-    if (res.mfa_required && res.mfa_token) {
+    const challenge = challengeOf(res);
+    if (challenge) {
       setMfa({
-        token: res.mfa_token,
-        factors: res.factors ?? [],
-        enrollment: res.enrollment_required ? { dueAt: res.enrollment_due_at } : null,
+        token: challenge.mfa_token,
+        factors: challenge.factors ?? [],
+        enrollment: challenge.enrollment_required ? { dueAt: challenge.enrollment_due_at } : null,
         company: true,
       });
       setStep("mfa");
@@ -218,17 +223,17 @@ export function SignInForm(props: SignInFormProps) {
     setBusy(true);
     try {
       // Naming the application applies its organisation's lockout (the platform's without one).
-      const clientId = clientIdFromReturnTo(returnTo);
-      const res = await apiPost<SessionResponse>("/v1/auth/session", {
+      const res = await signInWithPassword({
         email,
         password,
-        ...(clientId ? { client_id: clientId } : {}),
+        clientId: clientIdFromReturnTo(returnTo),
       });
-      if (res.mfa_required && res.mfa_token) {
+      const challenge = challengeOf(res);
+      if (challenge) {
         setMfa({
-          token: res.mfa_token,
-          factors: res.factors ?? [],
-          enrollment: res.enrollment_required ? { dueAt: res.enrollment_due_at } : null,
+          token: challenge.mfa_token,
+          factors: challenge.factors ?? [],
+          enrollment: challenge.enrollment_required ? { dueAt: challenge.enrollment_due_at } : null,
         });
         setStep("mfa");
         setBusy(false);
@@ -257,7 +262,7 @@ export function SignInForm(props: SignInFormProps) {
       setProblem(
         err instanceof PasskeyUnsupportedError
           ? { kind: "passkeyUnsupported" }
-          : err instanceof NoPasskeySelectedError || err instanceof DOMException
+          : isCancelled(err) || err instanceof DOMException
             ? { kind: "passkey" }
             : problemOf(err),
       );
@@ -265,12 +270,12 @@ export function SignInForm(props: SignInFormProps) {
     }
   }
 
-  // Social: a full-page visit to the server's social flow, which sets the session on the
-  // provider's callback and returns to the authorize URL.
+  // Social: a full-page visit to the server's social flow for the organisation's own providers,
+  // which sets the session on the provider's callback and returns to the authorize URL.
   function onProvider(provider: string) {
     stopAutofill.current();
-    const q = new URLSearchParams({ tenant_id: tenantId, return_to: returnTo });
-    window.location.assign(`${getApiBaseUrl()}/v1/social/${provider}/start?${q.toString()}`);
+    const q = new URLSearchParams({ organization_id: organizationId, return_to: returnTo });
+    goTo(`${getApiBaseUrl()}/v1/social/${encodeURIComponent(provider)}/start?${q.toString()}`);
   }
 
   function backToEmail() {
@@ -336,7 +341,7 @@ export function SignInForm(props: SignInFormProps) {
     return (
       <LinkStep
         email={email}
-        tenantId={tenantId}
+        organizationId={organizationId}
         returnTo={returnTo}
         linkMinutes={org.linkMinutes}
         branding={branding}
@@ -352,7 +357,7 @@ export function SignInForm(props: SignInFormProps) {
   ) : undefined;
 
   if (step === "password") {
-    const linkAllowed = props.magicLinkEnabled && tenantId !== "";
+    const linkAllowed = props.magicLinkEnabled && organizationId !== "";
     return (
       <HostedPage
         branding={branding}
