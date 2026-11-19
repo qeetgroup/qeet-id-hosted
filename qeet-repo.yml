@@ -49,10 +49,11 @@ commands:
   check: bun run check            # Biome: format + lint + import order
   test_e2e: bun run test:e2e      # Playwright: each page's CSP + WCAG 2.2 AA (axe)
   contract_check: bun run contract:check   # copied documents + generated types current (CI)
+  sonar: bun run sonar            # SonarQube (local only; needs make sonar-up in qeet-id-server)
 ci:
   workflows: [ci.yml, candidate.yml, deploy.yml]
   branches: "develop · main (production) · release/YEAR.MONTH.0 (monthly, what testers check, fixes only) · hotfix/YEAR.MONTH.N — scripts/release/version.sh"
-  verify: "ci.yml Verify: contract:check + typecheck + check + audit + gitleaks, on PRs into develop and main; tests, build and browser tests run locally"
+  verify: "ci.yml Verify: contract:check + typecheck + check + audit + gitleaks, on PRs into develop and main; tests, build, browser tests and SonarQube run locally"
   runner: ubuntu-latest
   candidate: "candidate.yml: push to release/** or hotfix/** -> ghcr.io/qeetgroup/qeet-id-login:sha-<commit> (the former name, which qeet-id-kit reads), linux/amd64+arm64, in.qeet.release + in.qeet.source-branch labels"
   deploy: "deploy.yml: merged release/* or hotfix/* PR into main whose Verify passed -> vercel build/deploy --prod -> GET /healthz -> tag vYEAR.MONTH.N + GitHub release; any other push deploys nothing; then by hand: delete the released branch, merge main into develop"

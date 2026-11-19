@@ -196,7 +196,11 @@ bun run format               # Biome: rewrite formatting in place
 bun run contract:sync        # copy the server's API documents (../qeet-id-server) and regenerate types
 bun run contract:check       # the copied contract and its generated types — what CI runs
 bun run contract:drift       # whether the server's documents moved on: before a sync or a release
+bun run sonar                # SonarQube: tests with coverage, then the scanner in Docker (local only)
 ```
+
+`bun run sonar` needs Docker, the server's SonarQube running (`make sonar-up` in ../qeet-id-server)
+and `SONAR_TOKEN` in the environment; it is never run in CI.
 
 Biome (`biome.json`) is the formatter and linter. A suppression carries a one-line reason
 (`// biome-ignore <rule>: <why>`). Tests: see the README's *Tests* section.

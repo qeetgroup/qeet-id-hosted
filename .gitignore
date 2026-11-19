@@ -17,6 +17,9 @@
 /test-results
 /playwright-report
 
+# SonarQube scanner working folder (bun run sonar)
+.scannerwork
+
 # misc
 .DS_Store
 *.pem

@@ -61,6 +61,7 @@ bun run dev            # http://localhost:3003, the origin the server allows for
 | `bun run test:e2e` | Every page in Chromium: its Content-Security-Policy and a WCAG 2.2 AA scan |
 | `bun run contract:sync` | Copy the server's API documents and regenerate the types every call is checked against |
 | `bun run contract:check` | The copied documents and generated types are current |
+| `bun run sonar` | SonarQube analysis with coverage (local SonarQube from `qeet-id-server`) |
 
 ## ⚙️ Configuration
 

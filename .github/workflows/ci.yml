@@ -2,8 +2,8 @@ name: ci
 
 # Verify, on pull requests into develop and main: it speaks the server's API contract (contract:check), compiles
 # (typecheck), is formatted and linted (Biome), has no known high or critical advisory in its dependencies (bun audit),
-# and the pull request adds no secret (gitleaks). The unit tests, the build and the browser tests run locally
-# before a change is pushed (AGENTS.md, "Before you finish").
+# and the pull request adds no secret (gitleaks). The unit tests, the build, the browser tests and the SonarQube scan run
+# locally before a change is pushed (AGENTS.md, "Before you finish").
 on:
   pull_request:
     branches: [develop, main]

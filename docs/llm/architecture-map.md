@@ -72,7 +72,8 @@ src/i18n/         index.ts · provider.tsx · locales/en/{common,consent,device,
 | | |
 |---|---|
 | Next config — React Compiler, former-path redirects | `next.config.ts` |
-| Scripts | `package.json` · `scripts/contract/` (sync, check, drift) |
+| Scripts | `package.json` · `scripts/contract/` (sync, check, drift) · `scripts/sonar.mjs` |
+| SonarQube analysis | `sonar-project.properties` (`bun run sonar`, local only) |
 | Secret-scan allowlist (the copied documents' sample values) | `.gitleaks.toml` |
 | Deploy | `vercel.json` |
 
