@@ -13,9 +13,9 @@ export async function readConsentRequest(requestId: string): Promise<ConsentRequ
     query: { request_id: requestId },
   });
   return {
-    requestId: req.request_id ?? requestId,
-    clientId: req.client_id ?? "",
-    scopes: (req.scope ?? "").split(/\s+/).filter(Boolean),
+    requestId: req.request_id,
+    clientId: req.client_id,
+    scopes: req.scope.split(/\s+/).filter(Boolean),
   };
 }
 

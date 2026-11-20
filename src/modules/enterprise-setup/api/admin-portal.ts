@@ -2,7 +2,6 @@
 // fragment, is exchanged once for the server's HttpOnly portal-session cookie; every later call is
 // token-free and CSRF-protected. Names follow the server's routes (/v1/admin-portal/*).
 
-import { assured, assuredItems, type WithRequired } from "@/platform/api/assured";
 import { backend } from "@/platform/api/backend";
 import type { Body, Schemas } from "@/platform/api/contract";
 
@@ -14,26 +13,8 @@ export type SamlStatus = "draft" | "active" | "disabled";
 /** What the link may set up, for which organisation, until when. */
 export type PortalContext = Schemas<"federation">["PortalContext"];
 
-// The fields of a connection the pages read; the server always sends them (saml.Connection).
-const CONNECTION_FIELDS = [
-  "id",
-  "name",
-  "status",
-  "idp_entity_id",
-  "idp_sso_url",
-  "email_attribute",
-  "name_attribute",
-  "created_at",
-] as const;
-
 /** A SAML connection, with the service-provider addresses its identity provider needs. */
-export type SamlConnection = WithRequired<
-  Schemas<"federation">["AdminPortalSAMLConnection"],
-  (typeof CONNECTION_FIELDS)[number]
->;
-
-const connection = (record: Schemas<"federation">["AdminPortalSAMLConnection"]) =>
-  assured(record, ...CONNECTION_FIELDS);
+export type SamlConnection = Schemas<"federation">["AdminPortalSAMLConnection"];
 
 /** The fields a SAML connection is created or changed with. */
 export type SamlConnectionInput = Body<"/v1/admin-portal/saml/{id}", "patch">;
@@ -53,36 +34,27 @@ export function exchangePortalSession(token: string) {
   return backend.post("/v1/admin-portal/session", { bearer: token });
 }
 
-// The GET document leaves every field optional; the server answers the same PortalContext as
-// the session exchange (internal/federation/adminportal/portal_context.go).
-export async function fetchPortalContext(): Promise<PortalContext> {
-  const ctx = assured(
-    await backend.get("/v1/admin-portal/context"),
-    "organization_name",
-    "capabilities",
-    "expires_at",
-  );
-  return { ...ctx, capabilities: [...ctx.capabilities] };
+/** The same answer as the session exchange's, for a page opened again on the cookie. */
+export function fetchPortalContext(): Promise<PortalContext> {
+  return backend.get("/v1/admin-portal/context");
 }
 
 export async function listSamlConnections(): Promise<SamlConnection[]> {
-  return assuredItems((await backend.get("/v1/admin-portal/saml")).items, ...CONNECTION_FIELDS);
+  return (await backend.get("/v1/admin-portal/saml")).items ?? [];
 }
 
 /** A name alone makes a draft, answered with the addresses the identity provider needs. */
-export async function createSamlConnection(
+export function createSamlConnection(
   input: Body<"/v1/admin-portal/saml", "post">,
 ): Promise<SamlConnection> {
-  return connection(await backend.post("/v1/admin-portal/saml", { body: input }));
+  return backend.post("/v1/admin-portal/saml", { body: input });
 }
 
-export async function updateSamlConnection(
+export function updateSamlConnection(
   id: string,
   input: SamlConnectionInput,
 ): Promise<SamlConnection> {
-  return connection(
-    await backend.patch("/v1/admin-portal/saml/{id}", { path: { id }, body: input }),
-  );
+  return backend.patch("/v1/admin-portal/saml/{id}", { path: { id }, body: input });
 }
 
 export function testSamlConnection(id: string) {

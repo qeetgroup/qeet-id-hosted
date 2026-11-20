@@ -9,7 +9,7 @@ export type DeviceRequest = { clientName: string; scopes: string[] };
 /** Looks up a code; 401 when no one is signed in, and one refusal for an unknown or used code. */
 export async function readDeviceRequest(userCode: string): Promise<DeviceRequest> {
   const res = await backend.get("/v1/oauth/device", { query: { user_code: userCode } });
-  return { clientName: res.client_name ?? "", scopes: res.scopes ?? [] };
+  return { clientName: res.client_name, scopes: res.scopes };
 }
 
 /** Allows or denies the device; resolves to whether it may now sign itself in. */

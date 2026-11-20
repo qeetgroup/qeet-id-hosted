@@ -2,7 +2,6 @@
 // (mfa_token), never stored or put in the URL; the one that meets it sets the session cookie.
 
 import { backend } from "@/platform/api/backend";
-import { ApiError } from "@/platform/api/client";
 import type { Answer, Body } from "@/platform/api/contract";
 
 type Proof = Omit<Body<"/v1/auth/session/mfa", "post">, "mfa_token">;
@@ -29,18 +28,11 @@ export function sendPushRequest(mfaToken: string): Promise<Answer<"/v1/auth/mfa/
 }
 
 /** An authenticator app to set up: its secret, and the link its QR code carries. */
-export type AppEnrollment = { secret: string; provisioning_url: string };
+export type AppEnrollment = Answer<"/v1/auth/mfa/enroll", "post">;
 
-/**
- * Starts setting up an authenticator app. The server always sends both fields (its Go struct has
- * no omitempty) though the document leaves them optional; a missing one fails closed.
- */
-export async function startAppEnrollment(mfaToken: string): Promise<AppEnrollment> {
-  const res = await backend.post("/v1/auth/mfa/enroll", { body: { mfa_token: mfaToken } });
-  if (!res.secret || !res.provisioning_url) {
-    throw new ApiError(502, "client.schema_mismatch", "The server's answer was incomplete.");
-  }
-  return { secret: res.secret, provisioning_url: res.provisioning_url };
+/** Starts setting up an authenticator app. */
+export function startAppEnrollment(mfaToken: string): Promise<AppEnrollment> {
+  return backend.post("/v1/auth/mfa/enroll", { body: { mfa_token: mfaToken } });
 }
 
 /** Starts a passkey ceremony that meets the challenge. */
@@ -49,5 +41,5 @@ export function beginPasskeySecondStep(
 ): Promise<{ sessionId: string; publicKey: unknown }> {
   return backend
     .post("/v1/auth/mfa/passkey/begin", { body: { mfa_token: mfaToken } })
-    .then((res) => ({ sessionId: res.session_id ?? "", publicKey: res.publicKey }));
+    .then((res) => ({ sessionId: res.session_id, publicKey: res.publicKey }));
 }
