@@ -18,12 +18,12 @@ export function RecoveryCodes({
   email,
   branding,
   onContinue,
-}: {
+}: Readonly<{
   codes: string[];
   email?: string;
   branding?: Branding;
-  onContinue: () => void;
-}) {
+  onContinue: () => void | Promise<void>;
+}>) {
   const { t } = useTranslation("signIn");
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);

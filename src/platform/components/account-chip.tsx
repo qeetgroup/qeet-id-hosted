@@ -11,13 +11,13 @@ export function AccountChip({
   name,
   action,
   onAction,
-}: {
+}: Readonly<{
   email: string;
   name?: string;
   /** The button's label, such as Change; no button without one. */
   action?: string;
   onAction?: () => void;
-}) {
+}>) {
   return (
     <div className="flex min-h-14 items-center gap-3 rounded-control border border-border-default py-2 ps-3 pe-2">
       <Avatar name={name || email} size="sm" decorative />

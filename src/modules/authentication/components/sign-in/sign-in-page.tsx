@@ -6,7 +6,10 @@ import { SignInForm } from "./sign-in-form";
 
 // Rendered on the server with the application's login context: its name and logo, its
 // organisation's branding and the ways that organisation allows, so the first paint is right.
-export async function SignInPage({ returnTo, errorCode }: { returnTo: string; errorCode: string }) {
+export async function SignInPage({
+  returnTo,
+  errorCode,
+}: Readonly<{ returnTo: string; errorCode: string }>) {
   const ctx = await getLoginContext(returnTo);
   return (
     <SignInForm

@@ -26,7 +26,7 @@ function ConfirmDialog({
   failed,
   onConfirm,
   onClose,
-}: {
+}: Readonly<{
   title: string;
   body: string;
   confirm: string;
@@ -36,7 +36,7 @@ function ConfirmDialog({
   failed?: [string, string];
   onConfirm: () => Promise<boolean>;
   onClose: () => void;
-}) {
+}>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   async function run() {
@@ -73,13 +73,13 @@ export function RemoveConnectionDialog({
   domain,
   onRemove,
   onClose,
-}: {
+}: Readonly<{
   name: string;
   idpName: string;
   domain?: string;
   onRemove: () => Promise<boolean>;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   return (
     <ConfirmDialog
@@ -105,12 +105,12 @@ export function TurnOffScimDialog({
   orgName,
   onTurnOff,
   onClose,
-}: {
+}: Readonly<{
   idpName: string;
   orgName: string;
   onTurnOff: () => Promise<boolean>;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   return (
     <ConfirmDialog
@@ -136,13 +136,13 @@ export function ScimTokenDialog({
   first,
   idpName,
   onClose,
-}: {
+}: Readonly<{
   token: string;
   endpoint?: string;
   first: boolean;
   idpName: string;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   const [saved, setSaved] = useState(false);
   return (

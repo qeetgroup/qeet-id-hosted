@@ -2,6 +2,7 @@
 
 import { Button, LinkButton, Text } from "@qeetrix/react";
 import { CopyField, OTPInput, QRCode } from "@qeetrix/react/experimental";
+import type { TFunction } from "i18next";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -21,6 +22,16 @@ import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, QrCodeIcon } from "@/p
 import { RecoveryCodes } from "./recovery-codes";
 
 // A base32 key in groups of four, as an authenticator app asks for it.
+// Why a second step is being set up: by a date the organisation set, or now.
+function enrollBody(t: TFunction<"signIn">, due: string | null, orgName?: string): string {
+  if (due) {
+    return orgName
+      ? t("mfa.enroll.dueBodyOrg", { org: orgName, date: due })
+      : t("mfa.enroll.dueBody", { date: due });
+  }
+  return orgName ? t("mfa.enroll.requiredBodyOrg", { org: orgName }) : t("mfa.enroll.requiredBody");
+}
+
 function grouped(secret: string): string {
   return secret.replace(/\s+/g, "").replace(/(.{4})(?=.)/g, "$1 ");
 }
@@ -39,7 +50,7 @@ export function MfaEnrollment({
   orgName,
   branding,
   onDone,
-}: {
+}: Readonly<{
   mfaToken: string;
   dueAt?: string;
   email?: string;
@@ -47,7 +58,7 @@ export function MfaEnrollment({
   orgName?: string;
   branding?: Branding;
   onDone: () => void | Promise<void>;
-}) {
+}>) {
   const { t, i18n } = useTranslation("signIn");
   const [app, setApp] = useState<AppEnrollment | null>(null);
   const [code, setCode] = useState("");
@@ -59,13 +70,7 @@ export function MfaEnrollment({
   const codeLabel = useId();
   const due = dueAt ? formatDay(dueAt, i18n.language) : null;
   const dueShort = dueAt ? formatDay(dueAt, i18n.language, false) : null;
-  const body = due
-    ? orgName
-      ? t("mfa.enroll.dueBodyOrg", { org: orgName, date: due })
-      : t("mfa.enroll.dueBody", { date: due })
-    : orgName
-      ? t("mfa.enroll.requiredBodyOrg", { org: orgName })
-      : t("mfa.enroll.requiredBody");
+  const body = enrollBody(t, due, orgName);
 
   async function attempt(fn: () => Promise<void>) {
     setError(null);
@@ -103,14 +108,7 @@ export function MfaEnrollment({
     });
 
   if (codes) {
-    return (
-      <RecoveryCodes
-        codes={codes}
-        email={email}
-        branding={branding}
-        onContinue={() => void onDone()}
-      />
-    );
+    return <RecoveryCodes codes={codes} email={email} branding={branding} onContinue={onDone} />;
   }
 
   if (!app) {

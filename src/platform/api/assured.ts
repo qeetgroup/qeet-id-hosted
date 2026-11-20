@@ -18,7 +18,8 @@ export function assured<T extends object, K extends keyof T>(
   ...fields: K[]
 ): WithRequired<T, K> {
   for (const field of fields) {
-    if (record[field] === undefined || record[field] === null) throw mismatch();
+    const value: unknown = record[field];
+    if (value === undefined || value === null) throw mismatch();
   }
   return record as WithRequired<T, K>;
 }

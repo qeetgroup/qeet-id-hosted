@@ -31,7 +31,7 @@ type State =
  * application it is for and who is signed in, and asks the person to decide. A request that can't
  * be read (unknown, expired, answered, or another sign-in's) has ended, with nothing of it shown.
  */
-export function ConsentPage({ requestId }: { requestId: string }) {
+export function ConsentPage({ requestId }: Readonly<{ requestId: string }>) {
   const { t } = useTranslation("consent");
   const [state, setState] = useState<State>({ kind: "loading" });
 

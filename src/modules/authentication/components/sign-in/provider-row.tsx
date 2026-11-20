@@ -80,11 +80,11 @@ export function ProviderRow({
   providers,
   disabled,
   onPick,
-}: {
+}: Readonly<{
   providers: string[];
   disabled?: boolean;
   onPick: (provider: string) => void;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const rows: string[][] = [];
   for (let i = 0; i < providers.length; i += 3) rows.push(providers.slice(i, i + 3));

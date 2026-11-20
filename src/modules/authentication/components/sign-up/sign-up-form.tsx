@@ -2,7 +2,8 @@
 
 import { Button, Field, Link, TextField } from "@qeetrix/react";
 import { PasswordInput } from "@qeetrix/react/experimental";
-import { type FormEvent, useState } from "react";
+import type { TFunction } from "i18next";
+import { type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { challengeOf } from "@/modules/authentication/api/session";
@@ -23,7 +24,7 @@ import { HostedPage } from "@/platform/components/hosted-page";
 import { PasswordRules } from "@/platform/components/password-rules";
 import { ArrowRightIcon, KeyRoundIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
-import { safeReturnTo } from "@/platform/navigation/return-to";
+import { safeReturnTo, withReturnTo } from "@/platform/navigation/return-to";
 import {
   createCredential,
   isCancelled,
@@ -41,6 +42,13 @@ type SignUpFormProps = {
   branding?: Branding;
 };
 
+// Why sign-up is closed, naming the application and its organisation when known.
+function closedBody(t: TFunction<"signUp">, clientName: string, org?: string): string {
+  if (clientName && org) return t("closedBodyOrg", { client: clientName, org });
+  if (clientName) return t("closedBody", { client: clientName });
+  return t("closedBodyNoClient");
+}
+
 /**
  * A new account in the application's organisation: passkey first, with no password at all, or a
  * password the organisation's rules accept. Only when the organisation lets people sign themselves
@@ -55,7 +63,7 @@ export function SignUpForm({
   selfRegistrationEnabled,
   organisation,
   branding,
-}: SignUpFormProps) {
+}: Readonly<SignUpFormProps>) {
   const { t } = useTranslation("signUp");
   const { t: ts } = useTranslation("signIn");
   const [name, setName] = useState("");
@@ -71,7 +79,7 @@ export function SignUpForm({
   // challenge token stays in memory.
   const [enrollment, setEnrollment] = useState<{ token: string; dueAt?: string } | null>(null);
 
-  const signInHref = `/sign-in${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
+  const signInHref = withReturnTo("/sign-in", returnTo);
   const lead = clientName ? <AppLine name={clientName} logoUri={clientLogoUri} /> : undefined;
   const signIn = (
     <AsideLine>
@@ -100,7 +108,7 @@ export function SignUpForm({
     return { title: err instanceof ApiError ? err.message : ts("problems.generic.title") };
   }
 
-  async function withPasskey(e: FormEvent<HTMLFormElement>) {
+  async function withPasskey(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setBusy(true);
@@ -121,7 +129,7 @@ export function SignUpForm({
     }
   }
 
-  async function withPasswordSubmit(e: FormEvent<HTMLFormElement>) {
+  async function withPasswordSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setPasswordError(null);
@@ -167,11 +175,7 @@ export function SignUpForm({
       <HostedPage single branding={branding} title={t("title")} lead={lead}>
         <FormStack>
           <FormAlert tone="info" title={t("closedTitle")}>
-            {clientName && organisation?.name
-              ? t("closedBodyOrg", { client: clientName, org: organisation.name })
-              : clientName
-                ? t("closedBody", { client: clientName })
-                : t("closedBodyNoClient")}
+            {closedBody(t, clientName, organisation?.name)}
           </FormAlert>
           {signIn}
         </FormStack>

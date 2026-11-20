@@ -23,7 +23,10 @@ const ICONS: Record<string, Icon> = {
  * an icon. A scope without words of its own shows its name. With none, it can still confirm who
  * the person is.
  */
-export function ScopeList({ scopes, className }: { scopes: string[]; className?: string }) {
+export function ScopeList({
+  scopes,
+  className,
+}: Readonly<{ scopes: string[]; className?: string }>) {
   const { t } = useTranslation("common");
   const rows = scopes.length > 0 ? scopes : ["openid"];
   return (

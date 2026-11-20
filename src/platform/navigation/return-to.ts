@@ -44,6 +44,11 @@ function safeLocalPath(path: string): string | null {
   return u.pathname + u.search;
 }
 
+/** A page of this site that carries the journey's return_to on: `/sign-in?return_to=…`. */
+export function withReturnTo(path: string, returnTo: string): string {
+  return returnTo ? `${path}?${new URLSearchParams({ return_to: returnTo })}` : path;
+}
+
 // True when a sign-in is on its way to approve a device.
 export function returnsToDevice(returnTo: string): boolean {
   const dest = safeReturnTo(returnTo);

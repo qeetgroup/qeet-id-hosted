@@ -2,7 +2,7 @@
 
 import { Button, Field, LinkButton } from "@qeetrix/react";
 import { PasswordInput } from "@qeetrix/react/experimental";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { resetPassword } from "@/modules/recovery/api/recovery";
@@ -15,7 +15,7 @@ import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { PasswordRules } from "@/platform/components/password-rules";
 import { ArrowRightIcon, CheckIcon, MailIcon } from "@/platform/icons";
-import { safeReturnTo } from "@/platform/navigation/return-to";
+import { safeReturnTo, withReturnTo } from "@/platform/navigation/return-to";
 
 // The server's answers for a link that can't reset a password any more.
 const LINK_GONE = new Set([
@@ -35,13 +35,13 @@ export function ResetPasswordForm({
   returnTo,
   passwordPolicy,
   branding,
-}: {
+}: Readonly<{
   token: string;
   returnTo: string;
   /** The organisation's rules, when the reset started on the way into its application. */
   passwordPolicy?: PasswordPolicy;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("recovery");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -52,9 +52,8 @@ export function ResetPasswordForm({
   const [state, setState] = useState<"form" | "done" | "gone">(token ? "form" : "gone");
 
   const dest = safeReturnTo(returnTo);
-  const query = dest ? `?return_to=${encodeURIComponent(dest)}` : "";
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setPasswordError(null);
@@ -86,7 +85,12 @@ export function ResetPasswordForm({
         title={t("reset.doneTitle")}
         description={t("reset.doneBody")}
       >
-        <LinkButton href={`/sign-in${query}`} size="lg" fullWidth icon={ArrowRightIcon}>
+        <LinkButton
+          href={withReturnTo("/sign-in", dest ?? "")}
+          size="lg"
+          fullWidth
+          icon={ArrowRightIcon}
+        >
           {t("reset.signIn")}
         </LinkButton>
       </HostedPage>
@@ -102,7 +106,12 @@ export function ResetPasswordForm({
         title={t("reset.expiredTitle")}
         description={t("reset.expiredBody")}
       >
-        <LinkButton href={`/forgot-password${query}`} size="lg" fullWidth icon={MailIcon}>
+        <LinkButton
+          href={withReturnTo("/forgot-password", dest ?? "")}
+          size="lg"
+          fullWidth
+          icon={MailIcon}
+        >
           {t("reset.newLink")}
         </LinkButton>
       </HostedPage>

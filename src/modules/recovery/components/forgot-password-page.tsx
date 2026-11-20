@@ -7,7 +7,7 @@ import { ForgotPasswordForm } from "./forgot-password-form";
 // return_to is passed on so the emailed link comes back to this hosted login
 // and, after the reset, on to the application; it also gives the page the
 // tenant's branding.
-export async function ForgotPasswordPage({ returnTo }: { returnTo: string }) {
+export async function ForgotPasswordPage({ returnTo }: Readonly<{ returnTo: string }>) {
   const branding = normalizeBranding((await getLoginContext(returnTo)).branding);
   return <ForgotPasswordForm returnTo={returnTo} branding={branding} />;
 }

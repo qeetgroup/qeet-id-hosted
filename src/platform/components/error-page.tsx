@@ -13,7 +13,10 @@ import { HostedPage } from "./hosted-page";
  * keeps where they were going), and give the reference support can look up. Never shows the
  * error's own message, which can carry server details; the reference matches the server's log.
  */
-export function ErrorPage({ reference, onRetry }: { reference?: string; onRetry: () => void }) {
+export function ErrorPage({
+  reference,
+  onRetry,
+}: Readonly<{ reference?: string; onRetry: () => void }>) {
   const { t } = useTranslation("common");
   return (
     <HostedPage

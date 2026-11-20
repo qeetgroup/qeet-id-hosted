@@ -1,8 +1,8 @@
 "use client";
 
-import { Avatar, Button, Card, LinkButton, Spinner, Text, TextField } from "@qeetrix/react";
+import { Avatar, Button, Card, LinkButton, Text, TextField } from "@qeetrix/react";
 import { EmptyState } from "@qeetrix/react/experimental";
-import { type FormEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { type Account, fetchSignedInAccount } from "@/platform/api/account";
@@ -10,7 +10,7 @@ import { ApiError } from "@/platform/api/client";
 import { signOutHostedSession } from "@/platform/api/session";
 import { FormAlert } from "@/platform/components/form-alert";
 import { HostedPage } from "@/platform/components/hosted-page";
-import { KeyRoundIcon, LogInIcon, PlusIcon, RotateCwIcon } from "@/platform/icons";
+import { KeyRoundIcon, LogInIcon, PlusIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { passkeysSupported } from "@/platform/webauthn/ceremony";
 import {
@@ -24,7 +24,7 @@ import {
   renamePasskey,
 } from "@/platform/webauthn/passkeys";
 
-import { PasskeyRow } from "./passkey-row";
+import { PasskeysPanel } from "./passkeys-panel";
 import { RemovePasskeyDialog } from "./remove-passkey-dialog";
 
 type State =
@@ -80,7 +80,7 @@ export function SecurityView() {
     setError(t(key));
   }
 
-  async function onAdd(e: FormEvent<HTMLFormElement>) {
+  async function onAdd(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setAdded(false);
@@ -149,7 +149,7 @@ export function SecurityView() {
       const uris = await signOutHostedSession();
       const q = new URLSearchParams();
       for (const uri of uris) q.append("frontchannel_logout", uri);
-      goTo(`/sign-out/done${q.size ? `?${q.toString()}` : ""}`);
+      goTo(q.size ? `/sign-out/done?${q}` : "/sign-out/done");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("signIn:problems.generic.title"));
     }
@@ -209,54 +209,18 @@ export function SecurityView() {
             {t("add.addedBody")}
           </FormAlert>
         )}
-        {state.status === "loading" ? (
-          <div role="status" className="flex items-center gap-3 py-2">
-            <Spinner size="md" tone="brand" decorative />
-            <Text size="md" tone="subtle">
-              {t("loading")}
-            </Text>
-          </div>
-        ) : state.status === "error" ? (
-          <FormAlert
-            title={t("loadError.title")}
-            actions={
-              <Button size="sm" variant="soft" icon={RotateCwIcon} onClick={() => void load()}>
-                {t("loadError.retry")}
-              </Button>
-            }
-          >
-            {t("loadError.body")}
-          </FormAlert>
-        ) : state.list.items.length === 0 ? (
-          <Card>
-            <EmptyState
-              size="section"
-              icon={KeyRoundIcon}
-              level={2}
-              title={t("empty.title")}
-              description={t("empty.body")}
-            />
-          </Card>
-        ) : (
-          <ul
-            aria-label={t("list.label")}
-            className="divide-y divide-border-subtle rounded-surface border border-border-default bg-surface-raised"
-          >
-            {state.list.items.map((p) => (
-              <PasskeyRow
-                key={p.id}
-                passkey={p}
-                onRename={onRename}
-                onRemove={(passkey) => {
-                  setRemoved(false);
-                  setStepUp(false);
-                  setRemoving(passkey);
-                }}
-                onError={fail}
-              />
-            ))}
-          </ul>
-        )}
+        <PasskeysPanel
+          status={state.status}
+          list={state.status === "ready" ? state.list : undefined}
+          onRetry={() => void load()}
+          onRename={onRename}
+          onRemove={(passkey) => {
+            setRemoved(false);
+            setStepUp(false);
+            setRemoving(passkey);
+          }}
+          onError={fail}
+        />
 
         {state.status === "ready" &&
           (!state.list.enrollment_allowed ? (

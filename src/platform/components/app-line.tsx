@@ -23,11 +23,11 @@ export function AppTile({
   name,
   logoUri,
   size = 32,
-}: {
+}: Readonly<{
   name: string;
   logoUri?: string;
   size?: number;
-}) {
+}>) {
   const [failed, setFailed] = useState(false);
   const logo = failed ? undefined : httpsUrl(logoUri);
   const initial = Array.from(name.trim())[0]?.toUpperCase() ?? "";
@@ -58,12 +58,12 @@ export function AppLine({
   name,
   logoUri,
   prefix,
-}: {
+}: Readonly<{
   name: string;
   logoUri?: string;
   /** The words before the name; "to continue to" by default. */
   prefix?: string;
-}) {
+}>) {
   const { t } = useTranslation("common");
   return (
     <div className="flex items-center gap-3">

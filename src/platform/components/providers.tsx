@@ -11,7 +11,7 @@ import { THEME_STORAGE_KEY } from "@/platform/config/theme";
  * system until the person chooses (the choice kept in this browser, read before first paint by
  * the root layout's script), and the copy.
  */
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <QeetrixProvider defaultColorScheme="system" storageKey={THEME_STORAGE_KEY}>
       <I18nProvider>{children}</I18nProvider>

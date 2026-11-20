@@ -6,9 +6,9 @@ import { ConsentPage } from "@/modules/oauth/components/consent-page";
 // never from anything else in this address.
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<Record<string, string | undefined>>;
-}) {
+}>) {
   const sp = await searchParams;
   return <ConsentPage requestId={sp.request_id ?? ""} />;
 }

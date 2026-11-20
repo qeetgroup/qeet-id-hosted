@@ -63,7 +63,7 @@ const STATUS: Record<PageStatus, { icon: Icon; className: string }> = {
  * only reports something stays one column. Under it, the footer. Welcoming pages are comfortable
  * density (Qeetrix's rules), and an organisation's colour replaces Qeet orange throughout.
  */
-export function HostedPage(props: HostedPageProps) {
+export function HostedPage(props: Readonly<HostedPageProps>) {
   const { branding, kind = "card" } = props;
   const branded = hasBrandColor(branding);
   return (
@@ -77,7 +77,7 @@ export function HostedPage(props: HostedPageProps) {
   );
 }
 
-function Header({ title, description, lead, status, kind = "card" }: HostedPageProps) {
+function Header({ title, description, lead, status, kind = "card" }: Readonly<HostedPageProps>) {
   const s = status ? STATUS[status] : undefined;
   return (
     <div>
@@ -107,7 +107,7 @@ function Header({ title, description, lead, status, kind = "card" }: HostedPageP
   );
 }
 
-function CardLayout(props: HostedPageProps) {
+function CardLayout(props: Readonly<HostedPageProps>) {
   const { branding, children, single } = props;
   // Two columns on a laptop only for a form beside its heading.
   const split = Boolean(children) && !single;
@@ -139,7 +139,7 @@ function CardLayout(props: HostedPageProps) {
   );
 }
 
-function PageLayout(props: HostedPageProps) {
+function PageLayout(props: Readonly<HostedPageProps>) {
   const { branding, width = "md", barEnd, children } = props;
   const column = width === "lg" ? "max-w-[1040px]" : "max-w-[720px]";
   return (

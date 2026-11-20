@@ -54,18 +54,24 @@ function hostOf(uri?: string): string | undefined {
   }
 }
 
+// How an ended request looks: recorded is good news, an unregistered application a refusal.
+const ENDED_STATUS: Partial<Record<Ended, "success" | "danger">> = {
+  recorded: "success",
+  unregistered: "danger",
+};
+
 /** A request that has ended, said in full: why, and that the window can be closed. */
 export function EndedPage({
   ended,
   clientName,
   branding,
-}: {
+}: Readonly<{
   ended: Ended;
   clientName: string;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("consent");
-  const status = ended === "recorded" ? "success" : ended === "unregistered" ? "danger" : "warning";
+  const status = ENDED_STATUS[ended] ?? "warning";
   return (
     <HostedPage
       single
@@ -91,7 +97,7 @@ export function ConsentForm({
   clientUri,
   account,
   branding,
-}: {
+}: Readonly<{
   requestId: string;
   scopes: string[];
   clientName: string;
@@ -99,7 +105,7 @@ export function ConsentForm({
   clientUri?: string;
   account: Account | null;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("consent");
   const [error, setError] = useState<string | null>(null);
   const [ended, setEnded] = useState<Ended | null>(null);

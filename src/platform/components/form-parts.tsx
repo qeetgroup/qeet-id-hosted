@@ -6,12 +6,15 @@ import type { ReactNode } from "react";
 import { ChevronRightIcon, type Icon } from "@/platform/icons";
 
 /** A column of form parts with the form's rhythm: 20 px between fields, actions and links. */
-export function FormStack({ children, className }: { children: ReactNode; className?: string }) {
+export function FormStack({
+  children,
+  className,
+}: Readonly<{ children: ReactNode; className?: string }>) {
   return <div className={`flex flex-col gap-5 ${className ?? ""}`}>{children}</div>;
 }
 
 /** "or", between two ways of doing the same thing, on a hairline. */
-export function OrDivider({ label }: { label: string }) {
+export function OrDivider({ label }: Readonly<{ label: string }>) {
   return (
     <div className="my-6 flex items-center gap-3">
       <span aria-hidden className="h-px flex-1 bg-border-subtle" />
@@ -24,7 +27,7 @@ export function OrDivider({ label }: { label: string }) {
 }
 
 /** A line of text ending in a link: "Don't have an account? Create one". */
-export function AsideLine({ children }: { children: ReactNode }) {
+export function AsideLine({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <Text size="md" tone="subtle" className="flex flex-wrap items-center gap-x-1" render={<p />}>
       {children}
@@ -40,11 +43,11 @@ export function TextLink({
   href,
   onClick,
   children,
-}: {
+}: Readonly<{
   href?: string;
   onClick?: () => void;
   children: ReactNode;
-}) {
+}>) {
   if (!href) {
     return (
       <Link
@@ -76,7 +79,7 @@ export type Choice = {
  * A ruled list of choices, each a whole-row button with an icon, a title, a line of detail and a
  * chevron: other ways to verify, a connection to choose.
  */
-export function ChoiceList({ label, items }: { label: string; items: Choice[] }) {
+export function ChoiceList({ label, items }: Readonly<{ label: string; items: Choice[] }>) {
   return (
     <ul
       aria-label={label}

@@ -14,7 +14,7 @@ export function CurrentStep({
   body,
   finished,
   children,
-}: {
+}: Readonly<{
   n: number;
   total: number;
   title: string;
@@ -22,7 +22,7 @@ export function CurrentStep({
   /** Shows Passed in place of the step number, for a step whose result is on screen. */
   finished?: boolean;
   children: ReactNode;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   return (
     <Card
@@ -51,11 +51,11 @@ export function DoneRow({
   title,
   summary,
   actions,
-}: {
+}: Readonly<{
   title: string;
   summary: string;
   actions?: ReactNode;
-}) {
+}>) {
   return (
     <div className="flex items-center gap-3 rounded-surface border border-border-default bg-surface-raised py-3 ps-4 pe-2">
       <CircleCheckIcon size={20} className="shrink-0 text-icon-success" />
@@ -73,7 +73,11 @@ export function DoneRow({
 }
 
 /** A step still to come: its number, name and what unlocks it, in the subtle colour. */
-export function UpcomingRow({ n, title, note }: { n: number; title: string; note: string }) {
+export function UpcomingRow({
+  n,
+  title,
+  note,
+}: Readonly<{ n: number; title: string; note: string }>) {
   return (
     <div className="flex items-center gap-3 rounded-surface border border-border-subtle px-4 py-3">
       <span

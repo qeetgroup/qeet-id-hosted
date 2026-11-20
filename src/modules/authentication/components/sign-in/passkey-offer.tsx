@@ -22,11 +22,11 @@ export function PasskeyOffer({
   email,
   branding,
   onContinue,
-}: {
+}: Readonly<{
   email: string;
   branding?: Branding;
   onContinue: () => void;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const { t: ts } = useTranslation("security");
   const [state, setState] = useState<"offer" | "waiting" | "added" | "exists">("offer");

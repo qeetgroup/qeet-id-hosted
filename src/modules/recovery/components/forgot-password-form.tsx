@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, LinkButton, Text, TextField } from "@qeetrix/react";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { requestPasswordReset } from "@/modules/recovery/api/recovery";
@@ -12,6 +12,7 @@ import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { ArrowLeftIcon, MailIcon, RotateCwIcon } from "@/platform/icons";
+import { withReturnTo } from "@/platform/navigation/return-to";
 
 /**
  * Ask for a link to choose a new password. The answer is the same whether or not the address has an
@@ -21,16 +22,16 @@ import { ArrowLeftIcon, MailIcon, RotateCwIcon } from "@/platform/icons";
 export function ForgotPasswordForm({
   returnTo,
   branding,
-}: {
+}: Readonly<{
   returnTo: string;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("recovery");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
-  const signInHref = `/sign-in${returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
+  const signInHref = withReturnTo("/sign-in", returnTo);
 
   async function send() {
     setError(null);
@@ -47,7 +48,7 @@ export function ForgotPasswordForm({
     }
   }
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     void send();
   }

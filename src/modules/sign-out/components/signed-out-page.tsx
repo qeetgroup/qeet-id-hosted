@@ -4,9 +4,9 @@ import { SignedOutContent } from "./signed-out-content";
 export function SignedOutPage({
   frontchannel,
   continueTicket,
-}: {
+}: Readonly<{
   frontchannel: string[];
   continueTicket: string;
-}) {
+}>) {
   return <SignedOutContent frontchannel={frontchannel} continueTicket={continueTicket} />;
 }

@@ -29,7 +29,7 @@ export function LinkStep({
   onChangeEmail,
   onUsePassword,
   onBack,
-}: {
+}: Readonly<{
   email: string;
   organizationId: string;
   returnTo: string;
@@ -40,7 +40,7 @@ export function LinkStep({
   /** Back to the password, when the organisation allows passwords. */
   onUsePassword?: () => void;
   onBack: () => void;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const [sent, setSent] = useState<"no" | "sent" | "again">("no");
   const [busy, setBusy] = useState(false);

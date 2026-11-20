@@ -38,7 +38,7 @@ function apiURL(path: string, query?: Record<string, string>): string {
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  const m = new RegExp(`(?:^|; )${name}=([^;]*)`).exec(document.cookie);
   return m?.[1] === undefined ? null : decodeURIComponent(m[1]);
 }
 

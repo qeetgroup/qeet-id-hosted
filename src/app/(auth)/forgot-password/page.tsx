@@ -3,9 +3,9 @@ import { ForgotPasswordPage } from "@/modules/recovery/components/forgot-passwor
 // Reached from sign-in, carrying the same return_to.
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ return_to?: string }>;
-}) {
+}>) {
   const { return_to } = await searchParams;
   return <ForgotPasswordPage returnTo={return_to ?? ""} />;
 }

@@ -2,7 +2,7 @@
 
 import { Button, Field, TextField } from "@qeetrix/react";
 import { PasswordInput } from "@qeetrix/react/experimental";
-import { type FormEvent, useState } from "react";
+import { type ReactNode, type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type SessionResponse, signInWithDirectory } from "@/modules/authentication/api/session";
 import {
@@ -45,7 +45,7 @@ export type CompanyStepProps = {
  * its directory (LDAP), whose user name and password are asked for here. One connection is named;
  * several are listed to choose from.
  */
-export function CompanyStep(props: CompanyStepProps) {
+export function CompanyStep(props: Readonly<CompanyStepProps>) {
   const { email, company, branding } = props;
   const { t } = useTranslation("signIn");
   const only = company.connections.length === 1 ? (company.connections[0] ?? null) : null;
@@ -93,37 +93,26 @@ export function CompanyStep(props: CompanyStepProps) {
     );
   }
 
+  const title = org ? t("company.title", { org }) : t("company.titleNoOrg");
   if (chosen) {
-    const idp = idpOf(chosen);
     return (
-      <HostedPage
-        single
-        branding={branding}
-        title={org ? t("company.title", { org }) : t("company.titleNoOrg")}
-        description={org ? t("company.body", { org, idp }) : t("company.bodyNoOrg", { idp })}
+      <ProviderPage
+        idp={idpOf(chosen)}
+        org={org}
+        title={title}
         lead={chip}
-      >
-        <FormStack>
-          <Button
-            type="button"
-            size="lg"
-            fullWidth
-            icon={NetworkIcon}
-            loading={opening === chosen.id}
-            onClick={() => open(chosen)}
-          >
-            {opening === chosen.id ? t("company.opening", { idp }) : t("company.continue", { idp })}
-          </Button>
-          {other}
-        </FormStack>
-      </HostedPage>
+        opening={opening === chosen.id}
+        other={other}
+        branding={branding}
+        onOpen={() => open(chosen)}
+      />
     );
   }
 
   return (
     <HostedPage
       branding={branding}
-      title={org ? t("company.title", { org }) : t("company.titleNoOrg")}
+      title={title}
       description={org ? t("company.chooseBody", { org }) : t("company.chooseBodyNoOrg")}
       lead={chip}
     >
@@ -134,11 +123,57 @@ export function CompanyStep(props: CompanyStepProps) {
             id: c.id,
             icon: BuildingIcon,
             title: idpOf(c),
-            detail: `${c.name} · ${t(`company.protocols.${c.protocol}`)}`,
+            detail: [c.name, t(`company.protocols.${c.protocol}`)].join(" · "),
             disabled: opening !== null,
             onClick: () => choose(c),
           }))}
         />
+        {other}
+      </FormStack>
+    </HostedPage>
+  );
+}
+
+/** One identity provider to go to: the browser leaves for it and comes back signed in. */
+function ProviderPage({
+  idp,
+  org,
+  title,
+  lead,
+  opening,
+  other,
+  branding,
+  onOpen,
+}: Readonly<{
+  idp: string;
+  org?: string;
+  title: string;
+  lead: ReactNode;
+  opening: boolean;
+  other: ReactNode;
+  branding?: Branding;
+  onOpen: () => void;
+}>) {
+  const { t } = useTranslation("signIn");
+  return (
+    <HostedPage
+      single
+      branding={branding}
+      title={title}
+      description={org ? t("company.body", { org, idp }) : t("company.bodyNoOrg", { idp })}
+      lead={lead}
+    >
+      <FormStack>
+        <Button
+          type="button"
+          size="lg"
+          fullWidth
+          icon={NetworkIcon}
+          loading={opening}
+          onClick={onOpen}
+        >
+          {opening ? t("company.opening", { idp }) : t("company.continue", { idp })}
+        </Button>
         {other}
       </FormStack>
     </HostedPage>
@@ -153,14 +188,14 @@ function DirectoryForm({
   branding,
   onSession,
   onBack,
-}: {
+}: Readonly<{
   email: string;
   connection: Connection;
   org?: string;
   branding?: Branding;
   onSession: (res: SessionResponse) => void;
   onBack: () => void;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const [username, setUsername] = useState(email.split("@")[0] ?? "");
   const [password, setPassword] = useState("");
@@ -168,7 +203,7 @@ function DirectoryForm({
   const [wrong, setWrong] = useState(false);
   const [problem, setProblem] = useState<Problem | null>(null);
 
-  async function submit(e: FormEvent<HTMLFormElement>) {
+  async function submit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setWrong(false);
     setProblem(null);

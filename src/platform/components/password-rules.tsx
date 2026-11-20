@@ -26,7 +26,10 @@ export function passwordRules(policy: PasswordPolicy, password: string) {
  * The organisation's password rules under a new-password field, each ticking as it is met: a tick
  * in the success colour, or an open circle, never colour alone. The server checks them again.
  */
-export function PasswordRules({ policy, password }: { policy: PasswordPolicy; password: string }) {
+export function PasswordRules({
+  policy,
+  password,
+}: Readonly<{ policy: PasswordPolicy; password: string }>) {
   const { t } = useTranslation("common");
   return (
     <ul aria-label={t("passwordRules.label")} className="-mt-2 flex flex-col gap-1.5">

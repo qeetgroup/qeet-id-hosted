@@ -11,10 +11,10 @@ import { Providers } from "@/platform/components/providers";
 export default function GlobalError({
   error,
   retry,
-}: {
+}: Readonly<{
   error: Error & { digest?: string };
   retry: () => void;
-}) {
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>

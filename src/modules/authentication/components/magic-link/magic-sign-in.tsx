@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, LinkButton, Spinner, Text } from "@qeetrix/react";
+import { Spinner, Text } from "@qeetrix/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { resendSignInLink, tradeSignInLink } from "@/modules/authentication/api/magic-link";
@@ -9,12 +9,11 @@ import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challe
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
 import { isAddressRefusal, isSsoRequired } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
-import { FormAlert } from "@/platform/components/form-alert";
-import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
-import { ArrowLeftIcon, MailIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
+
+import { LinkOutcome } from "./link-outcome";
 
 type Challenge = {
   token: string;
@@ -24,7 +23,15 @@ type Challenge = {
   returnTo: string;
 };
 
-type State = "checking" | "failed" | "resent" | "missing" | "network" | "sso";
+export type State = "checking" | "failed" | "resent" | "missing" | "network" | "sso";
+
+// Why the link couldn't sign in: a network the organisation refuses, an address its organisation
+// now signs in itself (the link stays unused), or a link that is used or too old.
+function refusedState(err: unknown): State {
+  if (isAddressRefusal(err)) return "network";
+  if (isSsoRequired(err)) return "sso";
+  return "failed";
+}
 
 /**
  * Where the emailed sign-in link lands: it checks the link, signs this browser in and goes straight
@@ -36,12 +43,12 @@ export function MagicSignIn({
   linkMinutes,
   orgName,
   branding,
-}: {
+}: Readonly<{
   token: string;
   linkMinutes?: number;
   orgName?: string;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const [state, setState] = useState<State>(token ? "checking" : "missing");
   const [resending, setResending] = useState(false);
@@ -72,9 +79,7 @@ export function MagicSignIn({
         }
         goTo(safeReturnTo(res.return_to ?? "") ?? "/security");
       })
-      .catch((err) =>
-        setState(isAddressRefusal(err) ? "network" : isSsoRequired(err) ? "sso" : "failed"),
-      );
+      .catch((err) => setState(refusedState(err)));
   }, [token]);
 
   async function resend() {
@@ -132,90 +137,15 @@ export function MagicSignIn({
     );
   }
 
-  const other = (
-    <LinkButton href="/sign-in" variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon}>
-      {t("magic.other")}
-    </LinkButton>
-  );
-
-  if (state === "failed") {
-    return (
-      <HostedPage
-        single
-        status="danger"
-        branding={branding}
-        title={t("magic.failedTitle")}
-        description={
-          linkMinutes
-            ? t("magic.failedBodyMinutes", { minutes: linkMinutes })
-            : t("magic.failedBody")
-        }
-      >
-        <FormStack>
-          <FormAlert title={resendError} />
-          <Button
-            type="button"
-            size="lg"
-            fullWidth
-            icon={MailIcon}
-            loading={resending}
-            onClick={resend}
-          >
-            {t("magic.newLink")}
-          </Button>
-          {other}
-        </FormStack>
-      </HostedPage>
-    );
-  }
-
-  if (state === "sso") {
-    return (
-      <HostedPage
-        single
-        status="warning"
-        branding={branding}
-        title={t("problems.sso.title")}
-        description={orgName ? t("problems.sso.bodyOrg", { org: orgName }) : t("problems.sso.body")}
-      >
-        {other}
-      </HostedPage>
-    );
-  }
-
-  if (state === "resent") {
-    return (
-      <HostedPage
-        single
-        status="success"
-        branding={branding}
-        title={t("magic.resentTitle")}
-        description={
-          linkMinutes
-            ? t("magic.resentBodyMinutes", { minutes: linkMinutes })
-            : t("magic.resentBody")
-        }
-      >
-        {other}
-      </HostedPage>
-    );
-  }
-
   return (
-    <HostedPage
-      single
-      status="warning"
+    <LinkOutcome
+      state={state}
+      linkMinutes={linkMinutes}
+      orgName={orgName}
+      resending={resending}
+      resendError={resendError}
       branding={branding}
-      title={t(state === "network" ? "magic.networkTitle" : "magic.missingTitle")}
-      description={
-        state === "network"
-          ? orgName
-            ? t("magic.networkBodyOrg", { org: orgName })
-            : t("magic.networkBody")
-          : t("magic.missingBody")
-      }
-    >
-      {other}
-    </HostedPage>
+      onResend={() => void resend()}
+    />
   );
 }

@@ -21,7 +21,7 @@ function isSupported(lng: string | undefined): lng is SupportedLanguage {
  * stacked; from a tablet up it sits under the card in one row. A branded page says who runs the
  * sign-in.
  */
-export function PageFooter({ branded = false }: { branded?: boolean }) {
+export function PageFooter({ branded = false }: Readonly<{ branded?: boolean }>) {
   const { t } = useTranslation("common");
   return (
     <footer className="flex flex-col gap-x-6 gap-y-3 border-t border-border-subtle px-5 pt-4 pb-6 tablet:mt-4 tablet:flex-row tablet:flex-wrap tablet:items-center tablet:justify-between tablet:gap-y-2 tablet:border-0 tablet:p-0">

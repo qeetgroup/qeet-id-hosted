@@ -4,9 +4,9 @@ import { DevicePage } from "@/modules/oauth/components/device-page";
 // carry the code already.
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<Record<string, string | undefined>>;
-}) {
+}>) {
   const sp = await searchParams;
   return <DevicePage userCode={sp.user_code ?? ""} />;
 }
