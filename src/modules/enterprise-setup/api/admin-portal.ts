@@ -40,7 +40,7 @@ export function fetchPortalContext(): Promise<PortalContext> {
 }
 
 export async function listSamlConnections(): Promise<SamlConnection[]> {
-  return (await backend.get("/v1/admin-portal/saml")).items ?? [];
+  return (await backend.get("/v1/admin-portal/saml")).items;
 }
 
 /** A name alone makes a draft, answered with the addresses the identity provider needs. */
@@ -77,7 +77,7 @@ export async function deleteSamlConnection(id: string): Promise<void> {
 }
 
 export async function listDomains(): Promise<PortalDomain[]> {
-  return (await backend.get("/v1/admin-portal/domains")).items ?? [];
+  return (await backend.get("/v1/admin-portal/domains")).items;
 }
 
 export function addDomain(domain: string) {
