@@ -3,7 +3,7 @@ schema_version: 1
 context: {type: repository, level: L2, canonical: true, last_verified: "2026-10-24"}
 inheritance:
   organization: {repository: qeetgroup/qeet-context, level: L0}
-  product:      {repository: qeetgroup/qeet-id-context, level: L1}
+  product:      {repository: qeetgroup/qeet-id-files, level: L1}
 repository:
   name: qeet-id-hosted   # formerly qeet-id-login; the test image keeps that name, which the kit reads
   product: qeet-id

@@ -18,7 +18,7 @@ backend API; this app holds no database and no secrets."*
 ## Context hierarchy
 
 ```text
-qeet-context (L0)  →  qeet-id-context (L1)  →  qeet-id-server (the contract + all enforcement)
+qeet-context (L0)  →  qeet-id-files (L1)  →  qeet-id-server (the contract + all enforcement)
                                             →  qeet-id-hosted (L2 — this repository)
 ```
 
@@ -32,7 +32,7 @@ qeet-context (L0)  →  qeet-id-context (L1)  →  qeet-id-server (the contract 
 | [docs/llm/boundaries.md](docs/llm/boundaries.md) | What it owns and must not touch |
 | [docs/llm/workflows.md](docs/llm/workflows.md) | Adding a flow or a page |
 
-Product-level flow narratives: `qeet-id-context/FLOWS/`.
+Product-level flow narratives: `qeet-id-files/TAD.md` §6.
 
 ## Code layout
 
