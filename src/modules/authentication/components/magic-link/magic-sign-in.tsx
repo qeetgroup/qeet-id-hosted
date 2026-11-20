@@ -43,11 +43,14 @@ export function MagicSignIn({
   linkMinutes,
   orgName,
   branding,
+  returnTo = "",
 }: Readonly<{
   token: string;
   linkMinutes?: number;
   orgName?: string;
   branding?: Branding;
+  /** The link's return_to, kept on "Sign in another way" so the application's journey goes on. */
+  returnTo?: string;
 }>) {
   const { t } = useTranslation("signIn");
   const [state, setState] = useState<State>(token ? "checking" : "missing");
@@ -145,6 +148,7 @@ export function MagicSignIn({
       resending={resending}
       resendError={resendError}
       branding={branding}
+      returnTo={returnTo}
       onResend={() => void resend()}
     />
   );

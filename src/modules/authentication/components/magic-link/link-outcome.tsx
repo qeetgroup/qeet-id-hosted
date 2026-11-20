@@ -8,6 +8,7 @@ import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { ArrowLeftIcon, MailIcon } from "@/platform/icons";
+import { safeReturnTo, withReturnTo } from "@/platform/navigation/return-to";
 
 import type { State } from "./magic-sign-in";
 
@@ -22,6 +23,7 @@ export function LinkOutcome({
   resending,
   resendError,
   branding,
+  returnTo = "",
   onResend,
 }: Readonly<{
   state: Exclude<State, "checking">;
@@ -30,11 +32,14 @@ export function LinkOutcome({
   resending: boolean;
   resendError: string | null;
   branding?: Branding;
+  /** Kept on "Sign in another way" when it is a return address the sign-in page accepts. */
+  returnTo?: string;
   onResend: () => void;
 }>) {
   const { t } = useTranslation("signIn");
+  const signInHref = withReturnTo("/sign-in", safeReturnTo(returnTo) ? returnTo : "");
   const other = (
-    <LinkButton href="/sign-in" variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon}>
+    <LinkButton href={signInHref} variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon}>
       {t("magic.other")}
     </LinkButton>
   );

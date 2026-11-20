@@ -99,6 +99,35 @@ export function RemoveConnectionDialog({
   );
 }
 
+/** Turning single sign-on off says who stops signing in through the identity provider. */
+export function TurnOffSsoDialog({
+  domain,
+  idpName,
+  orgName,
+  onTurnOff,
+  onClose,
+}: Readonly<{
+  domain: string;
+  idpName: string;
+  orgName: string;
+  onTurnOff: () => Promise<boolean>;
+  onClose: () => void;
+}>) {
+  const { t } = useTranslation("enterpriseSetup");
+  return (
+    <ConfirmDialog
+      title={t("turnOffSso.title")}
+      body={t("turnOffSso.body", { domain, idp: idpName, org: orgName })}
+      confirm={t("turnOffSso.turnOff")}
+      busyLabel={t("turnOffSso.turningOff")}
+      cancel={t("turnOffSso.cancel")}
+      failed={[t("turnOffSso.failedTitle"), t("turnOffSso.failedBody")]}
+      onConfirm={onTurnOff}
+      onClose={onClose}
+    />
+  );
+}
+
 /** Turning SCIM off revokes the token; it says what stops, and that nobody is removed. */
 export function TurnOffScimDialog({
   idpName,

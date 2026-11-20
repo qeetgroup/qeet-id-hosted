@@ -3,7 +3,7 @@ import { cleanup, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
-import { mockApi } from "@/testing/mock-api";
+import { AUTHORIZE, mockApi } from "@/testing/mock-api";
 import { render } from "@/testing/render";
 import { MagicSignIn } from "../components/magic-link/magic-sign-in";
 
@@ -27,6 +27,33 @@ describe("MagicSignIn", () => {
     expect(await screen.findByText(NETWORK)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Send a new link" })).toBeNull();
     expect(screen.queryByText(/used already/)).toBeNull();
+  });
+
+  it("keeps the application's return address on Sign in another way", async () => {
+    const returnTo = AUTHORIZE;
+    mockApi({
+      "POST /v1/auth/magic-link/session": {
+        status: 410,
+        body: { error: { code: "recovery.link_expired", message: "This link has expired." } },
+      },
+    });
+    render(<MagicSignIn token="tok-1" returnTo={returnTo} />);
+    const other = await screen.findByRole("link", { name: "Sign in another way" });
+    expect(other.getAttribute("href")).toBe(
+      `/sign-in?${new URLSearchParams({ return_to: returnTo })}`,
+    );
+  });
+
+  it("drops a return address the sign-in page would refuse", async () => {
+    mockApi({
+      "POST /v1/auth/magic-link/session": {
+        status: 410,
+        body: { error: { code: "recovery.link_expired", message: "This link has expired." } },
+      },
+    });
+    render(<MagicSignIn token="tok-1" returnTo="https://evil.example/phish" />);
+    const other = await screen.findByRole("link", { name: "Sign in another way" });
+    expect(other.getAttribute("href")).toBe("/sign-in");
   });
 
   it("still offers a new link for a link that has expired", async () => {

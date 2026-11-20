@@ -40,7 +40,9 @@ import {
 export function useSignIn(props: Readonly<SignInFormProps>) {
   const { returnTo, organizationId } = props;
   const hints = authorizeHints(returnTo);
-  const again = hints.fresh && hints.hint !== "";
+  // A fresh sign-in of a named account asks only for its proof: a password or a passkey, as the
+  // organisation allows. With neither allowed, the usual way on from the email applies instead.
+  const again = hints.fresh && hints.hint !== "" && (props.passwordEnabled || props.passkeyEnabled);
   const [step, setStep] = useState<Step>(again ? "password" : "email");
   const [email, setEmail] = useState(hints.hint);
   const [problem, setProblem] = useState<Problem | null>(() => problemOfRedirect(props.errorCode));

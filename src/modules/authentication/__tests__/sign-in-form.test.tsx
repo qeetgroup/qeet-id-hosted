@@ -298,6 +298,33 @@ describe("SignInForm", () => {
     expect(screen.getByLabelText("Password")).toBeTruthy();
   });
 
+  it("offers only the passkey on a fresh sign-in when the organisation turned passwords off", () => {
+    renderSignIn({
+      passwordEnabled: false,
+      passkeyEnabled: true,
+      returnTo: `${AUTHORIZE}&prompt=login&login_hint=ada%40example.com`,
+    });
+
+    expect(screen.getByRole("heading", { level: 1, name: "Confirm it's you" })).toBeTruthy();
+    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect(screen.getByRole("button", { name: "Continue with your passkey" })).toBeTruthy();
+  });
+
+  it("takes the usual way on a fresh sign-in when neither passwords nor passkeys are allowed", () => {
+    renderSignIn({
+      passwordEnabled: false,
+      passkeyEnabled: false,
+      magicLinkEnabled: true,
+      returnTo: `${AUTHORIZE}&prompt=login&login_hint=ada%40example.com`,
+    });
+
+    expect(screen.queryByRole("heading", { level: 1, name: "Confirm it's you" })).toBeNull();
+    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect((screen.getByLabelText("Email address") as HTMLInputElement).value).toBe(
+      "ada@example.com",
+    );
+  });
+
   it("emails a sign-in link when the organisation allows no password", async () => {
     const calls = mockApi({ "POST /v1/auth/magic-link/start": { status: 204 } });
     renderSignIn({ passwordEnabled: false, magicLinkEnabled: true });

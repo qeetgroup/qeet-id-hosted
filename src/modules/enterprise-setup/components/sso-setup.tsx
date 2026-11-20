@@ -2,7 +2,7 @@
 
 import { Badge, Card, Text } from "@qeetrix/react";
 import { CopyField, type Step, Steps } from "@qeetrix/react/experimental";
-import { Fragment, type ReactElement, useState } from "react";
+import { Fragment, type ReactElement, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -23,7 +23,13 @@ import { ClockIcon } from "@/platform/icons";
 
 import { type IdpKind, idpOf } from "../identity-providers";
 import { AddSamlPage } from "./add-saml-page";
-import { RemoveConnectionDialog, ScimTokenDialog, TurnOffScimDialog } from "./setup-dialogs";
+import { readScimSkipped, writeScimSkipped } from "./scim-skip";
+import {
+  RemoveConnectionDialog,
+  ScimTokenDialog,
+  TurnOffScimDialog,
+  TurnOffSsoDialog,
+} from "./setup-dialogs";
 import {
   ConnectPanel,
   DomainPanel,
@@ -41,6 +47,7 @@ type Overlay =
   | { kind: "remove" }
   | { kind: "token"; token: string; first: boolean }
   | { kind: "scimOff" }
+  | { kind: "ssoOff" }
   | null;
 
 // The rail's mark for a step: done, a failed test, or nothing yet.
@@ -70,7 +77,17 @@ export function SsoSetup({
   const { t, i18n } = useTranslation("enterpriseSetup");
   const { setup, failed, reload, setSetup } = useSetup(context);
   const [test, setTest] = useState<SamlTestSignIn | null>(initialTest);
-  const [scimSkipped, setScimSkipped] = useState(false);
+  const [scimSkipped, setScimSkippedState] = useState(false);
+  // "Not now" for SCIM is kept for this link (by its expiry), so a reload doesn't ask again; read
+  // after the first render so the server's render and the browser's match.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: read once per link
+  useEffect(() => {
+    if (readScimSkipped(context.expires_at)) setScimSkippedState(true);
+  }, []);
+  const setScimSkipped = (skipped: boolean) => {
+    setScimSkippedState(skipped);
+    writeScimSkipped(context.expires_at, skipped);
+  };
   // Test again on a finished setup opens the test step once more.
   const [retest, setRetest] = useState(false);
   const [chosen, setChosen] = useState<IdpKind | null>(null);
@@ -107,7 +124,9 @@ export function SsoSetup({
   }
 
   const connection = setup.connection;
-  const idp: IdpKind = chosen ?? (connection ? idpOf(connection) : "okta");
+  // With no connection yet, the picker starts on Okta; a link that can't set up SAML names no one.
+  const fallbackIdp: IdpKind = context.capabilities.includes("saml") ? "okta" : "other";
+  const idp: IdpKind = chosen ?? (connection ? idpOf(connection) : fallbackIdp);
   const idpName = t(`connect.idps.${idp}.name`);
   const verified = setup.domains.filter((d) => d.status === "verified");
   const pending = setup.domains.find((d) => d.status !== "verified");
@@ -161,6 +180,25 @@ export function SsoSetup({
       );
       setSetup({ ...setup, connection: live, domains });
     });
+
+  // Turning it off stops sending the verified domains' people to the identity provider; the
+  // connection stays, so it can be turned on again here. A link without domains disables it.
+  async function turnOffSso(): Promise<boolean> {
+    try {
+      const on = setup?.domains.filter((d) => d.status === "verified" && d.sso_enabled) ?? [];
+      if (on.length > 0) {
+        const off = await Promise.all(on.map((d) => setDomainSSO(d.id, false)));
+        const byId = new Map(off.map((d) => [d.id, d]));
+        if (setup) setSetup({ ...setup, domains: setup.domains.map((d) => byId.get(d.id) ?? d) });
+      } else if (connection) {
+        const disabled = await updateSamlConnection(connection.id, { status: "disabled" });
+        if (setup) setSetup({ ...setup, connection: disabled });
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   const scimOn = () =>
     act(async () => {
@@ -235,6 +273,7 @@ export function SsoSetup({
         idpName={idpName}
         busy={busy}
         onTurnOn={() => void turnOn()}
+        onTurnOff={() => setOverlay({ kind: "ssoOff" })}
       />
     ),
     scim: (at) => (
@@ -349,6 +388,15 @@ export function SsoSetup({
           endpoint={context.scim_base_url}
           first={overlay.first}
           idpName={idpName}
+          onClose={() => setOverlay(null)}
+        />
+      )}
+      {overlay?.kind === "ssoOff" && (
+        <TurnOffSsoDialog
+          domain={domain ?? org}
+          idpName={idpName}
+          orgName={org}
+          onTurnOff={turnOffSso}
           onClose={() => setOverlay(null)}
         />
       )}

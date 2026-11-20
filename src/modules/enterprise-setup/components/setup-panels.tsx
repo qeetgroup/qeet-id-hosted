@@ -191,6 +191,7 @@ export function TurnOnPanel({
   idpName,
   busy,
   onTurnOn,
+  onTurnOff,
 }: Readonly<{
   at: StepAt;
   /** The verified domain, else the organisation's name. */
@@ -199,10 +200,22 @@ export function TurnOnPanel({
   idpName: string;
   busy: boolean;
   onTurnOn: () => void;
+  /** Stops sending the domain's people to the identity provider; asks first. */
+  onTurnOff: () => void;
 }>) {
   const { t } = useTranslation("enterpriseSetup");
   if (!at.current) {
-    return <DoneRow title={at.title} summary={t("turnOn.row", { domain })} />;
+    return (
+      <DoneRow
+        title={at.title}
+        summary={t("turnOn.row", { domain })}
+        actions={
+          <Button variant="ghost" tone="danger" size="sm" disabled={busy} onClick={onTurnOff}>
+            {t("turnOn.turnOff")}
+          </Button>
+        }
+      />
+    );
   }
   return (
     <CurrentStep

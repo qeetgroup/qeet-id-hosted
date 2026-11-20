@@ -69,6 +69,7 @@ export function PasswordPage({
   onSubmit,
   onLink,
   onPasskey,
+  passwordAllowed = true,
 }: Readonly<{
   again: boolean;
   email: string;
@@ -84,6 +85,8 @@ export function PasswordPage({
   onSubmit: (password: string) => void;
   onLink?: () => void;
   onPasskey?: () => void;
+  /** False when the organisation turned passwords off. */
+  passwordAllowed?: boolean;
 }>) {
   const { t } = useTranslation("signIn");
   if (again) {
@@ -101,6 +104,7 @@ export function PasswordPage({
           busy={busy}
           onSubmit={onSubmit}
           onPasskey={onPasskey}
+          passwordAllowed={passwordAllowed}
         />
       </HostedPage>
     );

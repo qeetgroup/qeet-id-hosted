@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import "@/i18n";
 
@@ -11,6 +11,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   window.history.replaceState(null, "", "/");
+  window.localStorage.clear();
 });
 
 const CONTEXT = {
@@ -178,6 +179,83 @@ describe("EnterpriseSetupPage", () => {
         calls.find((c) => c.method === "PATCH" && c.path === "/v1/admin-portal/domains/d1")?.body,
       ).toEqual({ sso_enabled: true }),
     );
+  });
+
+  it("turns single sign-on off again, after asking, and keeps the connection", async () => {
+    const calls = await open({
+      "GET /v1/admin-portal/domains": {
+        status: 200,
+        body: { items: [{ ...VERIFIED, sso_enabled: true }] },
+      },
+      "GET /v1/admin-portal/saml": {
+        status: 200,
+        body: { items: [{ ...CONNECTED, status: "active" }] },
+      },
+      "GET /v1/admin-portal/scim": {
+        status: 200,
+        body: { token_set: false, provisioned_count: 0 },
+      },
+      "PATCH /v1/admin-portal/domains/d1": {
+        status: 200,
+        body: { ...VERIFIED, sso_enabled: false },
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Turn off" }));
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText("Turn off single sign-on?")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Turn off" }));
+
+    await waitFor(() =>
+      expect(
+        calls.find((c) => c.method === "PATCH" && c.path === "/v1/admin-portal/domains/d1")?.body,
+      ).toEqual({ sso_enabled: false }),
+    );
+    expect(calls.some((c) => c.method === "PATCH" && c.path === "/v1/admin-portal/saml/c1")).toBe(
+      false,
+    );
+    expect(await screen.findByRole("button", { name: "Turn on single sign-on" })).toBeTruthy();
+  });
+
+  it("remembers Not now for SCIM on this link across a reload", async () => {
+    const routes = {
+      "GET /v1/admin-portal/domains": {
+        status: 200,
+        body: { items: [{ ...VERIFIED, sso_enabled: true }] },
+      },
+      "GET /v1/admin-portal/saml": {
+        status: 200,
+        body: { items: [{ ...CONNECTED, status: "active" }] },
+      },
+      "GET /v1/admin-portal/scim": {
+        status: 200,
+        body: { token_set: false, provisioned_count: 0 },
+      },
+    };
+    await open(routes);
+    fireEvent.click(await screen.findByRole("button", { name: "Not now" }));
+    expect(await screen.findByText("Not now: turn it on any time from this link")).toBeTruthy();
+
+    cleanup();
+    await open(routes);
+    expect(await screen.findByText("Not now: turn it on any time from this link")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Not now" })).toBeNull();
+  });
+
+  it("names no identity provider on a link that can only set up SCIM", async () => {
+    window.history.replaceState(null, "", "/enterprise-setup");
+    mockApi({
+      "GET /v1/admin-portal/context": {
+        status: 200,
+        body: { ...CONTEXT, capabilities: ["scim"] },
+      },
+      ...NOTHING,
+    });
+    render(<EnterpriseSetupPage />);
+    await screen.findByRole("heading", { level: 1, name: "Set up single sign-on" });
+
+    expect(await screen.findByText(/Let your identity provider add/)).toBeTruthy();
+    expect(screen.queryByText(/Okta/)).toBeNull();
   });
 
   it("shows a new SCIM token once, and closes only once it's copied", async () => {

@@ -223,6 +223,15 @@
     "saved": "I've copied the token",
     "done": "Done"
   },
+  "turnOffSso": {
+    "title": "Turn off single sign-on?",
+    "body": "People at {{domain}} will stop signing in with {{idp}} and use {{org}}'s other ways to sign in. The connection stays, so you can turn it on again here.",
+    "cancel": "Cancel",
+    "turnOff": "Turn off",
+    "turningOff": "Turning off…",
+    "failedTitle": "Single sign-on is still on",
+    "failedBody": "Try again. If it keeps happening, turn it off in the console."
+  },
   "turnOffScim": {
     "title": "Turn off SCIM provisioning?",
     "body": "{{idp}} will stop adding, updating and removing {{org}}'s people in Qeet ID. Nobody is removed now: the people added so far stay.",

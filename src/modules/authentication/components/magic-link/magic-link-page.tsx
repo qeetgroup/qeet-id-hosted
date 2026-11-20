@@ -16,6 +16,7 @@ export async function MagicLinkPage({
       linkMinutes={ctx.magic_link_ttl_minutes}
       orgName={ctx.organization_name}
       branding={normalizeBranding(ctx.branding)}
+      returnTo={returnTo}
     />
   );
 }

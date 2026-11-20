@@ -25,6 +25,7 @@ export function PasswordStep({
   onSubmit,
   onLink,
   onPasskey,
+  passwordAllowed = true,
 }: Readonly<{
   email: string;
   /** Where Forgot password goes; none on a fresh sign-in an application asked for. */
@@ -37,6 +38,8 @@ export function PasswordStep({
   onLink?: () => void;
   /** Use a passkey instead, on a fresh sign-in an application asked for. */
   onPasskey?: () => void;
+  /** False when the organisation turned passwords off: a fresh sign-in then offers the passkey only. */
+  passwordAllowed?: boolean;
 }>) {
   const { t } = useTranslation("signIn");
   const [password, setPassword] = useState("");
@@ -46,6 +49,17 @@ export function PasswordStep({
   function submit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     onSubmit(password);
+  }
+
+  if (!passwordAllowed && onPasskey) {
+    return (
+      <FormStack>
+        <ProblemAlert problem={problem} org={org} />
+        <Button type="button" size="lg" fullWidth loading={busy} onClick={onPasskey}>
+          {t("again.passkeyOnly")}
+        </Button>
+      </FormStack>
+    );
   }
 
   return (

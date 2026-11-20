@@ -83,6 +83,7 @@ export function SignInForm(props: Readonly<SignInFormProps>) {
           onSubmit={flow.onPassword}
           onLink={flow.toLink}
           onPasskey={flow.passkeyAgain}
+          passwordAllowed={props.passwordEnabled}
         />
       );
     case "company":

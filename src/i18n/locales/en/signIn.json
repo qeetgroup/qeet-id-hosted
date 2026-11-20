@@ -32,7 +32,8 @@
     "title": "Confirm it's you",
     "body": "{{client}} asks you to sign in again before you continue.",
     "bodyNoClient": "Sign in again before you continue.",
-    "usePasskey": "Use a passkey instead"
+    "usePasskey": "Use a passkey instead",
+    "passkeyOnly": "Continue with your passkey"
   },
   "link": {
     "title": "Get a sign-in link",
