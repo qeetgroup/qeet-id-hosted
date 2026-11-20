@@ -1,7 +1,7 @@
 // The hosted login's server fetches application details from the API for each
 // visitor, so the API would see this server's address for everyone, and one
 // shared per-address allowance would throttle all of them. A trusted relay may
-// name the visitor's address (server QTID-828): with the key the API has in
+// name the visitor's address (the server's trusted relay): with the key the API has in
 // RELAY_KEYS (QEET_ID_RELAY_KEY here) it sends the address as X-Qeet-Client-IP.
 // Without the key the API ignores the claim.
 //
