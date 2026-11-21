@@ -19,7 +19,7 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 ## Add or change an auth flow
 
 ```text
-1  read the product flow      qeet-id-files/TAD.md §6 — what it SHOULD do
+1  read the product flow      qeet-id-context/FLOWS/authentication.md — what it SHOULD do
 2  VERIFY THE ENDPOINT        the real handler in qeet-id-server, not just the OpenAPI doc
 3  route + module page        src/app/(<group>)/<route>/page.tsx reads the URL; src/modules/<area>/components/
                              <flow>-page.tsx composes the shell, <flow>-form.tsx is the client form

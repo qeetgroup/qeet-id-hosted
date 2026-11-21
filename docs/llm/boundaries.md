@@ -1,7 +1,7 @@
 # Boundaries — qeet-id-hosted
 
 **Level:** L2 · **Last verified:** 2026-10-24
-**Verification scope:** ownership from `qeet-id-files/TAD.md` §14; endpoint list and auth
+**Verification scope:** ownership from `qeet-id-context/REPOSITORIES.md`; endpoint list and auth
 model read from source.
 
 ## Owns
@@ -85,13 +85,13 @@ accessibility improvements · error-message copy (as long as it uses codes, not 
 | **CSRF cookie or header name** | `qeet-id-server` **and** `qeet-id-react` — all three must agree |
 | Session cookie assumptions | `qeet-id-server` sets `qe_ls` |
 | **Calling a new endpoint** | Must exist in `qeet-id-server` first |
-| A new auth flow | `qeet-id-server`, and usually `qeet-id-files/TAD.md` §6 |
+| A new auth flow | `qeet-id-server`, and usually `qeet-id-context/FLOWS/` |
 | Hostname or port | Backend `LOGIN_BASE_URL`, `ALLOWED_ORIGINS`, `WEBAUTHN_RP_ORIGINS`, `qeet-id-deploy` |
 | Consent screen fields | `qeet-id-server` owns the scope list |
 | `@qeetrix/react` / `@qeetrix/tokens` / `@qeetrix/icons` upgrade | `qeetrix`: pinned exactly; re-check the brand tokens `.hosted-branded` overrides (`globals.css`) and the browser tests |
 | A page that looks different from its mockup | `qeet-mockups`: change and approve the mockup first |
 
-Product-level fan-out: `qeet-id-files/TAD.md` §15.
+Product-level fan-out: `qeet-id-context/CHANGE-MATRIX.md`.
 
 ## Hard limits
 

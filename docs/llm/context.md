@@ -18,7 +18,7 @@ backend API; this app holds no database and no secrets."*
 ## Context inheritance
 
 ```text
-qeet-context (L0)  →  qeet-id-files (L1)  →  qeet-id-server (contract + enforcement)
+qeet-context (L0)  →  qeet-id-context (L1)  →  qeet-id-server (contract + enforcement)
                                             →  qeet-id-hosted (L2 — this document)
 ```
 
@@ -28,7 +28,7 @@ qeet-context (L0)  →  qeet-id-files (L1)  →  qeet-id-server (contract + enfo
 product — and every external relying party — redirects here over OIDC. The organization's
 cross-product SSO model depends on that being the single point of interactive authentication.
 
-**Evidence:** `qeet-context/DOMAIN.md`, `qeet-id-files/TAD.md` §6.
+**Evidence:** `qeet-context/DOMAIN.md`, `qeet-id-context/FLOWS/oauth-oidc.md`.
 
 ## Responsibilities
 
@@ -183,4 +183,4 @@ themes.
 ## Documentation authority
 
 Source > `qeet-id-server`'s handlers > README. Product-level flow narratives live in
-`qeet-id-files/TAD.md` §6; this document explains only where they are implemented here.
+`qeet-id-context/FLOWS/`; this document explains only where they are implemented here.
