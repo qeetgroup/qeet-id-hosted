@@ -3,9 +3,9 @@
 import { Button, Text } from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { decideConsent } from "@/modules/oauth/api/consent";
 import type { Account } from "@/platform/api/account";
-import { ApiError, apiPost } from "@/platform/api/client";
+import { ApiError } from "@/platform/api/client";
 import { ADDRESS_NOT_ALLOWED } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
@@ -54,18 +54,24 @@ function hostOf(uri?: string): string | undefined {
   }
 }
 
+// How an ended request looks: recorded is good news, an unregistered application a refusal.
+const ENDED_STATUS: Partial<Record<Ended, "success" | "danger">> = {
+  recorded: "success",
+  unregistered: "danger",
+};
+
 /** A request that has ended, said in full: why, and that the window can be closed. */
 export function EndedPage({
   ended,
   clientName,
   branding,
-}: {
+}: Readonly<{
   ended: Ended;
   clientName: string;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("consent");
-  const status = ended === "recorded" ? "success" : ended === "unregistered" ? "danger" : "warning";
+  const status = ENDED_STATUS[ended] ?? "warning";
   return (
     <HostedPage
       single
@@ -91,7 +97,7 @@ export function ConsentForm({
   clientUri,
   account,
   branding,
-}: {
+}: Readonly<{
   requestId: string;
   scopes: string[];
   clientName: string;
@@ -99,7 +105,7 @@ export function ConsentForm({
   clientUri?: string;
   account: Account | null;
   branding?: Branding;
-}) {
+}>) {
   const { t } = useTranslation("consent");
   const [error, setError] = useState<string | null>(null);
   const [ended, setEnded] = useState<Ended | null>(null);
@@ -111,12 +117,9 @@ export function ConsentForm({
     setError(null);
     setBusy(approve ? "allow" : "deny");
     try {
-      const res = await apiPost<{ redirect?: string }>("/v1/oauth/authorize/decision", {
-        request_id: requestId,
-        approve,
-      });
-      if (res?.redirect && isWebAddress(res.redirect)) {
-        goTo(res.redirect);
+      const redirect = await decideConsent(requestId, approve);
+      if (redirect && isWebAddress(redirect)) {
+        goTo(redirect);
         return;
       }
       setEnded("recorded");

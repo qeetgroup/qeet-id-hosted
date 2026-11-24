@@ -24,12 +24,12 @@ export function SignOutConfirm({
   clientId,
   postLogoutRedirect,
   state,
-}: {
+}: Readonly<{
   ticket: string;
   clientId: string;
   postLogoutRedirect: string;
   state: string;
-}) {
+}>) {
   const { t } = useTranslation("signOut");
   const [appName, setAppName] = useState("");
   const [branding, setBranding] = useState<Branding | undefined>();

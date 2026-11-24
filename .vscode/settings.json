@@ -22,5 +22,9 @@
   },
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit"
+  },
+  "files.readonlyInclude": {
+    "contract/**": true,
+    "src/platform/api/contract/generated/**": true
   }
 }

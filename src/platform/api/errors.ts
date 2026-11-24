@@ -8,12 +8,23 @@ import { ApiError } from "./client";
 export const ADDRESS_NOT_ALLOWED = "auth.address_not_allowed";
 export const ADDRESS_NOT_ALLOWED_REDIRECT = "address_not_allowed";
 
+// The API's code when the address's domain belongs to an organisation that signs its people in
+// through its own identity provider, and the error a refused social sign-in comes back with.
+export const SSO_REQUIRED = "auth.sso_required";
+export const SSO_REQUIRED_REDIRECT = "sso_required";
+
 type Translate = (key: string) => string;
 
 // isAddressRefusal reports an address-rule refusal. It names no rule, range or
 // list, and nothing the person can retry from the same network.
 export function isAddressRefusal(err: unknown): boolean {
   return err instanceof ApiError && err.code === ADDRESS_NOT_ALLOWED;
+}
+
+// isSsoRequired reports a way of signing in the address's organisation has replaced with its own
+// sign-in. It depends only on the address's domain, never on whether the account exists.
+export function isSsoRequired(err: unknown): boolean {
+  return err instanceof ApiError && err.code === SSO_REQUIRED;
 }
 
 // apiErrorMessage is the message for a failed call: the shared network message

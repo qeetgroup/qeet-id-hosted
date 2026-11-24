@@ -64,7 +64,7 @@ describe("MfaEnrollment", () => {
     );
     fireEvent.click(next);
     await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
-    expect(calls[1].body).toEqual({ mfa_token: "mfa-1", code: "123456" });
+    expect(calls[1]?.body).toEqual({ mfa_token: "mfa-1", code: "123456" });
   });
 
   it("lets the person skip while the organisation's grace period lasts", async () => {
@@ -75,6 +75,6 @@ describe("MfaEnrollment", () => {
     fireEvent.click(screen.getByRole("button", { name: /Skip until/ }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
-    expect(calls[0].body).toEqual({ mfa_token: "mfa-1", skip: true });
+    expect(calls[0]?.body).toEqual({ mfa_token: "mfa-1", skip: true });
   });
 });

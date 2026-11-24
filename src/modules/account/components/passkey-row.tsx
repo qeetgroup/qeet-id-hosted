@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, IconButton, Text, TextField } from "@qeetrix/react";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { formatDay, formatWhen } from "@/platform/format";
@@ -18,12 +18,12 @@ export function PasskeyRow({
   onRename,
   onRemove,
   onError,
-}: {
+}: Readonly<{
   passkey: Passkey;
   onRename: (passkey: Passkey, name: string) => Promise<void>;
   onRemove: (passkey: Passkey) => void;
   onError: (err: unknown) => void;
-}) {
+}>) {
   const { t, i18n } = useTranslation("security");
   const [draft, setDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -34,7 +34,7 @@ export function PasskeyRow({
   const trimmed = draft?.trim() ?? "";
   const valid = trimmed.length > 0 && Array.from(trimmed).length <= PASSKEY_NAME_MAX_LENGTH;
 
-  async function save(e: FormEvent<HTMLFormElement>) {
+  async function save(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!valid || saving) return;
     setSaving(true);

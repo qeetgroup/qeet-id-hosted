@@ -16,20 +16,21 @@ export function ProblemAlert({
   forgotHref,
   org,
   className,
-}: {
+}: Readonly<{
   problem: Problem | null;
   /** The organisation's name, for the refusals that say whose rule it is. */
   org?: string;
   /** Where Reset password goes, for a paused account. */
   forgotHref?: string;
   className?: string;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   if (!problem || problem.kind === "wrong") return null;
   if (problem.kind === "server") {
     return <FormAlert title={problem.message} className={className} />;
   }
-  const warning = problem.kind === "network" || problem.kind === "passkeyUnsupported";
+  const warning =
+    problem.kind === "network" || problem.kind === "passkeyUnsupported" || problem.kind === "sso";
   return (
     <FormAlert
       tone={warning ? "warning" : "danger"}
@@ -43,7 +44,7 @@ export function ProblemAlert({
         ) : undefined
       }
     >
-      {org && (problem.kind === "inactive" || problem.kind === "network")
+      {org && (problem.kind === "inactive" || problem.kind === "network" || problem.kind === "sso")
         ? t(`problems.${problem.kind}.bodyOrg`, { org })
         : t(`problems.${problem.kind}.body`)}
     </FormAlert>

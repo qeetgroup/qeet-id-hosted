@@ -3,33 +3,25 @@
 import { Button } from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { LoginFactor } from "@/modules/authentication/session";
-import { ApiError, apiPost } from "@/platform/api/client";
+import {
+  beginPasskeySecondStep,
+  completeSecondStep,
+  sendSecondStepCode,
+} from "@/modules/authentication/api/mfa";
+import type { LoginFactor } from "@/modules/authentication/api/session";
+import { ApiError } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
-import { type Choice, ChoiceList } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { formatClock } from "@/platform/format";
-import {
-  KeyRoundIcon,
-  LockKeyholeIcon,
-  MailIcon,
-  MessageSquareTextIcon,
-  ShieldCheckIcon,
-  SmartphoneIcon,
-} from "@/platform/icons";
+import { getAssertion, isCancelled } from "@/platform/webauthn/ceremony";
 
 import { ApproveOnPhone } from "./approve-on-phone";
 import { CodeStep } from "./code-step";
+import { codeDescription, firstMode, type Mode, passkeyError, waitText, waysOf } from "./mfa-ways";
 import { SEND_INTERVAL_SECONDS, sendWait, useSendCooldown } from "./use-send-cooldown";
-
-type Mode =
-  | { kind: "app" }
-  | { kind: "sent"; factor: LoginFactor }
-  | { kind: "recovery" }
-  | { kind: "push" }
-  | { kind: "ways" };
+import { WaysPage } from "./ways-page";
 
 /**
  * The second step of a sign-in, after the password or link was accepted: a code from the
@@ -45,7 +37,7 @@ export function MfaChallenge({
   rememberDays,
   branding,
   onVerified,
-}: {
+}: Readonly<{
   mfaToken: string;
   factors: LoginFactor[];
   /** The account, when the first step named it. */
@@ -55,18 +47,10 @@ export function MfaChallenge({
   rememberDays?: number;
   branding?: Branding;
   onVerified: () => void | Promise<void>;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
-  // An older server lists no factors: an authenticator app and recovery codes, then.
-  const hasTotp = factors.length === 0 || factors.some((f) => f.type === "totp");
-  const hasRecovery = factors.length === 0 || factors.some((f) => f.type === "recovery_code");
-  const hasPush = factors.some((f) => f.type === "push");
-  const hasPasskey = factors.some((f) => f.type === "passkey");
-  const codeFactors = factors.filter((f) => (f.type === "email" || f.type === "sms") && f.id);
-
-  const [mode, setMode] = useState<Mode>(
-    hasTotp ? { kind: "app" } : hasPush ? { kind: "push" } : { kind: "ways" },
-  );
+  const ways = waysOf(factors);
+  const [mode, setMode] = useState<Mode>(() => firstMode(ways));
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
@@ -75,12 +59,6 @@ export function MfaChallenge({
   const { secondsLeft, holdSend } = useSendCooldown();
   const lead = email ? <AccountChip email={email} /> : undefined;
 
-  function waitText(seconds: number): string {
-    return seconds < 60
-      ? t("mfa.wait.seconds", { count: seconds })
-      : t("mfa.wait.minutes", { count: Math.ceil(seconds / 60) });
-  }
-
   function go(next: Mode) {
     setWrong(null);
     setError(null);
@@ -88,8 +66,8 @@ export function MfaChallenge({
     setMode(next);
   }
 
-  async function complete(proof: Record<string, unknown>) {
-    await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, remember, ...proof });
+  async function complete(proof: Parameters<typeof completeSecondStep>[1]) {
+    await completeSecondStep(mfaToken, { remember, ...proof });
     await onVerified();
   }
 
@@ -113,7 +91,7 @@ export function MfaChallenge({
     go({ kind: "sent", factor });
     setBusy(true);
     try {
-      await apiPost("/v1/auth/mfa/send", { mfa_token: mfaToken, factor_id: factor.id });
+      await sendSecondStepCode(mfaToken, factor.id ?? "");
       holdSend(factor, SEND_INTERVAL_SECONDS);
     } catch (err) {
       const wait = sendWait(err);
@@ -122,7 +100,7 @@ export function MfaChallenge({
       } else {
         // Sent recently: enter that code, or wait to ask again.
         holdSend(factor, wait);
-        setNotice(t("mfa.sendWait", { destination: factor.destination, time: waitText(wait) }));
+        setNotice(t("mfa.sendWait", { destination: factor.destination, time: waitText(wait, t) }));
       }
     } finally {
       setBusy(false);
@@ -133,34 +111,12 @@ export function MfaChallenge({
     setError(null);
     setBusy(true);
     try {
-      const PK = window.PublicKeyCredential as
-        | (typeof window.PublicKeyCredential & {
-            parseRequestOptionsFromJSON?: (o: unknown) => PublicKeyCredentialRequestOptions;
-          })
-        | undefined;
-      if (!PK || !navigator.credentials) throw new Error(t("problems.passkeyUnsupported.title"));
-      const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
-        "/v1/auth/mfa/passkey/begin",
-        { mfa_token: mfaToken },
-      );
-      const options = PK.parseRequestOptionsFromJSON
-        ? PK.parseRequestOptionsFromJSON(begin.publicKey)
-        : (begin.publicKey as PublicKeyCredentialRequestOptions);
-      const assertion = (await navigator.credentials.get({ publicKey: options })) as
-        | (PublicKeyCredential & { toJSON?: () => unknown })
-        | null;
-      if (!assertion) throw new Error(t("problems.passkey.title"));
-      await complete({
-        passkey: {
-          session_id: begin.session_id,
-          credential: assertion.toJSON ? assertion.toJSON() : assertion,
-        },
-      });
+      const begin = await beginPasskeySecondStep(mfaToken);
+      const credential = await getAssertion(begin.publicKey);
+      await complete({ passkey: { session_id: begin.sessionId, credential } });
     } catch (err) {
       // Closing the browser's own prompt is a choice, not an error.
-      if (!(err instanceof DOMException && err.name === "NotAllowedError")) {
-        setError(err instanceof Error ? err.message : t("problems.generic.title"));
-      }
+      if (!isCancelled(err)) setError(passkeyError(err, t));
       setBusy(false);
     }
   }
@@ -179,73 +135,21 @@ export function MfaChallenge({
   }
 
   if (mode.kind === "ways") {
-    const items: Choice[] = [];
-    if (hasPush)
-      items.push({
-        id: "push",
-        icon: SmartphoneIcon,
-        title: t("mfa.ways.push.title"),
-        detail: t("mfa.ways.push.detail"),
-        onClick: () => go({ kind: "push" }),
-      });
-    if (hasTotp)
-      items.push({
-        id: "totp",
-        icon: ShieldCheckIcon,
-        title: t("mfa.ways.totp.title"),
-        detail: t("mfa.ways.totp.detail"),
-        onClick: () => go({ kind: "app" }),
-      });
-    for (const f of codeFactors) {
-      const way = f.type === "sms" ? "sms" : "email";
-      items.push({
-        id: f.id ?? way,
-        icon: way === "sms" ? MessageSquareTextIcon : MailIcon,
-        title: t(`mfa.ways.${way}.title`),
-        detail: t(`mfa.ways.${way}.detail`, { destination: f.destination }),
-        onClick: () => void sendCode(f),
-      });
-    }
-    if (hasPasskey)
-      items.push({
-        id: "passkey",
-        icon: KeyRoundIcon,
-        title: busy ? t("mfa.passkeyBusy") : t("mfa.ways.passkey.title"),
-        detail: t("mfa.ways.passkey.detail"),
-        disabled: busy,
-        onClick: () => void verifyWithPasskey(),
-      });
-    if (hasRecovery)
-      items.push({
-        id: "recovery",
-        icon: LockKeyholeIcon,
-        title: t("mfa.ways.recovery.title"),
-        detail: t("mfa.ways.recovery.detail"),
-        onClick: () => go({ kind: "recovery" }),
-      });
     return (
-      <HostedPage
-        branding={branding}
-        title={t("mfa.waysTitle")}
-        description={t("mfa.waysBody")}
+      <WaysPage
+        ways={ways}
+        busy={busy}
+        error={error}
         lead={lead}
-      >
-        <div className="flex flex-col gap-5">
-          <FormAlert title={error} />
-          <ChoiceList label={t("mfa.waysLabel")} items={items} />
-        </div>
-      </HostedPage>
+        branding={branding}
+        onMode={go}
+        onSend={(f) => void sendCode(f)}
+        onPasskey={() => void verifyWithPasskey()}
+      />
     );
   }
 
-  const description =
-    mode.kind === "recovery"
-      ? t("mfa.recoveryBody")
-      : mode.kind === "sent"
-        ? t(mode.factor.type === "sms" ? "mfa.textedBody" : "mfa.sentBody", {
-            destination: mode.factor.destination,
-          })
-        : t("mfa.appBody");
+  const description = codeDescription(mode, t);
   const sentFactor = mode.kind === "sent" ? mode.factor : null;
   const left = sentFactor ? secondsLeft(sentFactor) : 0;
   return (

@@ -7,7 +7,7 @@ import { QeetIdLogo } from "./qeet-id-logo";
  * branding settings, or Qeet ID's. An organisation's logo is decorative here: the page's title
  * and the application line say where the person is.
  */
-export function BrandLogo({ branding }: { branding?: Branding }) {
+export function BrandLogo({ branding }: Readonly<{ branding?: Branding }>) {
   if (branding?.logoUrl) {
     return (
       // biome-ignore lint/performance/noImgElement: organisations' logos load from any host

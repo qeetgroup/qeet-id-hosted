@@ -15,7 +15,7 @@ function renderSignIn(overrides: Partial<SignInFormProps> = {}) {
     <SignInForm
       returnTo={AUTHORIZE}
       clientName="Acme"
-      tenantId="tenant-1"
+      organizationId="org-1"
       providers={[]}
       selfRegistrationEnabled={false}
       rememberDeviceEnabled={false}
@@ -150,6 +150,66 @@ describe("SignInForm", () => {
     cleanup();
     renderSignIn({ errorCode: "social" });
     expect(screen.getByText("That sign-in didn't work")).toBeTruthy();
+    cleanup();
+    renderSignIn({ errorCode: "sso_required" });
+    expect(screen.getByText("Use your organisation's sign-in")).toBeTruthy();
+    cleanup();
+    renderSignIn({ errorCode: "other_browser" });
+    expect(screen.getByText("Finish signing in in the same browser")).toBeTruthy();
+  });
+
+  it("says to use the organisation's sign-in when the server requires it and no connection is found", async () => {
+    mockApi({
+      "POST /v1/sso/discovery": { status: 200, body: { sso: false, connections: [] } },
+      "POST /v1/auth/session": refuse(403, "auth.sso_required"),
+    });
+    renderSignIn();
+    await signIn();
+    expect(await screen.findByText("Use your organisation's sign-in")).toBeTruthy();
+    expect(goTo).not.toHaveBeenCalled();
+  });
+
+  it("starts a social sign-in at the organisation's own providers, back to the application", () => {
+    mockApi({});
+    renderSignIn({ providers: ["google"] });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in with Google" }));
+    expect(goTo).toHaveBeenCalledWith(
+      `https://api.id.example/v1/social/google/start?${new URLSearchParams({
+        organization_id: "org-1",
+        return_to: AUTHORIZE,
+      })}`,
+    );
+  });
+
+  it("signs in with a passkey through the hosted session, so no token reaches the page", async () => {
+    vi.stubGlobal("PublicKeyCredential", { parseRequestOptionsFromJSON: (o: unknown) => o });
+    Object.defineProperty(navigator, "credentials", {
+      configurable: true,
+      value: { get: async () => ({ toJSON: () => ({ id: "cred-1", type: "public-key" }) }) },
+    });
+    const calls = mockApi({
+      "POST /v1/passkeys/login/begin": {
+        status: 200,
+        body: { session_id: "pk-1", publicKey: { challenge: "c" } },
+      },
+      "POST /v1/passkeys/login/session": { status: 200, body: { user_id: "u-1" } },
+    });
+    try {
+      renderSignIn({ passkeyEnabled: true });
+      fireEvent.click(screen.getByRole("button", { name: "Sign in with a passkey" }));
+
+      await waitFor(() => expect(goTo).toHaveBeenCalledWith(AUTHORIZE));
+      expect(calls.map((c) => c.path)).toEqual([
+        "/v1/passkeys/login/begin",
+        "/v1/passkeys/login/session",
+      ]);
+      expect(calls[1]?.body).toEqual({
+        session_id: "pk-1",
+        credential: { id: "cred-1", type: "public-key" },
+      });
+    } finally {
+      Reflect.deleteProperty(navigator, "credentials");
+    }
   });
 
   it("asks for the second step instead of continuing, holding its token in memory", async () => {
@@ -238,6 +298,33 @@ describe("SignInForm", () => {
     expect(screen.getByLabelText("Password")).toBeTruthy();
   });
 
+  it("offers only the passkey on a fresh sign-in when the organisation turned passwords off", () => {
+    renderSignIn({
+      passwordEnabled: false,
+      passkeyEnabled: true,
+      returnTo: `${AUTHORIZE}&prompt=login&login_hint=ada%40example.com`,
+    });
+
+    expect(screen.getByRole("heading", { level: 1, name: "Confirm it's you" })).toBeTruthy();
+    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect(screen.getByRole("button", { name: "Continue with your passkey" })).toBeTruthy();
+  });
+
+  it("takes the usual way on a fresh sign-in when neither passwords nor passkeys are allowed", () => {
+    renderSignIn({
+      passwordEnabled: false,
+      passkeyEnabled: false,
+      magicLinkEnabled: true,
+      returnTo: `${AUTHORIZE}&prompt=login&login_hint=ada%40example.com`,
+    });
+
+    expect(screen.queryByRole("heading", { level: 1, name: "Confirm it's you" })).toBeNull();
+    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect((screen.getByLabelText("Email address") as HTMLInputElement).value).toBe(
+      "ada@example.com",
+    );
+  });
+
   it("emails a sign-in link when the organisation allows no password", async () => {
     const calls = mockApi({ "POST /v1/auth/magic-link/start": { status: 204 } });
     renderSignIn({ passwordEnabled: false, magicLinkEnabled: true });
@@ -252,7 +339,7 @@ describe("SignInForm", () => {
     expect(calls.find((c) => c.path !== "/v1/sso/discovery")).toMatchObject({
       path: "/v1/auth/magic-link/start",
       body: {
-        tenant_id: "tenant-1",
+        organization_id: "org-1",
         email: "ada@example.com",
         app: "hosted_login",
         return_to: AUTHORIZE,

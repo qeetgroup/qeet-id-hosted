@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { LoginFactor } from "@/modules/authentication/session";
+import type { LoginFactor } from "@/modules/authentication/api/session";
 import { ApiError } from "@/platform/api/client";
 
 // The server sends a factor at most one code every 30 seconds (POST

@@ -1,32 +1,19 @@
 "use client";
 
-import { Button, LinkButton, Spinner, Text } from "@qeetrix/react";
+import { Spinner, Text } from "@qeetrix/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { resendSignInLink, tradeSignInLink } from "@/modules/authentication/api/magic-link";
+import { challengeOf, type LoginFactor } from "@/modules/authentication/api/session";
 import { MfaChallenge } from "@/modules/authentication/components/mfa/mfa-challenge";
 import { MfaEnrollment } from "@/modules/authentication/components/mfa/mfa-enrollment";
-import type { LoginFactor } from "@/modules/authentication/session";
-import { apiPost } from "@/platform/api/client";
-import { isAddressRefusal } from "@/platform/api/errors";
+import { isAddressRefusal, isSsoRequired } from "@/platform/api/errors";
 import type { Branding } from "@/platform/branding/branding";
-import { FormAlert } from "@/platform/components/form-alert";
-import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
-import { ArrowLeftIcon, MailIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
 import { safeReturnTo } from "@/platform/navigation/return-to";
 
-// The exchange answers the session (cookie set) or, when the account has a second step or must
-// set one up, a challenge to complete first. The link is spent either way.
-type MagicSessionResponse = {
-  return_to?: string;
-  mfa_required?: boolean;
-  mfa_token?: string;
-  factors?: LoginFactor[];
-  enrollment_required?: boolean;
-  enrollment_due_at?: string;
-};
+import { LinkOutcome } from "./link-outcome";
 
 type Challenge = {
   token: string;
@@ -36,7 +23,15 @@ type Challenge = {
   returnTo: string;
 };
 
-type State = "checking" | "failed" | "resent" | "missing" | "network";
+export type State = "checking" | "failed" | "resent" | "missing" | "network" | "sso";
+
+// Why the link couldn't sign in: a network the organisation refuses, an address its organisation
+// now signs in itself (the link stays unused), or a link that is used or too old.
+function refusedState(err: unknown): State {
+  if (isAddressRefusal(err)) return "network";
+  if (isSsoRequired(err)) return "sso";
+  return "failed";
+}
 
 /**
  * Where the emailed sign-in link lands: it checks the link, signs this browser in and goes straight
@@ -48,12 +43,15 @@ export function MagicSignIn({
   linkMinutes,
   orgName,
   branding,
-}: {
+  returnTo = "",
+}: Readonly<{
   token: string;
   linkMinutes?: number;
   orgName?: string;
   branding?: Branding;
-}) {
+  /** The link's return_to, kept on "Sign in another way" so the application's journey goes on. */
+  returnTo?: string;
+}>) {
   const { t } = useTranslation("signIn");
   const [state, setState] = useState<State>(token ? "checking" : "missing");
   const [resending, setResending] = useState(false);
@@ -65,32 +63,37 @@ export function MagicSignIn({
     // One exchange per page load, even under React's double effect in development.
     if (!token || started.current) return;
     started.current = true;
-    apiPost<MagicSessionResponse>("/v1/auth/magic-link/session", { token })
+    // The exchange answers the session (cookie set) or, when the account has a second step or must
+    // set one up, a challenge to complete first. The link is spent either way, except when the
+    // address must now sign in through its organisation: that link stays unused.
+    tradeSignInLink(token)
       .then((res) => {
-        if (res.mfa_required && res.mfa_token) {
+        const pending = challengeOf(res);
+        if (pending) {
           // The challenge token stays in memory only.
           setChallenge({
-            token: res.mfa_token,
-            factors: res.factors ?? [],
-            enrollment: !!res.enrollment_required,
-            dueAt: res.enrollment_due_at,
+            token: pending.mfa_token,
+            factors: pending.factors ?? [],
+            enrollment: !!pending.enrollment_required,
+            dueAt: pending.enrollment_due_at,
             returnTo: res.return_to ?? "",
           });
           return;
         }
         goTo(safeReturnTo(res.return_to ?? "") ?? "/security");
       })
-      .catch((err) => setState(isAddressRefusal(err) ? "network" : "failed"));
+      .catch((err) => setState(refusedState(err)));
   }, [token]);
 
   async function resend() {
     setResendError(null);
     setResending(true);
     try {
-      await apiPost("/v1/auth/magic-link/resend", { token });
+      await resendSignInLink(token);
       setState("resent");
-    } catch {
-      setResendError(t("problems.generic.title"));
+    } catch (err) {
+      if (isSsoRequired(err)) setState("sso");
+      else setResendError(t("problems.generic.title"));
     } finally {
       setResending(false);
     }
@@ -137,76 +140,16 @@ export function MagicSignIn({
     );
   }
 
-  const other = (
-    <LinkButton href="/sign-in" variant="ghost" size="lg" fullWidth icon={ArrowLeftIcon}>
-      {t("magic.other")}
-    </LinkButton>
-  );
-
-  if (state === "failed") {
-    return (
-      <HostedPage
-        single
-        status="danger"
-        branding={branding}
-        title={t("magic.failedTitle")}
-        description={
-          linkMinutes
-            ? t("magic.failedBodyMinutes", { minutes: linkMinutes })
-            : t("magic.failedBody")
-        }
-      >
-        <FormStack>
-          <FormAlert title={resendError} />
-          <Button
-            type="button"
-            size="lg"
-            fullWidth
-            icon={MailIcon}
-            loading={resending}
-            onClick={resend}
-          >
-            {t("magic.newLink")}
-          </Button>
-          {other}
-        </FormStack>
-      </HostedPage>
-    );
-  }
-
-  if (state === "resent") {
-    return (
-      <HostedPage
-        single
-        status="success"
-        branding={branding}
-        title={t("magic.resentTitle")}
-        description={
-          linkMinutes
-            ? t("magic.resentBodyMinutes", { minutes: linkMinutes })
-            : t("magic.resentBody")
-        }
-      >
-        {other}
-      </HostedPage>
-    );
-  }
-
   return (
-    <HostedPage
-      single
-      status="warning"
+    <LinkOutcome
+      state={state}
+      linkMinutes={linkMinutes}
+      orgName={orgName}
+      resending={resending}
+      resendError={resendError}
       branding={branding}
-      title={t(state === "network" ? "magic.networkTitle" : "magic.missingTitle")}
-      description={
-        state === "network"
-          ? orgName
-            ? t("magic.networkBodyOrg", { org: orgName })
-            : t("magic.networkBody")
-          : t("magic.missingBody")
-      }
-    >
-      {other}
-    </HostedPage>
+      returnTo={returnTo}
+      onResend={() => void resend()}
+    />
   );
 }

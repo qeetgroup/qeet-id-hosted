@@ -13,6 +13,6 @@ import i18n from "./index";
  * Component and renders this provider around `{children}` (the standard
  * App Router pattern for context providers).
  */
-export function I18nProvider({ children }: { children: React.ReactNode }) {
+export function I18nProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
 }

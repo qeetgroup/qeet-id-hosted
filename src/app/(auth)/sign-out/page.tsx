@@ -5,9 +5,9 @@ import { SignOutPage } from "@/modules/sign-out/components/sign-out-page";
 // session. A plain link or image therefore can't sign anyone out.
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<Record<string, string | undefined>>;
-}) {
+}>) {
   const sp = await searchParams;
   return (
     <SignOutPage

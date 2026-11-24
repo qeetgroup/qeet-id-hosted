@@ -17,7 +17,12 @@ declare global {
 
 const DEFAULT_API_URL = "http://localhost:4001";
 
-const trimSlash = (u: string) => u.replace(/\/+$/, "");
+// Without a regular expression, so a long run of slashes can't make it slow.
+function trimSlash(u: string): string {
+  let end = u.length;
+  while (end > 0 && u.charCodeAt(end - 1) === 47) end--; // 47: "/"
+  return u.slice(0, end);
+}
 
 /** Base URL of the Qeet ID API (no trailing slash), for server and browser code. */
 export function getApiBaseUrl(): string {

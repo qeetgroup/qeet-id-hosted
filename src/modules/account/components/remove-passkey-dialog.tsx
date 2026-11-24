@@ -21,12 +21,12 @@ export function RemovePasskeyDialog({
   name,
   onRemove,
   onClose,
-}: {
+}: Readonly<{
   name: string;
   /** Removes it; a thrown message stays in the dialog. */
   onRemove: () => Promise<string | null>;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("security");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

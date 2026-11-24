@@ -1,23 +1,63 @@
 "use client";
 
 import { Button, Spinner, Text } from "@qeetrix/react";
+import type { TFunction } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { completeSecondStep, sendPushRequest } from "@/modules/authentication/api/mfa";
+import { ApiError } from "@/platform/api/client";
 
-import { ApiError, apiPost } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
+import { formatClock } from "@/platform/format";
 import { RotateCwIcon } from "@/platform/icons";
 
 type State = "sending" | "waiting" | "approved" | "denied" | "ended" | "failed";
 
+/** How a request on the phone ended: approved, refused, out of time, or a failure to say. */
+type Outcome = { state: "approved" | "denied" | "ended" } | { state: "failed"; error: unknown };
+
 const POLL_MS = 2000;
 
-function clock(seconds: number): string {
-  const s = Math.max(0, seconds);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+/**
+ * Checks for the phone's answer every POLL_MS until there is one, or `current` says a newer
+ * request took over (then null). An unanswered check costs no attempt.
+ */
+async function waitForPhone(
+  mfaToken: string,
+  remember: boolean,
+  current: () => boolean,
+): Promise<Outcome | null> {
+  while (current()) {
+    await new Promise((r) => setTimeout(r, POLL_MS));
+    if (!current()) return null;
+    try {
+      await completeSecondStep(mfaToken, { remember, push: true });
+      return { state: "approved" };
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "mfa.push_pending") continue;
+      return outcomeOf(err);
+    }
+  }
+  return null;
+}
+
+function outcomeOf(err: unknown): Outcome {
+  const code = err instanceof ApiError ? err.code : "";
+  if (code === "mfa.code_invalid") return { state: "denied" };
+  if (code === "mfa.push_challenge_expired") return { state: "ended" };
+  return { state: "failed", error: err };
+}
+
+// The waiting line: sending, then the time left while it is known.
+function waitingLine(state: State, secondsLeft: number | null, t: TFunction<"signIn">): string {
+  if (state === "sending") return t("mfa.push.sending");
+  if (secondsLeft !== null && secondsLeft > 0) {
+    return t("mfa.push.waiting", { time: formatClock(secondsLeft) });
+  }
+  return t("mfa.push.waitingNoTime");
 }
 
 /**
@@ -33,14 +73,14 @@ export function ApproveOnPhone({
   lead,
   onApproved,
   onAnother,
-}: {
+}: Readonly<{
   mfaToken: string;
   remember: boolean;
   branding?: Branding;
   lead?: React.ReactNode;
   onApproved: () => void | Promise<void>;
   onAnother: () => void;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const [state, setState] = useState<State>("sending");
   const [number, setNumber] = useState<number | null>(null);
@@ -52,42 +92,27 @@ export function ApproveOnPhone({
 
   const start = useCallback(async () => {
     const mine = ++run.current;
+    const current = () => mine === run.current;
     setError(null);
     setState("sending");
+    let outcome: Outcome | null;
     try {
-      const res = await apiPost<{ expires_at?: string; number?: number }>("/v1/auth/mfa/push", {
-        mfa_token: mfaToken,
-      });
-      if (mine !== run.current) return;
+      const res = await sendPushRequest(mfaToken);
+      if (!current()) return;
       setNumber(typeof res.number === "number" ? res.number : null);
       setExpiresAt(res.expires_at ? Date.parse(res.expires_at) : null);
       setState("waiting");
-      while (mine === run.current) {
-        await new Promise((r) => setTimeout(r, POLL_MS));
-        if (mine !== run.current) return;
-        try {
-          await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, remember, push: true });
-        } catch (err) {
-          if (err instanceof ApiError && err.code === "mfa.push_pending") continue;
-          if (mine !== run.current) return;
-          if (err instanceof ApiError && err.code === "mfa.code_invalid") setState("denied");
-          else if (err instanceof ApiError && err.code === "mfa.push_challenge_expired")
-            setState("ended");
-          else {
-            setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
-            setState("failed");
-          }
-          return;
-        }
-        setState("approved");
-        await onApproved();
-        return;
-      }
+      outcome = await waitForPhone(mfaToken, remember, current);
     } catch (err) {
-      if (mine !== run.current) return;
-      setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
-      setState("failed");
+      outcome = { state: "failed", error: err };
     }
+    if (!outcome || !current()) return;
+    if (outcome.state === "failed") {
+      const err = outcome.error;
+      setError(err instanceof ApiError ? err.message : t("problems.generic.title"));
+    }
+    setState(outcome.state);
+    if (outcome.state === "approved") await onApproved();
   }, [mfaToken, remember, onApproved, t]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: one request when the step opens
@@ -189,13 +214,7 @@ export function ApproveOnPhone({
               <span role="status" className="sr-only">
                 {state === "sending" ? t("mfa.push.sending") : t("mfa.push.waitingNoTime")}
               </span>
-              <span aria-hidden>
-                {state === "sending"
-                  ? t("mfa.push.sending")
-                  : secondsLeft !== null && secondsLeft > 0
-                    ? t("mfa.push.waiting", { time: clock(secondsLeft) })
-                    : t("mfa.push.waitingNoTime")}
-              </span>
+              <span aria-hidden>{waitingLine(state, secondsLeft, t)}</span>
             </Text>
           </div>
         )}

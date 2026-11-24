@@ -2,7 +2,7 @@
 
 import { Button, Card, Field, Radio, RadioGroup, Textarea, TextField } from "@qeetrix/react";
 import { FileUpload, type FileUploadItem } from "@qeetrix/react/experimental";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -31,14 +31,14 @@ export function AddSamlPage({
   branding,
   onSaved,
   onCancel,
-}: {
+}: Readonly<{
   connection: SamlConnection;
   idpName: string;
   barEnd: React.ReactNode;
   branding?: Branding;
   onSaved: (connection: SamlConnection) => void;
   onCancel: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   const editing = Boolean(connection.idp_entity_id);
   const [name, setName] = useState(connection.name);
@@ -80,7 +80,7 @@ export function AddSamlPage({
     setCertificate(metadata.certificate);
   }
 
-  async function save(e: FormEvent<HTMLFormElement>) {
+  async function save(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setCertError(false);
@@ -104,6 +104,8 @@ export function AddSamlPage({
     }
   }
 
+  let saveLabel = editing ? t("addSaml.saveView") : t("addSaml.save");
+  if (saving) saveLabel = t("addSaml.saving");
   return (
     <HostedPage
       kind="page"
@@ -212,7 +214,7 @@ export function AddSamlPage({
         </Card>
         <div className="flex flex-wrap gap-3">
           <Button type="submit" size="lg" icon={CheckIcon} loading={saving}>
-            {saving ? t("addSaml.saving") : editing ? t("addSaml.saveView") : t("addSaml.save")}
+            {saveLabel}
           </Button>
           <Button
             type="button"

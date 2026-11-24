@@ -4,7 +4,7 @@ import { Button, Text } from "@qeetrix/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { apiPost } from "@/platform/api/client";
+import { sendSignInLink } from "@/modules/authentication/api/magic-link";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
@@ -22,16 +22,16 @@ import { ProblemAlert } from "./problem-alert";
  */
 export function LinkStep({
   email,
-  tenantId,
+  organizationId,
   returnTo,
   linkMinutes,
   branding,
   onChangeEmail,
   onUsePassword,
   onBack,
-}: {
+}: Readonly<{
   email: string;
-  tenantId: string;
+  organizationId: string;
   returnTo: string;
   /** How long the organisation's links work, when known. */
   linkMinutes?: number;
@@ -40,7 +40,7 @@ export function LinkStep({
   /** Back to the password, when the organisation allows passwords. */
   onUsePassword?: () => void;
   onBack: () => void;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const [sent, setSent] = useState<"no" | "sent" | "again">("no");
   const [busy, setBusy] = useState(false);
@@ -50,12 +50,7 @@ export function LinkStep({
     setProblem(null);
     setBusy(true);
     try {
-      await apiPost("/v1/auth/magic-link/start", {
-        tenant_id: tenantId,
-        email,
-        app: "hosted_login",
-        return_to: returnTo,
-      });
+      await sendSignInLink({ email, organizationId, returnTo });
       setSent((s) => (s === "no" ? "sent" : "again"));
     } catch (err) {
       setProblem(problemOf(err));

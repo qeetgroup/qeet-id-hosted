@@ -37,17 +37,18 @@ describe("translation keys", () => {
   it("name only namespaces the catalogue has", () => {
     const unknown = files.flatMap(({ name, text }) =>
       [...text.matchAll(/useTranslation\("([A-Za-z]+)"\)/g)]
-        .filter(([, ns]) => !(ns in catalogue))
-        .map(([, ns]) => `${name}: ${ns}`),
+        .map(([, ns = ""]) => ns)
+        .filter((ns) => !(ns in catalogue))
+        .map((ns) => `${name}: ${ns}`),
     );
     expect(unknown).toEqual([]);
   });
 
   it("are all in the English catalogue", () => {
     const missing = files.flatMap(({ name, text }) => {
-      const own = [...text.matchAll(/useTranslation\("([A-Za-z]+)"\)/g)].map(([, ns]) => ns);
+      const own = [...text.matchAll(/useTranslation\("([A-Za-z]+)"\)/g)].map(([, ns = ""]) => ns);
       return [...text.matchAll(/\bt\("([^"]+)"/g)]
-        .map(([, key]) => key)
+        .map(([, key = ""]) => key)
         .filter((key) => {
           const [ns, rest] = key.includes(":") ? key.split(":", 2) : [undefined, key];
           // A file that names no namespace can only be checked for prefixed keys.

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Link, TextField } from "@qeetrix/react";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AsideLine, OrDivider } from "@/platform/components/form-parts";
@@ -33,12 +33,12 @@ export type EmailStepProps = {
  * The first step: the email address, then Continue; or a passkey (which needs no email, and is
  * also offered in the email field's suggestions), or a social account the organisation turned on.
  */
-export function EmailStep(props: EmailStepProps) {
+export function EmailStep(props: Readonly<EmailStepProps>) {
   const { t } = useTranslation("signIn");
   const [email, setEmail] = useState(props.email);
   const busy = props.passkeyBusy;
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     props.onContinue(email.trim());
   }

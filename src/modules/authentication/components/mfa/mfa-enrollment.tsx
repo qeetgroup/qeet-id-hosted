@@ -2,9 +2,15 @@
 
 import { Button, LinkButton, Text } from "@qeetrix/react";
 import { CopyField, OTPInput, QRCode } from "@qeetrix/react/experimental";
+import type { TFunction } from "i18next";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError, apiPost } from "@/platform/api/client";
+import {
+  type AppEnrollment,
+  completeSecondStep,
+  startAppEnrollment,
+} from "@/modules/authentication/api/mfa";
+import { ApiError } from "@/platform/api/client";
 import type { Branding } from "@/platform/branding/branding";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
@@ -15,9 +21,17 @@ import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, QrCodeIcon } from "@/p
 
 import { RecoveryCodes } from "./recovery-codes";
 
-type Enrollment = { secret: string; provisioning_url: string };
-
 // A base32 key in groups of four, as an authenticator app asks for it.
+// Why a second step is being set up: by a date the organisation set, or now.
+function enrollBody(t: TFunction<"signIn">, due: string | null, orgName?: string): string {
+  if (due) {
+    return orgName
+      ? t("mfa.enroll.dueBodyOrg", { org: orgName, date: due })
+      : t("mfa.enroll.dueBody", { date: due });
+  }
+  return orgName ? t("mfa.enroll.requiredBodyOrg", { org: orgName }) : t("mfa.enroll.requiredBody");
+}
+
 function grouped(secret: string): string {
   return secret.replace(/\s+/g, "").replace(/(.{4})(?=.)/g, "$1 ");
 }
@@ -36,7 +50,7 @@ export function MfaEnrollment({
   orgName,
   branding,
   onDone,
-}: {
+}: Readonly<{
   mfaToken: string;
   dueAt?: string;
   email?: string;
@@ -44,9 +58,9 @@ export function MfaEnrollment({
   orgName?: string;
   branding?: Branding;
   onDone: () => void | Promise<void>;
-}) {
+}>) {
   const { t, i18n } = useTranslation("signIn");
-  const [app, setApp] = useState<Enrollment | null>(null);
+  const [app, setApp] = useState<AppEnrollment | null>(null);
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[] | null>(null);
   const [wrong, setWrong] = useState(false);
@@ -56,13 +70,7 @@ export function MfaEnrollment({
   const codeLabel = useId();
   const due = dueAt ? formatDay(dueAt, i18n.language) : null;
   const dueShort = dueAt ? formatDay(dueAt, i18n.language, false) : null;
-  const body = due
-    ? orgName
-      ? t("mfa.enroll.dueBodyOrg", { org: orgName, date: due })
-      : t("mfa.enroll.dueBody", { date: due })
-    : orgName
-      ? t("mfa.enroll.requiredBodyOrg", { org: orgName })
-      : t("mfa.enroll.requiredBody");
+  const body = enrollBody(t, due, orgName);
 
   async function attempt(fn: () => Promise<void>) {
     setError(null);
@@ -80,15 +88,12 @@ export function MfaEnrollment({
 
   const start = () =>
     attempt(async () => {
-      setApp(await apiPost<Enrollment>("/v1/auth/mfa/enroll", { mfa_token: mfaToken }));
+      setApp(await startAppEnrollment(mfaToken));
     });
 
   const confirm = (value: string) =>
     attempt(async () => {
-      const res = await apiPost<{ recovery_codes?: string[] }>("/v1/auth/session/mfa", {
-        mfa_token: mfaToken,
-        code: value,
-      });
+      const res = await completeSecondStep(mfaToken, { code: value });
       if (res.recovery_codes?.length) {
         setCodes(res.recovery_codes);
         return;
@@ -98,19 +103,12 @@ export function MfaEnrollment({
 
   const skip = () =>
     attempt(async () => {
-      await apiPost("/v1/auth/session/mfa", { mfa_token: mfaToken, skip: true });
+      await completeSecondStep(mfaToken, { skip: true });
       await onDone();
     });
 
   if (codes) {
-    return (
-      <RecoveryCodes
-        codes={codes}
-        email={email}
-        branding={branding}
-        onContinue={() => void onDone()}
-      />
-    );
+    return <RecoveryCodes codes={codes} email={email} branding={branding} onContinue={onDone} />;
   }
 
   if (!app) {

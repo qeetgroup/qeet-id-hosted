@@ -6,9 +6,9 @@ import { ErrorPage } from "@/platform/components/error-page";
 export default function RootError({
   error,
   retry,
-}: {
+}: Readonly<{
   error: Error & { digest?: string };
   retry: () => void;
-}) {
+}>) {
   return <ErrorPage reference={error.digest} onRetry={retry} />;
 }

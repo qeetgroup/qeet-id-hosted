@@ -15,13 +15,13 @@ export function FormAlert({
   tone = "danger",
   actions,
   className,
-}: {
+}: Readonly<{
   title?: ReactNode;
   children?: ReactNode;
   tone?: AlertTone;
   actions?: ReactNode;
   className?: string;
-}) {
+}>) {
   if (!title) return null;
   return (
     <Alert tone={tone} title={title} actions={actions} announce="urgent" className={className}>

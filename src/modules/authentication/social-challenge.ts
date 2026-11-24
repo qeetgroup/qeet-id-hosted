@@ -1,4 +1,4 @@
-import type { LoginFactor } from "./session";
+import type { LoginFactor } from "./api/session";
 
 // A hosted social sign-in that must meet a second factor comes back to /sign-in
 // with the challenge in the URL fragment — which the browser never sends to a
@@ -7,13 +7,15 @@ import type { LoginFactor } from "./session";
 // challenge lists them), and for an enrolment challenge enrollment_required
 // (and enrollment_due_at while it may be put off).
 
+type FactorType = NonNullable<LoginFactor["type"]>;
+
 export type SocialChallenge = {
   mfaToken: string;
   factors: LoginFactor[];
   enrollment: { dueAt?: string } | null;
 };
 
-const FACTOR_TYPES = new Set<LoginFactor["type"]>([
+const FACTOR_TYPES = new Set<FactorType>([
   "totp",
   "recovery_code",
   "email",
@@ -26,7 +28,7 @@ function isFactor(value: unknown): value is LoginFactor {
   if (!value || typeof value !== "object") return false;
   const f = value as Record<string, unknown>;
   return (
-    FACTOR_TYPES.has(f.type as LoginFactor["type"]) &&
+    FACTOR_TYPES.has(f.type as FactorType) &&
     (f.id === undefined || typeof f.id === "string") &&
     (f.destination === undefined || typeof f.destination === "string")
   );
@@ -43,8 +45,7 @@ function factorsOf(params: URLSearchParams): LoginFactor[] {
   return (params.get("methods") ?? "")
     .split(",")
     .filter(
-      (m): m is LoginFactor["type"] =>
-        FACTOR_TYPES.has(m as LoginFactor["type"]) && m !== "email" && m !== "sms",
+      (m): m is FactorType => FACTOR_TYPES.has(m as FactorType) && m !== "email" && m !== "sms",
     )
     .map((type) => ({ type }));
 }

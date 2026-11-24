@@ -23,10 +23,11 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 2  VERIFY THE ENDPOINT        the real handler in qeet-id-server, not just the OpenAPI doc
 3  route + module page        src/app/(<group>)/<route>/page.tsx reads the URL; src/modules/<area>/components/
                              <flow>-page.tsx composes the shell, <flow>-form.tsx is the client form
-4  API call                   src/platform/api/client.ts — the single client; mutations get CSRF automatically
+4  API call                   src/modules/<area>/api/ — one function per call, typed with backend
+                             (src/platform/api/backend.ts); mutations get CSRF automatically
 5  i18n                       src/i18n/locales/en/<namespace>.json  (English only today)
 6  branding                   already applied by the server component — do not hardcode
-7  errors                     switch on error.code; never render a backend message
+7  errors                     switch on error.code (auth.sso_required → the organisation's sign-in)
 8  bun run typecheck && bun run check && bun run test && bun run build
 ```
 
@@ -55,12 +56,22 @@ You need `qeet-id-server` running on `:4001` (`make db-up && make dev` there).
 
 **Security review required** for any change to redirect handling.
 
+## Take a change to the server's API
+
+```text
+1  bun run contract:drift        did the server's documents move on?
+2  bun run contract:sync         copy them (../qeet-id-server, committed) and regenerate the types
+3  bun run typecheck             every call that no longer matches fails here: fix each in its api/
+4  drop an assured() field or an undocumented.ts entry the documents now cover
+5  bun run test && bun run test:e2e
+```
+
 ## Change CSRF or the API client
 
 **Security review required.**
 
 ```text
-1  src/platform/api/client.ts
+1  src/platform/api/client.ts (the transport) · src/platform/api/backend.ts (the typed client)
 2  credentials: "include" on every request — non-negotiable
 3  mutations echo qe_csrf as X-CSRF-Token; GET does not
 4  the seeding path (missing cookie -> GET /healthz -> retry) must keep working

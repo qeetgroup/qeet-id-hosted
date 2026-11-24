@@ -7,7 +7,10 @@ import { useId } from "react";
  * proportions. The icon is decorative; the name says it. Its colours are the logo's, not the UI's,
  * so they are not tokens.
  */
-export function QeetIdLogo({ size = 26, className }: { size?: number; className?: string }) {
+export function QeetIdLogo({
+  size = 26,
+  className,
+}: Readonly<{ size?: number; className?: string }>) {
   return (
     <span className={`inline-flex items-center ${className ?? ""}`} style={{ gap: size * 0.385 }}>
       <QeetIdMark size={size} />
@@ -26,7 +29,7 @@ export function QeetIdLogo({ size = 26, className }: { size?: number; className?
 }
 
 /** The Qeet ID icon alone: a white disc with a keyhole cut out, on the Qeet orange gradient. */
-export function QeetIdMark({ size }: { size: number }) {
+export function QeetIdMark({ size }: Readonly<{ size: number }>) {
   const id = `qid-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden className="shrink-0">

@@ -26,7 +26,7 @@ function ConfirmDialog({
   failed,
   onConfirm,
   onClose,
-}: {
+}: Readonly<{
   title: string;
   body: string;
   confirm: string;
@@ -36,7 +36,7 @@ function ConfirmDialog({
   failed?: [string, string];
   onConfirm: () => Promise<boolean>;
   onClose: () => void;
-}) {
+}>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   async function run() {
@@ -73,13 +73,13 @@ export function RemoveConnectionDialog({
   domain,
   onRemove,
   onClose,
-}: {
+}: Readonly<{
   name: string;
   idpName: string;
   domain?: string;
   onRemove: () => Promise<boolean>;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   return (
     <ConfirmDialog
@@ -99,18 +99,47 @@ export function RemoveConnectionDialog({
   );
 }
 
+/** Turning single sign-on off says who stops signing in through the identity provider. */
+export function TurnOffSsoDialog({
+  domain,
+  idpName,
+  orgName,
+  onTurnOff,
+  onClose,
+}: Readonly<{
+  domain: string;
+  idpName: string;
+  orgName: string;
+  onTurnOff: () => Promise<boolean>;
+  onClose: () => void;
+}>) {
+  const { t } = useTranslation("enterpriseSetup");
+  return (
+    <ConfirmDialog
+      title={t("turnOffSso.title")}
+      body={t("turnOffSso.body", { domain, idp: idpName, org: orgName })}
+      confirm={t("turnOffSso.turnOff")}
+      busyLabel={t("turnOffSso.turningOff")}
+      cancel={t("turnOffSso.cancel")}
+      failed={[t("turnOffSso.failedTitle"), t("turnOffSso.failedBody")]}
+      onConfirm={onTurnOff}
+      onClose={onClose}
+    />
+  );
+}
+
 /** Turning SCIM off revokes the token; it says what stops, and that nobody is removed. */
 export function TurnOffScimDialog({
   idpName,
   orgName,
   onTurnOff,
   onClose,
-}: {
+}: Readonly<{
   idpName: string;
   orgName: string;
   onTurnOff: () => Promise<boolean>;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   return (
     <ConfirmDialog
@@ -136,13 +165,13 @@ export function ScimTokenDialog({
   first,
   idpName,
   onClose,
-}: {
+}: Readonly<{
   token: string;
   endpoint?: string;
   first: boolean;
   idpName: string;
   onClose: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   const [saved, setSaved] = useState(false);
   return (

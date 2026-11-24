@@ -2,20 +2,12 @@
 // discovery), and the hand-back once the company's identity provider has answered. Every address
 // on a domain gets the same answer, whether or not it has an account.
 
-import { apiPost } from "@/platform/api/client";
 import { getApiBaseUrl } from "@/platform/config/public-config";
 
-export type Connection = {
-  id: string;
-  protocol: "saml" | "oidc" | "ldap";
-  /** As the organisation named it in the console. */
-  name: string;
-  /** "redirect": the browser goes to the provider. "credentials": the directory's user name and password. */
-  method: "redirect" | "credentials";
-  login_path: string;
-  /** A credentials connection's sign-in for the hosted login. */
-  session_path?: string;
-};
+import { discoverConnections, type HandBack } from "./api/session";
+
+/** One of the organisation's sign-in connections, as discovery names it. */
+export type Connection = Awaited<ReturnType<typeof discoverConnections>>["connections"][number];
 
 export type Company = {
   /** The name of the organisation that manages the address's domain. */
@@ -23,12 +15,10 @@ export type Company = {
   connections: Connection[];
 };
 
-type Discovery = { sso: boolean; organization_name?: string; connections: Connection[] };
-
 /** Where the address signs in; null when its domain isn't sent to a company's own sign-in. */
 export async function discover(email: string): Promise<Company | null> {
   try {
-    const res = await apiPost<Discovery>("/v1/sso/discovery", { email });
+    const res = await discoverConnections(email);
     const connections = (res.connections ?? []).filter(
       (c) =>
         (c.method === "redirect" && c.login_path) || (c.method === "credentials" && c.session_path),
@@ -51,13 +41,13 @@ export function startUrl(connection: Connection, returnTo: string): string {
   return `${getApiBaseUrl()}${connection.login_path}?${q.toString()}`;
 }
 
-/** The one-time code a company's provider handed back in the URL fragment, and where it's traded. */
-export function readHandBack(hash: string): { path: string; code: string } | null {
+/** The one-time code a company's provider handed back in the URL fragment, and whose it is. */
+export function readHandBack(hash: string): HandBack | null {
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   const saml = params.get("saml_code");
-  if (saml) return { path: "/saml/session", code: saml };
+  if (saml) return { protocol: "saml", code: saml };
   const oidc = params.get("oidc_code");
-  if (oidc) return { path: "/v1/oidc-connections/session", code: oidc };
+  if (oidc) return { protocol: "oidc", code: oidc };
   return null;
 }
 

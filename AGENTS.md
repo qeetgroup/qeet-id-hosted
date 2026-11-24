@@ -42,9 +42,12 @@ src/app/        routes only, grouped by who uses them: (auth) · (account) · (e
                 and not-found.tsx render the branded error pages from platform/components
 src/modules/    one folder per product area (authentication · recovery · sign-out · oauth ·
                 account · enterprise-setup), each with components/, __tests__/ and, where it
-                needs one, api/
-src/platform/   what several modules share: api (client, login context, server-only relay),
-                config, navigation (the return-to guard), branding, webauthn, page-shell components
+                calls the server, api/ (its calls, typed against the server's API contract)
+src/platform/   what several modules share: api (the typed client, the contract types, the
+                transport, login context, sign-out, server-only relay), config, navigation (the
+                return-to guard), branding, webauthn (the passkey ceremony, the person's
+                passkeys), page-shell components
+contract/       the server's five API documents, copied by `bun run contract:sync`; never edited
 src/i18n/       the i18next setup and every locale file
 src/testing/    the Vitest setup, the provider-wrapped render, the API mock and the source-file helper
 src/proxy.ts    each page's Content-Security-Policy and nonce
@@ -73,6 +76,7 @@ One way to do each thing.
 | Copy | one i18n namespace per flow, camelCase, in `src/i18n/locales/en/` | `signIn`, `signOut` |
 | Imports | `@/` across folders, `./` within one, `../` only from `__tests__/`; no barrel files | |
 | Backend names | where code mirrors a server contract, it keeps the server's name | `api/admin-portal.ts` |
+| Server calls | one function per call in the module's `api/`, typed with `backend`; types from the contract | `api/session.ts` → `signInWithPassword` |
 
 ## What enforces the structure
 
@@ -81,6 +85,9 @@ One way to do each thing.
 | The layer direction, and no module importing another | Biome `noRestrictedImports` overrides in `biome.json` (`bun run check`) |
 | A route file imports only its module page | Biome override on `src/app/**/page.tsx` |
 | `fetch` only inside `src/platform/api/` | Biome `noRestrictedGlobals` |
+| A module calls the server only from its `api/` folder, with the typed client | Biome `noRestrictedImports` on `@/platform/api/backend` and `request` |
+| Every call names a path, method, parameter, body and answer field the server's documents have | `bun run typecheck`, against the types `bun run contract:sync` generates |
+| The copied documents are the server's, and the generated types current | `bun run contract:check` (CI) |
 | No import cycles | Biome `noImportCycles` |
 | A source file stays within 500 lines | `src/__tests__/source-files.test.ts` |
 | Every translation key the code names exists in English | `src/i18n/__tests__/translation-keys.test.ts` |
@@ -141,7 +148,18 @@ Never store the link token, put it in a path/query string/React state, or includ
 error, telemetry event, or analytics event.
 
 ### 6. Never invent an endpoint
-Verify against the real handler in `qeet-id-server`. This app calls `/v1/...` only.
+Verify against the real handler in `qeet-id-server`. Every call goes through the typed client,
+`backend.get/post/put/patch/delete` (`src/platform/api/backend.ts`), naming the path as the server's
+documents write it: the typecheck refuses a path, method, body field or answer field they don't
+have. A module's calls live in its `api/` folder; components import those functions, never the
+client. Take a module's types from the contract (`Answer<"/v1/oauth/login-context">`,
+`Schemas<"access">["Passkey"]`), not by hand. Where the documents leave a field optional that the
+server always sends (its Go struct has no `omitempty`), require it with `assured`
+(`src/platform/api/assured.ts`), which fails closed; what the server sends or accepts that the
+documents lack goes in `src/platform/api/contract/undocumented.ts` with the server code that shows
+it. Both are reported to the server and removed once its documents say so. A sign-in sets the
+hosted session cookie and answers no token: use the hosted form of each endpoint
+(`/v1/passkeys/login/session`, never the token form `/v1/passkeys/login/finish`).
 
 ### 7. Per-tenant branding is server-driven
 `GET /v1/oauth/login-context?client_id=…` is fetched in a server component per page. Do not hardcode
@@ -175,7 +193,14 @@ bun run test:e2e             # build, then every page in Chromium: its CSP and a
 bun run check                # Biome: format + lint + import order — what CI runs
 bun run audit                # known high and critical advisories in the dependencies — what CI runs
 bun run format               # Biome: rewrite formatting in place
+bun run contract:sync        # copy the server's API documents (../qeet-id-server) and regenerate types
+bun run contract:check       # the copied contract and its generated types — what CI runs
+bun run contract:drift       # whether the server's documents moved on: before a sync or a release
+bun run sonar                # SonarQube: tests with coverage, then the scanner in Docker (local only)
 ```
+
+`bun run sonar` needs Docker, the server's SonarQube running (`make sonar-up` in ../qeet-id-server)
+and `SONAR_TOKEN` in the environment; it is never run in CI.
 
 Biome (`biome.json`) is the formatter and linter. A suppression carries a one-line reason
 (`// biome-ignore <rule>: <why>`). Tests: see the README's *Tests* section.
@@ -194,7 +219,7 @@ branch. CI runs the essential checks only; the tests, the build and the browser 
 
 | Workflow · job | Runs |
 |---|---|
-| `ci.yml` · **Verify** | Pull requests into `develop` and `main` (a release reaches `main` by one): `bun run typecheck` + `bun run check` + `bun run audit` + gitleaks (secrets in the pull request's commits) |
+| `ci.yml` · **Verify** | Pull requests into `develop` and `main` (a release reaches `main` by one): `bun run contract:check` + `bun run typecheck` + `bun run check` + `bun run audit` + gitleaks (secrets in the pull request's commits; `.gitleaks.toml` allows only the copied API documents' sample values and their generated types) |
 | `candidate.yml` · Test image | Push to `release/**` or `hotfix/**`: `ghcr.io/qeetgroup/qeet-id-login:sha-<commit>` (amd64 + arm64), labelled with its release and branch, for the Qeet ID Kit, which numbers the test copies (`2027.1.0-rc.1` …). The image keeps the repository's former name, which the kit reads |
 | `deploy.yml` | A merged `release/…` or `hotfix/…` pull request into `main` whose Verify passed: Vercel production deploy, `GET https://accounts.id.qeet.in/healthz`, tag `vYEAR.MONTH.N`. Any other push to `main` deploys nothing. Run by hand to deploy `main` again, or with a tag to put an earlier release back |
 
@@ -206,7 +231,8 @@ production does not use it. Health: `GET /healthz`.
 ## Before you finish
 
 ```bash
-bun run typecheck && bun run check && bun run audit && bun run test:coverage && bun run test:e2e
+bun run contract:check && bun run typecheck && bun run check && bun run audit
+bun run test:coverage && bun run test:e2e
 git diff
 ```
 
@@ -214,4 +240,5 @@ git diff
 
 Storing a token · weakening CSRF · bypassing `safeReturnTo` · logging an enterprise-setup link token ·
 adding a server-side secret other than the relay key · relaxing the Content-Security-Policy or a security
-header · calling an endpoint that does not exist · anything requiring another repository (file a QTID ticket).
+header · calling an endpoint that does not exist · editing `contract/` or the generated types · anything
+requiring another repository (file a QTID ticket).

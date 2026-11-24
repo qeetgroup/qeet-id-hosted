@@ -5,7 +5,10 @@ import { MagicSignIn } from "./magic-sign-in";
 
 // The return_to is used here only for the organisation's branding; where to go next comes back
 // from the server with the session.
-export async function MagicLinkPage({ token, returnTo }: { token: string; returnTo: string }) {
+export async function MagicLinkPage({
+  token,
+  returnTo,
+}: Readonly<{ token: string; returnTo: string }>) {
   const ctx = await getLoginContext(returnTo);
   return (
     <MagicSignIn
@@ -13,6 +16,7 @@ export async function MagicLinkPage({ token, returnTo }: { token: string; return
       linkMinutes={ctx.magic_link_ttl_minutes}
       orgName={ctx.organization_name}
       branding={normalizeBranding(ctx.branding)}
+      returnTo={returnTo}
     />
   );
 }

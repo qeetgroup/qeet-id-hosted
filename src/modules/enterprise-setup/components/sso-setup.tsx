@@ -1,8 +1,8 @@
 "use client";
 
-import { Badge, Button, Card, Text } from "@qeetrix/react";
+import { Badge, Card, Text } from "@qeetrix/react";
 import { CopyField, type Step, Steps } from "@qeetrix/react/experimental";
-import { type ReactNode, useState } from "react";
+import { Fragment, type ReactElement, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -19,14 +19,26 @@ import type { Branding } from "@/platform/branding/branding";
 import { FormAlert } from "@/platform/components/form-alert";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { formatDay } from "@/platform/format";
-import { ClockIcon, PlusIcon } from "@/platform/icons";
+import { ClockIcon } from "@/platform/icons";
 
 import { type IdpKind, idpOf } from "../identity-providers";
 import { AddSamlPage } from "./add-saml-page";
-import { ConnectStep } from "./connect-step";
-import { RemoveConnectionDialog, ScimTokenDialog, TurnOffScimDialog } from "./setup-dialogs";
-import { CurrentStep, DoneRow, UpcomingRow } from "./setup-rows";
-import { TestStep } from "./test-step";
+import { readScimSkipped, writeScimSkipped } from "./scim-skip";
+import {
+  RemoveConnectionDialog,
+  ScimTokenDialog,
+  TurnOffScimDialog,
+  TurnOffSsoDialog,
+} from "./setup-dialogs";
+import {
+  ConnectPanel,
+  DomainPanel,
+  ScimPanel,
+  type StepAt,
+  TestPanel,
+  TurnOnPanel,
+} from "./setup-panels";
+import { UpcomingRow } from "./setup-rows";
 import { type StepId, stepsOf, useSetup } from "./use-setup";
 import { VerifyDomainDialog } from "./verify-domain-dialog";
 
@@ -35,7 +47,14 @@ type Overlay =
   | { kind: "remove" }
   | { kind: "token"; token: string; first: boolean }
   | { kind: "scimOff" }
+  | { kind: "ssoOff" }
   | null;
+
+// The rail's mark for a step: done, a failed test, or nothing yet.
+function stepStatus(done: boolean, failed: boolean): { status?: "done" | "failed" } {
+  if (done) return { status: "done" };
+  return failed ? { status: "failed" } : {};
+}
 
 /**
  * Single sign-on for an organisation's outside IT administrator, as a guided setup: verify the
@@ -49,16 +68,26 @@ export function SsoSetup({
   context,
   branding,
   initialTest,
-}: {
+}: Readonly<{
   context: PortalContext;
   branding?: Branding;
   /** A test sign-in this page was sent back to with, from the identity provider. */
   initialTest: SamlTestSignIn | null;
-}) {
+}>) {
   const { t, i18n } = useTranslation("enterpriseSetup");
   const { setup, failed, reload, setSetup } = useSetup(context);
   const [test, setTest] = useState<SamlTestSignIn | null>(initialTest);
-  const [scimSkipped, setScimSkipped] = useState(false);
+  const [scimSkipped, setScimSkippedState] = useState(false);
+  // "Not now" for SCIM is kept for this link (by its expiry), so a reload doesn't ask again; read
+  // after the first render so the server's render and the browser's match.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: read once per link
+  useEffect(() => {
+    if (readScimSkipped(context.expires_at)) setScimSkippedState(true);
+  }, []);
+  const setScimSkipped = (skipped: boolean) => {
+    setScimSkippedState(skipped);
+    writeScimSkipped(context.expires_at, skipped);
+  };
   // Test again on a finished setup opens the test step once more.
   const [retest, setRetest] = useState(false);
   const [chosen, setChosen] = useState<IdpKind | null>(null);
@@ -66,7 +95,7 @@ export function SsoSetup({
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const org = context.tenant_name;
+  const org = context.organization_name ?? "";
   const expires = `${formatDay(context.expires_at, i18n.language)}, ${new Intl.DateTimeFormat(
     i18n.language === "en" ? "en-IN" : i18n.language,
     { hour: "numeric", minute: "2-digit" },
@@ -95,7 +124,9 @@ export function SsoSetup({
   }
 
   const connection = setup.connection;
-  const idp: IdpKind = chosen ?? (connection ? idpOf(connection) : "okta");
+  // With no connection yet, the picker starts on Okta; a link that can't set up SAML names no one.
+  const fallbackIdp: IdpKind = context.capabilities.includes("saml") ? "okta" : "other";
+  const idp: IdpKind = chosen ?? (connection ? idpOf(connection) : fallbackIdp);
   const idpName = t(`connect.idps.${idp}.name`);
   const verified = setup.domains.filter((d) => d.status === "verified");
   const pending = setup.domains.find((d) => d.status !== "verified");
@@ -150,6 +181,25 @@ export function SsoSetup({
       setSetup({ ...setup, connection: live, domains });
     });
 
+  // Turning it off stops sending the verified domains' people to the identity provider; the
+  // connection stays, so it can be turned on again here. A link without domains disables it.
+  async function turnOffSso(): Promise<boolean> {
+    try {
+      const on = setup?.domains.filter((d) => d.status === "verified" && d.sso_enabled) ?? [];
+      if (on.length > 0) {
+        const off = await Promise.all(on.map((d) => setDomainSSO(d.id, false)));
+        const byId = new Map(off.map((d) => [d.id, d]));
+        if (setup) setSetup({ ...setup, domains: setup.domains.map((d) => byId.get(d.id) ?? d) });
+      } else if (connection) {
+        const disabled = await updateSamlConnection(connection.id, { status: "disabled" });
+        if (setup) setSetup({ ...setup, connection: disabled });
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const scimOn = () =>
     act(async () => {
       const res = await rotateScimToken();
@@ -157,6 +207,7 @@ export function SsoSetup({
       setOverlay({ kind: "token", token: res.token, first: !setup.scim?.token_set });
     });
 
+  const testFailed = test !== null && test.status !== "succeeded";
   const stepSummary = (id: StepId): string => {
     switch (id) {
       case "domain":
@@ -164,11 +215,8 @@ export function SsoSetup({
       case "connect":
         return connection?.idp_entity_id ? `${idpName} · SAML` : t("steps.connect.todo");
       case "test":
-        return done("test")
-          ? t("test.passed")
-          : test && test.status !== "succeeded"
-            ? t("test.failed")
-            : t("steps.test.todo");
+        if (done("test")) return t("test.passed");
+        return testFailed ? t("test.failed") : t("steps.test.todo");
       case "turnOn":
         return done("turnOn") ? t("turnOn.row", { domain: domain ?? org }) : t("steps.turnOn.todo");
       case "scim":
@@ -178,205 +226,78 @@ export function SsoSetup({
   const railSteps: Step[] = steps.map((s) => ({
     label: t(`steps.${s.id}.label`),
     description: stepSummary(s.id),
-    ...(s.done
-      ? { status: "done" as const }
-      : s.id === "test" && test && test.status !== "succeeded"
-        ? { status: "failed" as const }
-        : {}),
+    ...stepStatus(s.done, s.id === "test" && testFailed),
   }));
 
-  const panel = (id: StepId): ReactNode => {
-    const title = t(`steps.${id}.label`);
-    const isCurrent = current === id;
-    if (!done(id) && !isCurrent) {
+  // Each step's panel, open or folded, by where it sits.
+  const panels: Record<StepId, (at: StepAt) => ReactElement> = {
+    domain: (at) => (
+      <DomainPanel
+        at={at}
+        pending={pending}
+        domain={domain}
+        onAdd={(pendingId) => setOverlay({ kind: "domain", pendingId })}
+      />
+    ),
+    connect: (at) => (
+      <ConnectPanel
+        at={at}
+        connection={connection}
+        idp={idp}
+        idpName={idpName}
+        orgName={org}
+        onIdp={setChosen}
+        onDraft={(draft) => setSetup({ ...setup, connection: draft })}
+        onDetails={() => setView("details")}
+        onRemove={() => setOverlay({ kind: "remove" })}
+      />
+    ),
+    test: (at) => (
+      <TestPanel
+        at={at}
+        open={at.current || retest || (current === "turnOn" && test?.status === "succeeded")}
+        connection={connection}
+        idp={idp}
+        idpName={idpName}
+        test={test}
+        onTest={setTest}
+        onDetails={() => setView("details")}
+        onAgain={() => setRetest(true)}
+      />
+    ),
+    turnOn: (at) => (
+      <TurnOnPanel
+        at={at}
+        domain={domain ?? org}
+        org={org}
+        idpName={idpName}
+        busy={busy}
+        onTurnOn={() => void turnOn()}
+        onTurnOff={() => setOverlay({ kind: "ssoOff" })}
+      />
+    ),
+    scim: (at) => (
+      <ScimPanel
+        at={at}
+        tokenSet={setup.scim?.token_set ?? false}
+        count={scimCount}
+        idpName={idpName}
+        org={org}
+        busy={busy}
+        onTurnOn={() => void scimOn()}
+        onSkip={() => setScimSkipped(true)}
+        onTurnOff={() => setOverlay({ kind: "scimOff" })}
+      />
+    ),
+  };
+  const panel = (id: StepId): ReactElement => {
+    const at: StepAt = { n: n(id), total, title: t(`steps.${id}.label`), current: current === id };
+    if (!done(id) && !at.current) {
       return (
-        <UpcomingRow key={id} n={n(id)} title={title} note={t("setup.after", { n: n(id) - 1 })} />
+        <UpcomingRow key={id} n={at.n} title={at.title} note={t("setup.after", { n: at.n - 1 })} />
       );
     }
-    switch (id) {
-      case "domain":
-        return isCurrent ? (
-          <CurrentStep key={id} n={n(id)} total={total} title={title} body={t("domain.body")}>
-            {pending && (
-              <DoneRow
-                title={pending.domain}
-                summary={t("domain.pending", { domain: pending.domain })}
-                actions={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setOverlay({ kind: "domain", pendingId: pending.id })}
-                  >
-                    {t("domain.verifyNow")}
-                  </Button>
-                }
-              />
-            )}
-            <Button
-              icon={PlusIcon}
-              className="self-start"
-              onClick={() => setOverlay({ kind: "domain" })}
-            >
-              {t("domain.add")}
-            </Button>
-          </CurrentStep>
-        ) : (
-          <DoneRow
-            key={id}
-            title={title}
-            summary={t("domain.verified", { domain })}
-            actions={
-              <Button variant="ghost" size="sm" onClick={() => setOverlay({ kind: "domain" })}>
-                {t("domain.add")}
-              </Button>
-            }
-          />
-        );
-      case "connect":
-        return isCurrent ? (
-          <CurrentStep key={id} n={n(id)} total={total} title={title}>
-            <ConnectStep
-              connection={connection}
-              idp={idp}
-              orgName={org}
-              onIdp={setChosen}
-              onDraft={(draft) => setSetup({ ...setup, connection: draft })}
-              onAddDetails={() => setView("details")}
-            />
-          </CurrentStep>
-        ) : (
-          <DoneRow
-            key={id}
-            title={title}
-            summary={
-              connection?.status === "active"
-                ? t("connect.connectedOn", { idp: idpName })
-                : t("connect.connected", { idp: idpName })
-            }
-            actions={
-              <>
-                <Button variant="ghost" size="sm" onClick={() => setView("details")}>
-                  {t("connect.view")}
-                </Button>
-                {connection?.status === "active" && (
-                  <Button
-                    variant="ghost"
-                    tone="danger"
-                    size="sm"
-                    onClick={() => setOverlay({ kind: "remove" })}
-                  >
-                    {t("connect.remove")}
-                  </Button>
-                )}
-              </>
-            }
-          />
-        );
-      case "test":
-        if (
-          connection &&
-          (isCurrent || retest || (current === "turnOn" && test?.status === "succeeded"))
-        ) {
-          return (
-            <CurrentStep
-              key={id}
-              n={n(id)}
-              total={total}
-              title={title}
-              finished={test?.status === "succeeded"}
-            >
-              <TestStep
-                connection={connection}
-                idp={idp}
-                idpName={idpName}
-                test={test}
-                onTest={setTest}
-                onUpdate={() => setView("details")}
-              />
-            </CurrentStep>
-          );
-        }
-        return (
-          <DoneRow
-            key={id}
-            title={title}
-            summary={
-              test?.email
-                ? t("test.passedRow", { idp: idpName, email: test.email })
-                : t("test.passed")
-            }
-            actions={
-              <Button variant="ghost" size="sm" onClick={() => setRetest(true)}>
-                {t("test.again")}
-              </Button>
-            }
-          />
-        );
-      case "turnOn":
-        return isCurrent ? (
-          <CurrentStep
-            key={id}
-            n={n(id)}
-            total={total}
-            title={title}
-            body={t("turnOn.body", { domain: domain ?? org, org, idp: idpName })}
-          >
-            <Button className="self-start" loading={busy} onClick={() => void turnOn()}>
-              {t("turnOn.button")}
-            </Button>
-          </CurrentStep>
-        ) : (
-          <DoneRow key={id} title={title} summary={t("turnOn.row", { domain: domain ?? org })} />
-        );
-      case "scim":
-        return isCurrent ? (
-          <CurrentStep
-            key={id}
-            n={n(id)}
-            total={total}
-            title={title}
-            body={t("scim.body", { idp: idpName, org })}
-          >
-            <div className="flex flex-wrap gap-3">
-              <Button loading={busy} onClick={() => void scimOn()}>
-                {t("scim.turnOn")}
-              </Button>
-              <Button variant="ghost" disabled={busy} onClick={() => setScimSkipped(true)}>
-                {t("scim.notNow")}
-              </Button>
-            </div>
-          </CurrentStep>
-        ) : (
-          <DoneRow
-            key={id}
-            title={title}
-            summary={
-              setup.scim?.token_set ? t("scim.row", { count: scimCount }) : t("scim.skipped")
-            }
-            actions={
-              setup.scim?.token_set ? (
-                <>
-                  <Button variant="ghost" size="sm" disabled={busy} onClick={() => void scimOn()}>
-                    {t("scim.newToken")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    tone="danger"
-                    size="sm"
-                    onClick={() => setOverlay({ kind: "scimOff" })}
-                  >
-                    {t("scim.turnOff")}
-                  </Button>
-                </>
-              ) : (
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => void scimOn()}>
-                  {t("scim.turnOn")}
-                </Button>
-              )
-            }
-          />
-        );
-    }
+    return <Fragment key={id}>{panels[id](at)}</Fragment>;
   };
 
   const live = connection?.status === "active" && done("turnOn");
@@ -467,6 +388,15 @@ export function SsoSetup({
           endpoint={context.scim_base_url}
           first={overlay.first}
           idpName={idpName}
+          onClose={() => setOverlay(null)}
+        />
+      )}
+      {overlay?.kind === "ssoOff" && (
+        <TurnOffSsoDialog
+          domain={domain ?? org}
+          idpName={idpName}
+          orgName={org}
+          onTurnOff={turnOffSso}
           onClose={() => setOverlay(null)}
         />
       )}

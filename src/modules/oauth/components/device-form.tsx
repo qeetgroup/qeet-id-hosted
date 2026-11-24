@@ -1,27 +1,27 @@
 "use client";
 
 import { Button, Text, TextField } from "@qeetrix/react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { type DeviceRequest, decideDevice, readDeviceRequest } from "@/modules/oauth/api/device";
 import { type Account, fetchSignedInAccount } from "@/platform/api/account";
-import { ApiError, apiDelete, apiGet, apiPost } from "@/platform/api/client";
+import { ApiError } from "@/platform/api/client";
 import { apiErrorMessage } from "@/platform/api/errors";
+import { signOutHostedSession } from "@/platform/api/session";
 import { AccountChip } from "@/platform/components/account-chip";
 import { FormAlert } from "@/platform/components/form-alert";
 import { FormStack } from "@/platform/components/form-parts";
 import { HostedPage } from "@/platform/components/hosted-page";
 import { ArrowRightIcon, TvMinimalIcon } from "@/platform/icons";
 import { goTo } from "@/platform/navigation/go-to";
+import { withReturnTo } from "@/platform/navigation/return-to";
 
 import { ScopeList } from "./scope-list";
-
-type DeviceContext = { client_name: string; scopes: string[] };
 
 // Through sign-in and back to this page, with the code, when no one is signed in yet.
 function signInRedirect(code: string): string {
   const returnTo = `/device?user_code=${encodeURIComponent(code)}`;
-  return `/sign-in?return_to=${encodeURIComponent(returnTo)}`;
+  return withReturnTo("/sign-in", returnTo);
 }
 
 /**
@@ -30,10 +30,10 @@ function signInRedirect(code: string): string {
  * what it could do, with a plain warning to allow only a device they started this on (RFC 8628
  * §5.4). An unknown, expired or used code gets one answer. Allowed, the device signs itself in.
  */
-export function DeviceForm({ userCode }: { userCode: string }) {
+export function DeviceForm({ userCode }: Readonly<{ userCode: string }>) {
   const { t } = useTranslation("device");
   const [code, setCode] = useState(userCode.toUpperCase());
-  const [ctx, setCtx] = useState<DeviceContext | null>(null);
+  const [ctx, setCtx] = useState<DeviceRequest | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [decision, setDecision] = useState<"authorized" | "denied" | null>(null);
   const [wrong, setWrong] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     void fetchSignedInAccount().then(setAccount);
   }, []);
 
-  async function lookUp(e: FormEvent) {
+  async function lookUp(e: SubmitEvent) {
     e.preventDefault();
     const trimmed = code.trim();
     setWrong(null);
@@ -55,9 +55,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     }
     setBusy("continue");
     try {
-      setCtx(
-        await apiGet<DeviceContext>(`/v1/oauth/device?user_code=${encodeURIComponent(trimmed)}`),
-      );
+      setCtx(await readDeviceRequest(trimmed));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         goTo(signInRedirect(trimmed));
@@ -72,7 +70,7 @@ export function DeviceForm({ userCode }: { userCode: string }) {
   // Another account: sign this browser out, then sign in again on the way back to this code.
   async function changeAccount() {
     try {
-      await apiDelete("/v1/auth/session");
+      await signOutHostedSession();
     } catch {
       // Signed out or not, sign-in asks again.
     }
@@ -83,18 +81,14 @@ export function DeviceForm({ userCode }: { userCode: string }) {
     setError(null);
     setBusy(approve ? "allow" : "deny");
     try {
-      const res = await apiPost<{ status: string }>("/v1/oauth/device/decision", {
-        approve,
-        user_code: code.trim(),
-      });
-      setDecision(res.status === "authorized" ? "authorized" : "denied");
+      setDecision((await decideDevice(code.trim(), approve)) ? "authorized" : "denied");
     } catch (err) {
       setError(apiErrorMessage(err, t, t("signIn:problems.generic.title")));
     }
     setBusy(null);
   }
 
-  const device = ctx?.client_name || t("common:fallbacks.device");
+  const device = ctx?.clientName || t("common:fallbacks.device");
 
   if (decision) {
     const allowed = decision === "authorized";

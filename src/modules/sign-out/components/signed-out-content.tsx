@@ -33,10 +33,10 @@ function webPage(url: string): URL | null {
 export function SignedOutContent({
   frontchannel = [],
   continueTicket = "",
-}: {
+}: Readonly<{
   frontchannel?: string[];
   continueTicket?: string;
-}) {
+}>) {
   const { t } = useTranslation("signOut");
   const pages = frontchannel.map(webPage).filter((u): u is URL => u !== null);
   const [finished, setFinished] = useState<Set<string>>(() => new Set());
@@ -60,6 +60,8 @@ export function SignedOutContent({
 
   const finish = (href: string) => setFinished((s) => new Set(s).add(href));
 
+  let description = t("busyBody");
+  if (done) description = pages.length ? t("doneBody") : t("doneBodyNone");
   return (
     <>
       {pages.map((p) => (
@@ -77,7 +79,7 @@ export function SignedOutContent({
         single
         status={done ? "success" : undefined}
         title={done ? t("doneTitle") : t("busyTitle")}
-        description={done ? (pages.length ? t("doneBody") : t("doneBodyNone")) : t("busyBody")}
+        description={description}
       >
         <FormStack>
           {pages.length > 0 && (

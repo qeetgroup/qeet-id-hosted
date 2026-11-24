@@ -6,11 +6,14 @@ import { SignedOutPage } from "@/modules/sign-out/components/signed-out-page";
 // ticket (continue).
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}>) {
   const sp = await searchParams;
-  const list = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? [v] : []);
+  const list = (v: string | string[] | undefined): string[] => {
+    if (Array.isArray(v)) return v;
+    return v ? [v] : [];
+  };
   return (
     <SignedOutPage
       frontchannel={list(sp.frontchannel_logout)}

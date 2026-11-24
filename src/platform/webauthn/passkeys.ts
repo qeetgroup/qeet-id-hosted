@@ -1,54 +1,46 @@
-// The signed-in user's passkeys, for the security page and the "add a passkey"
-// prompt after a password sign-in. Every call is authenticated by the hosted
-// login session cookie (qe_ls) that sign-in set; the backend accepts it on
-// exactly these routes: list, rename, remove, and the two steps of adding a
-// passkey. Mutations carry the CSRF token through src/platform/api/client.ts.
-// Removing needs a recent sign-in (403 step_up_required otherwise), and the
-// account's last way to sign in can't be removed (409 auth.last_sign_in_method).
+// The signed-in person's passkeys, for the security page and the "add a passkey" offer after a
+// password sign-in. Every call is authenticated by the hosted login session cookie (qe_ls) that
+// sign-in set; the backend accepts it on exactly these routes: list, rename, remove, and the two
+// steps of adding a passkey. Removing needs a recent sign-in (403 step_up_required otherwise), and
+// the account's last way to sign in can't be removed (409 auth.last_sign_in_method).
 
-import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from "@/platform/api/client";
+import { backend } from "@/platform/api/backend";
+import { ApiError } from "@/platform/api/client";
+import type { Answer, Schemas } from "@/platform/api/contract";
 
-/** One of the signed-in user's passkeys, as GET /v1/passkeys returns it. */
-export type Passkey = {
-  id: string;
-  /** User-supplied text: render it as text, never as markup. */
-  name?: string | null;
-  created_at: string;
-  last_used_at?: string | null;
-};
+import {
+  createCredential,
+  isCancelled,
+  PasskeyUnsupportedError,
+  passkeysSupported,
+} from "./ceremony";
 
-export type PasskeyList = {
-  items: Passkey[];
-  /** False when the user's organization has passkeys switched off. */
-  enrollment_allowed: boolean;
-};
+/** One of the signed-in person's passkeys. Its name is the person's text: render it as text. */
+export type Passkey = Schemas<"access">["Passkey"];
+
+/** The person's passkeys, and whether their organisation lets them add one. */
+export type PasskeyList = Answer<"/v1/passkeys">;
 
 /** The longest passkey name the backend accepts, in characters. */
 export const PASSKEY_NAME_MAX_LENGTH = 64;
 
 export function listPasskeys(): Promise<PasskeyList> {
-  return apiGet<PasskeyList>("/v1/passkeys");
+  return backend.get("/v1/passkeys");
 }
 
 export function renamePasskey(id: string, name: string): Promise<Passkey> {
-  return apiPatch<Passkey>(`/v1/passkeys/${encodeURIComponent(id)}`, { name });
+  return backend.patch("/v1/passkeys/{id}", { path: { id }, body: { name } });
 }
 
-/** Whether this browser can create a passkey at all. */
-export function passkeysSupported(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.PublicKeyCredential !== "undefined" &&
-    typeof navigator !== "undefined" &&
-    !!navigator.credentials
-  );
+/** Removes one of the signed-in person's passkeys. */
+export async function removePasskey(id: string): Promise<void> {
+  await backend.delete("/v1/passkeys/{id}", { path: { id } });
 }
 
 /**
- * Whether to offer adding a passkey right after a password sign-in: the browser
- * can create one, the user's organization allows passkeys, and the user has
- * none yet. Any failure, or no answer within timeoutMs, means "no", so the
- * check never stands between the user and the application.
+ * Whether to offer adding a passkey right after a password sign-in: the browser can make one, the
+ * person's organisation allows passkeys, and the person has none yet. Any failure, or no answer
+ * within timeoutMs, means "no", so the check never stands between the person and the application.
  */
 export async function shouldOfferPasskey(timeoutMs = 3000): Promise<boolean> {
   if (!passkeysSupported()) return false;
@@ -67,51 +59,30 @@ export async function shouldOfferPasskey(timeoutMs = 3000): Promise<boolean> {
 }
 
 /**
- * Adds a passkey for the signed-in user: asks the backend for creation options,
- * lets the browser create the credential, then sends the attestation back. An
- * empty name lets the backend name it after this browser (e.g. "Chrome on
- * macOS"); it can be renamed later.
+ * Adds a passkey for the signed-in person: the server's creation options, the browser's new
+ * credential, then the credential back to the server. An empty name lets the server name it after
+ * this browser (e.g. "Chrome on macOS"); it can be renamed later.
  */
 export async function addPasskey(name: string): Promise<void> {
-  const PK = window.PublicKeyCredential as
-    | (typeof window.PublicKeyCredential & {
-        parseCreationOptionsFromJSON?: (o: unknown) => PublicKeyCredentialCreationOptions;
-      })
-    | undefined;
-  if (!PK || !navigator.credentials) throw new PasskeyUnsupportedError();
-  const begin = await apiPost<{ session_id: string; publicKey: unknown }>(
-    "/v1/passkeys/register/begin",
-  );
-  const options = PK.parseCreationOptionsFromJSON
-    ? PK.parseCreationOptionsFromJSON(begin.publicKey)
-    : (begin.publicKey as PublicKeyCredentialCreationOptions);
-  const created = (await navigator.credentials.create({ publicKey: options })) as
-    | (PublicKeyCredential & { toJSON?: () => unknown })
-    | null;
-  if (!created) throw new PasskeyCancelledError();
-  await apiPost("/v1/passkeys/register/finish", {
-    session_id: begin.session_id,
-    credential: created.toJSON ? created.toJSON() : created,
-    name: name.trim(),
+  if (!passkeysSupported()) throw new PasskeyUnsupportedError();
+  const begin = await backend.post("/v1/passkeys/register/begin");
+  const credential = await createCredential(begin.publicKey);
+  await backend.post("/v1/passkeys/register/finish", {
+    body: { session_id: begin.session_id, credential, name: name.trim() },
   });
 }
 
-export class PasskeyUnsupportedError extends Error {}
-export class PasskeyCancelledError extends Error {}
-
 /**
- * The `security` translation key for a failed passkey call. Backend messages
- * are never shown; known codes get their own copy, anything else a generic one.
+ * The `security` translation key for a failed passkey call. Backend messages are never shown;
+ * known codes get their own copy, anything else a generic one.
  */
 export function passkeyErrorKey(err: unknown): string {
   if (err instanceof PasskeyUnsupportedError) return "errors.unsupported";
-  // The browser rejects with NotAllowedError when the user dismisses its
-  // prompt or it times out, and InvalidStateError when this authenticator
-  // already holds a passkey for the account.
-  if (err instanceof PasskeyCancelledError) return "errors.cancelled";
-  if (err instanceof DOMException) {
-    if (err.name === "NotAllowedError" || err.name === "AbortError") return "errors.cancelled";
-    if (err.name === "InvalidStateError") return "errors.alreadyRegistered";
+  // The browser rejects with NotAllowedError when the person dismisses its prompt or it times
+  // out, and InvalidStateError when this authenticator already holds a passkey for the account.
+  if (isCancelled(err)) return "errors.cancelled";
+  if (err instanceof DOMException && err.name === "InvalidStateError") {
+    return "errors.alreadyRegistered";
   }
   if (err instanceof ApiError) {
     switch (err.code) {
@@ -131,9 +102,4 @@ export function passkeyErrorKey(err: unknown): string {
     }
   }
   return "errors.generic";
-}
-
-/** Removes one of the signed-in person's passkeys. */
-export function removePasskey(id: string): Promise<void> {
-  return apiDelete<void>(`/v1/passkeys/${encodeURIComponent(id)}`);
 }

@@ -29,19 +29,19 @@ export function ConnectStep({
   onIdp,
   onDraft,
   onAddDetails,
-}: {
+}: Readonly<{
   connection: SamlConnection | null;
   idp: IdpKind;
   orgName: string;
   onIdp: (idp: IdpKind) => void;
   onDraft: (connection: SamlConnection) => void;
   onAddDetails: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   const [error, setError] = useState<string | null>(null);
   const creating = useRef(false);
   const name = (kind: IdpKind) =>
-    kind === "other" ? orgName : `${orgName} ${t(`connect.idps.${kind}.name`)}`;
+    kind === "other" ? orgName : [orgName, t(`connect.idps.${kind}.name`)].join(" ");
 
   // The draft whose addresses the provider needs: made once, named after the provider chosen.
   // biome-ignore lint/correctness/useExhaustiveDependencies: made once, when the step opens

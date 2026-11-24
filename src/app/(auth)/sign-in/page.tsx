@@ -4,9 +4,9 @@ import { SignInPage } from "@/modules/authentication/components/sign-in/sign-in-
 // sign-in that failed comes back with an error code.
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ return_to?: string; error?: string }>;
-}) {
+}>) {
   const { return_to, error } = await searchParams;
   return <SignInPage returnTo={return_to ?? ""} errorCode={error ?? ""} />;
 }

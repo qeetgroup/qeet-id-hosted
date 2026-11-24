@@ -4,9 +4,9 @@ import { ResetPasswordPage } from "@/modules/recovery/components/reset-password-
 // on the way into an application, that application's return_to.
 export default async function Page({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<{ token?: string; return_to?: string }>;
-}) {
+}>) {
   const { token, return_to } = await searchParams;
   return <ResetPasswordPage token={token ?? ""} returnTo={return_to ?? ""} />;
 }

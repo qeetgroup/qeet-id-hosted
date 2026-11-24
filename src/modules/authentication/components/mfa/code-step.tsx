@@ -2,7 +2,7 @@
 
 import { Button, Checkbox, Text, TextField } from "@qeetrix/react";
 import { OTPInput } from "@qeetrix/react/experimental";
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type ReactNode, type SubmitEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { FormStack } from "@/platform/components/form-parts";
@@ -23,7 +23,7 @@ export function CodeStep({
   onRemember,
   onVerify,
   children,
-}: {
+}: Readonly<{
   kind: "app" | "sent" | "recovery";
   /** What to say at the field after a wrong code; nothing when the last code wasn't wrong. */
   wrong: string | null;
@@ -36,14 +36,15 @@ export function CodeStep({
   onVerify: (code: string) => void;
   /** Under Verify: send another code, try another way. */
   children?: ReactNode;
-}) {
+}>) {
   const { t } = useTranslation("signIn");
   const [code, setCode] = useState("");
   const [empty, setEmpty] = useState(false);
   const labelId = useId();
-  const message = empty ? t(kind === "recovery" ? "mfa.emptyRecovery" : "mfa.empty") : wrong;
+  const emptyKey = kind === "recovery" ? "mfa.emptyRecovery" : "mfa.empty";
+  const message = empty ? t(emptyKey) : wrong;
 
-  function submit(e: FormEvent<HTMLFormElement>) {
+  function submit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setEmpty(!code.trim());
     if (code.trim()) onVerify(code.trim());

@@ -46,7 +46,7 @@ export function TestStep({
   test,
   onTest,
   onUpdate,
-}: {
+}: Readonly<{
   connection: SamlConnection;
   idp: IdpKind;
   idpName: string;
@@ -54,7 +54,7 @@ export function TestStep({
   test: SamlTestSignIn | null;
   onTest: (test: SamlTestSignIn) => void;
   onUpdate: () => void;
-}) {
+}>) {
   const { t } = useTranslation("enterpriseSetup");
   const [checks, setChecks] = useState<SamlTestResult | null>(null);
   const [waiting, setWaiting] = useState(false);
